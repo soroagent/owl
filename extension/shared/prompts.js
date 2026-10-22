@@ -17,7 +17,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'save', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -192,6 +192,75 @@
     return topics.slice(0, 5);
   }
 
+  // What kind of page this is, from the page's own metadata (schema.org JSON-LD types, og:type) and
+  // the site profile, so suggested questions fit it: how a product works, the background of a news
+  // story, the solution in a thread… Each kind comes with what a curious reader would want to know.
+  const PAGE_KINDS = {
+    product: 'a product page in an online store. The reader is deciding whether to buy: how it works, who it suits, what buyers praise or complain about, how it compares, what is included and what it really costs.',
+    news: 'a news story. The reader wants the background, the main people and organizations involved and their roles, why it matters, what happened before and what may happen next.',
+    video: 'a video page. The reader wants what the video covers, its main claims or steps, and whether it is worth watching.',
+    thread: 'a discussion thread. The reader wants the consensus, the strongest arguments on each side, the best answer or tip, and what remains unresolved.',
+    question: 'a Q&A page. The reader wants the accepted or best solution, why it works, caveats, and alternatives.',
+    code: 'a code repository, issue or pull request. The reader wants what it does, how to use it, its status and what is blocking it.',
+    docs: 'technical documentation. The reader wants how to do the task, the key concepts, a minimal example and common pitfalls.',
+    recipe: 'a recipe. The reader wants the steps, timing, substitutions and what could go wrong.',
+    reference: 'a reference or encyclopedia article. The reader wants the essentials, the history, the key figures and how it connects to related topics.',
+    profile: 'a profile of a person or organization. The reader wants who they are, what they are known for and their recent work.',
+    article: 'an article or blog post. The reader wants the main argument, the evidence behind it, what is debatable and where to go deeper.',
+    page: 'a web page. The reader wants what it is about, the key points and what to look into next.',
+  };
+  const LD_KINDS = [
+    [/^(product|productgroup|offer|aggregateoffer|car|book)$/, 'product'],
+    [/^(newsarticle|reportagenewsarticle|analysisnewsarticle|liveblogposting|backgroundnewsarticle)$/, 'news'],
+    [/^(videoobject)$/, 'video'],
+    [/^(qapage|question)$/, 'question'],
+    [/^(discussionforumposting|socialmediaposting)$/, 'thread'],
+    [/^(recipe)$/, 'recipe'],
+    [/^(techarticle|apireference|howto)$/, 'docs'],
+    [/^(softwaresourcecode|softwareapplication)$/, 'code'],
+    [/^(profilepage|person|organization)$/, 'profile'],
+    [/^(article|blogposting|scholarlyarticle|report)$/, 'article'],
+  ];
+  const SITE_KINDS = { amazon: 'product', news: 'news', youtube: 'video', reddit: 'thread', hackernews: 'thread', x: 'thread', stackoverflow: 'question', github: 'code', wikipedia: 'reference', linkedin: 'profile' };
+
+  /**
+   * Pure: the kind of page, for suggested questions. info: { ldTypes: [schema.org @type…], ogType,
+   * siteId, pageType (the site profile's pageInfo().type), url }. Returns { kind, describe }.
+   */
+  function pageKind({ ldTypes = [], ogType = '', siteId = '', pageType = '', url = '' } = {}) {
+    const types = ldTypes.map((t) => String(t).toLowerCase().replace(/^https?:\/\/schema\.org\//, ''));
+    let kind = '';
+    // The page's own description of itself wins, in this order (a product page also has an Organization).
+    for (const [re, k] of LD_KINDS) if (!kind && types.some((t) => re.test(t))) kind = k;
+    if (!kind && /^(product|og:product)/i.test(ogType)) kind = 'product';
+    if (!kind && /video/i.test(ogType)) kind = 'video';
+    if (!kind && ['thread', 'question', 'video', 'repo', 'profile', 'user'].includes(pageType)) kind = { repo: 'code', user: 'profile' }[pageType] || pageType;
+    if (!kind && SITE_KINDS[siteId]) kind = SITE_KINDS[siteId];
+    if (!kind && /\/(docs?|documentation|reference|api|guide|manual)(\/|$)/i.test(url)) kind = 'docs';
+    if (!kind && /\/(dp|gp\/product|product|products|item|itm|p)\/[^/]+/i.test(url)) kind = 'product';
+    if (!kind && /article/i.test(ogType)) kind = 'article';
+    kind = kind || 'page';
+    return { kind, describe: PAGE_KINDS[kind] };
+  }
+
+  /** Pure: suggested questions from the model's JSON reply (3 to 4 short, distinct questions). */
+  function parseQuestions(text) {
+    const json = parseJsonLoose(text) || {};
+    const list = Array.isArray(json) ? json : Array.isArray(json.questions) ? json.questions : [];
+    const seen = new Set();
+    const out = [];
+    for (const item of list) {
+      let q = String((item && (item.question || item.q)) || item || '').replace(/\s+/g, ' ').replace(/^(?:\d+[.)]\s+|[-*•]\s*)/, '').replace(/^["']+|["']+$/g, '').trim();
+      if (q.length < 8 || q.length > 110) continue;
+      if (!/[?.!]$/.test(q)) q += '?';
+      if (!seen.has(q.toLowerCase())) {
+        seen.add(q.toLowerCase());
+        out.push(q);
+      }
+    }
+    return out.slice(0, 4);
+  }
+
   // Markers the page leaves in background-job prompts for text only known while the job runs
   // (the finished summary, the web sources, the search query).
   const JOB_PLACEHOLDERS = Object.freeze({ summary: '@@SOROAGENT_SUMMARY@@', sources: '@@SOROAGENT_SOURCES@@', query: '@@SOROAGENT_QUERY@@' });
@@ -212,5 +281,7 @@
     parseJsonLoose,
     parseSnippetMeta,
     parseTopics,
+    pageKind,
+    parseQuestions,
   });
 })(globalThis);

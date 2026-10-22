@@ -81,6 +81,7 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `save` | Labels each auto-saved summary (and saved selections): title, summary and tags | JSON `{ "title", "summary", "tags" }` |
 | `synthesize` | **Ask your library**: answers from the user's saved notes. `{{content}}` is the numbered notes ([S1]…), `{{question}}` the question, `{{context}}` the time range. Must separate *From your sources* from *My interpretation* | Markdown |
 | `deliverable` | **Ask your library → Create**: a research brief, decision record, study guide or draft from the notes. `{{question}}` says what to make, `{{context}}` gives its format | Markdown |
+| `questions` | Suggested questions on the panel's opening screen, written for the page (`{{context}}` = what kind of page it is). Sent in quick mode: no long thinking | JSON `{ "questions": [] }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
 | `research` | **Research**, step 2: the cited brief. `{{question}}` is the query, `{{content}}` the numbered web sources, `{{context}}` what the user already read | Markdown |

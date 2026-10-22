@@ -203,6 +203,13 @@ header {
 }
 .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
 .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.suggest-head { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 300px; margin-top: 12px; font-size: 11.5px; }
+.suggest-head + .suggest { margin-top: 6px; }
+.suggest-head button { border: none; background: none; padding: 0; color: var(--accent); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.suggest-head button:hover { text-decoration: underline; }
+.suggest .ghost { height: 34px; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(90deg, var(--bg-soft) 0%, var(--border) 50%, var(--bg-soft) 100%); background-size: 200% 100%; animation: soro-shimmer 1.4s linear infinite; }
+@keyframes soro-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .suggest .ghost { animation: none; } }
 .empty-hint { margin: 10px 0 0; font-size: 12px; }
 
 .msg { max-width: 100%; overflow-wrap: anywhere; }

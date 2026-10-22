@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'pageQuestions', 'autoBackup', 'captureLabel', 'semanticSearch'];
 
   let saved = { ...DEFAULT_SETTINGS }; // last saved settings, for fields this page doesn't show
   let hiddenSites = [];

@@ -59,3 +59,38 @@ test('research topics are short, distinct phrases from the model reply', async (
   assert.deepEqual(P.parseTopics('no json here'), []);
   assert.equal(P.parseTopics(JSON.stringify({ topics: ['1', '2', '3', '4', '5', '6', '7'] })).length, 5);
 });
+
+test('pageKind: the page describes itself (JSON-LD, og:type), then the site, then the URL', () => {
+  assert.equal(S.pageKind({ ldTypes: ['Organization', 'Product'] }).kind, 'product');
+  assert.equal(S.pageKind({ ldTypes: ['https://schema.org/NewsArticle'] }).kind, 'news');
+  assert.equal(S.pageKind({ ldTypes: ['BlogPosting'] }).kind, 'article');
+  assert.equal(S.pageKind({ ogType: 'product' }).kind, 'product');
+  assert.equal(S.pageKind({ siteId: 'reddit', pageType: 'thread' }).kind, 'thread');
+  assert.equal(S.pageKind({ siteId: 'github', pageType: 'repo' }).kind, 'code');
+  assert.equal(S.pageKind({ siteId: 'amazon' }).kind, 'product');
+  assert.equal(S.pageKind({ url: 'https://shop.example.com/products/blue-kettle' }).kind, 'product');
+  assert.equal(S.pageKind({ url: 'https://example.com/docs/install' }).kind, 'docs');
+  assert.equal(S.pageKind({}).kind, 'page');
+  assert.match(S.pageKind({ ldTypes: ['NewsArticle'] }).describe, /background.*main people/);
+  assert.match(S.pageKind({ ldTypes: ['Product'] }).describe, /how it works/);
+});
+
+test('parseQuestions keeps 2 to 4 short, distinct questions', () => {
+  const reply = '```json\n{"questions": ["1. What does the X200 kettle include?", "How does the auto shut-off work", "what does the x200 kettle include?", "Why?", "' + 'a'.repeat(140) + '", "Which kettles compare on price and noise?", "Is the warranty worth it?"]}\n```';
+  assert.deepEqual(S.parseQuestions(reply), [
+    'What does the X200 kettle include?',
+    'How does the auto shut-off work?',
+    'Which kettles compare on price and noise?',
+    'Is the warranty worth it?',
+  ]);
+  assert.deepEqual(S.parseQuestions('no json'), []);
+});
+
+test('the questions prompt gets the page and what kind of page it is', () => {
+  const messages = S.buildMessages('questions', S.pageVars({ title: 'Kettle', url: 'https://x.test/p', text: 'A kettle.' }, { context: S.pageKind({ ldTypes: ['Product'] }).describe }), {});
+  const user = messages.find((m) => m.role === 'user').content;
+  assert.match(user, /<page>\nA kettle\.\n<\/page>/);
+  assert.match(user, /This is a product page in an online store/);
+  assert.match(user, /"questions"/);
+  assert.doesNotMatch(user, /\{\{/);
+});

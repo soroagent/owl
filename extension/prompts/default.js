@@ -56,6 +56,23 @@ URL: {{url}}
 Return JSON: {"title": "a specific title, max 80 chars", "summary": "1-2 sentences with the key information", "tags": ["1 to 4 short lowercase topic tags"]}`,
     },
 
+    // Suggested questions on the panel's opening screen, written for this page. Asked with "quick"
+    // (no long thinking), so keep it short. {{context}} says what kind of page it is. Reply: JSON (keep this shape).
+    questions: {
+      system: `You suggest what a curious reader would ask next about the page they are on. Be fast and specific. Reply with JSON only.`,
+      user: `{{page}}
+
+This is {{context}}
+
+Write 4 questions this reader would want to ask an assistant about this exact page, in their own voice (first person, plain words). Make them:
+1. one to quickly grasp it (a short summary or the bottom line),
+2. one to understand it better (how it works, the background, who is involved, or what a term means, whichever fits this page),
+3. one that checks or questions it (what is missing, how reliable it is, the downsides or the other side),
+4. one that goes further (related research, comparisons, what to read or do next).
+Each question: at most 12 words, names concrete things from the page (product, people, places, terms), and can be answered from the page or a quick web search. No generic questions, no yes/no questions.
+Return JSON: {"questions": ["...", "...", "...", "..."]}`,
+    },
+
     // Research, step 0: topics the reader can pick from before researching. Reply: JSON (keep this shape).
     researchTopics: {
       system: `You pick research topics. Reply with JSON only.`,

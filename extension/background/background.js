@@ -158,6 +158,7 @@
           api,
           messages: msg.messages,
           json: Boolean(msg.json),
+          quick: Boolean(msg.quick),
           signal: controller.signal,
           onToken: (token) => post({ type: 'token', text: token }),
           onThinking: () => {

@@ -100,6 +100,7 @@
           <span class="empty-mark">${OWL_MARK}</span>
           <strong>How can I help with this page?</strong>
           <span class="empty-note">Runs on the model served at your local URL. Nothing leaves your machine.</span>
+          <div class="suggest-head" hidden><span class="suggest-label"></span><button type="button" class="suggest-more">New questions</button></div>
           <div class="suggest" role="group" aria-label="Suggested questions">
             <button type="button" data-ask="What are the key points of this page?">What are the key points?</button>
             <button type="button" data-ask="Explain this page simply, as if I'm new to the topic.">Explain it simply</button>
@@ -125,6 +126,8 @@
     statusText: $('.status-text'),
     where: $('.where'),
     emptyNote: $('.empty-note'),
+    suggest: $('.suggest'),
+    suggestHead: $('.suggest-head'),
     model: $('.model'),
     menuBtn: $('.menu-btn'),
     menu: $('.menu'),
@@ -299,7 +302,7 @@
   }
 
   /** Streams a completion from the model. Resolves with the full text. */
-  function runChat({ messages, json = false, onToken, onThinking, signal }) {
+  function runChat({ messages, json = false, quick = false, onToken, onThinking, signal }) {
     return new Promise((resolve, reject) => {
       const port = ext.runtime.connect({ name: 'llm' });
       let settled = false;
@@ -333,7 +336,7 @@
       if (signal) {
         signal.addEventListener('abort', () => finish(reject, Object.assign(new Error('Stopped.'), { name: 'AbortError' })), { once: true });
       }
-      port.postMessage({ type: 'chat', messages, json, model: els.model.value || '' });
+      port.postMessage({ type: 'chat', messages, json, quick, model: els.model.value || '' });
     });
   }
 
@@ -393,6 +396,7 @@
       els.model.title = `${status.model} via ${via} at ${status.baseUrl}`;
       setStatus('ready', status.model);
       maybeSuggestModels(status);
+      if (isOpen()) suggestQuestions();
     } catch (err) {
       setStatus('offline', 'Offline');
       // First run: a friendly setup right in the chat instead of an error.
@@ -986,6 +990,7 @@
   // back with "Back to the conversation" or the next message.
   function showHome() {
     els.empty.hidden = false;
+    suggestQuestions();
     els.thread.classList.add('home');
     els.empty.querySelector('.back-to-chat').hidden = !els.thread.querySelector('.msg, .card, .cached');
     els.thread.scrollTop = 0;
@@ -996,6 +1001,79 @@
   }
 
 
+
+  // Suggested questions on the opening screen, written for this page by the model in quick mode (no
+  // long thinking) from the page's text and what kind of page it is: how a product works, the
+  // background of a news story, the solution in a thread… Shimmering placeholders show while they're
+  // written; the standard questions stay if the model is offline, the page has little text, or the
+  // reader turned this off. Kept per URL, so reopening the panel doesn't ask again.
+  const STANDARD_QUESTIONS = [...els.suggest.querySelectorAll('[data-ask]')].map((b) => ({ ask: b.dataset.ask, label: b.textContent }));
+  const suggested = { url: '', cache: new Map(), runs: 0 };
+
+  // The page's own description of itself: schema.org JSON-LD types and og:type.
+  function pageMeta() {
+    const ldTypes = [];
+    const collect = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) return node.forEach(collect);
+      [].concat(node['@type'] || []).forEach((t) => ldTypes.push(String(t)));
+      if (node['@graph']) collect(node['@graph']);
+      if (node.mainEntity) collect(node.mainEntity);
+    };
+    for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+      try {
+        collect(JSON.parse(script.textContent));
+      } catch {
+        // malformed JSON-LD is common; ignore it
+      }
+    }
+    const og = document.querySelector('meta[property="og:type"]');
+    return { ldTypes, ogType: (og && og.content) || '', siteId: state.site.id || '', pageType: pageInfo().type, url: location.href };
+  }
+
+  function renderQuestions(list, label = '') {
+    els.suggest.replaceChildren(...list.map((q) => el('button', { type: 'button', textContent: q.label || q })));
+    els.suggest.querySelectorAll('button').forEach((b, i) => (b.dataset.ask = list[i].ask || list[i]));
+    els.suggestHead.hidden = !label;
+    els.suggestHead.querySelector('.suggest-label').textContent = label;
+    els.suggestHead.querySelector('.suggest-more').hidden = label !== 'Suggested for this page';
+  }
+
+  async function suggestQuestions(force = false) {
+    const url = location.href;
+    if (!state.settings.pageQuestions) return renderQuestions(STANDARD_QUESTIONS);
+    if (!force && suggested.cache.has(url)) return renderQuestions(suggested.cache.get(url), 'Suggested for this page');
+    if (state.status !== 'ready' || els.empty.hidden || state.busy) return;
+    if (!force && suggested.url === url) return; // already writing them
+    const page = sitePage(4000);
+    if (!page.text || page.text.length < 200) return renderQuestions(STANDARD_QUESTIONS);
+    suggested.url = url;
+    const run = ++suggested.runs;
+    els.suggest.replaceChildren(...[0, 1, 2, 3].map(() => el('div', { className: 'ghost' })));
+    els.suggestHead.hidden = false;
+    els.suggestHead.querySelector('.suggest-label').textContent = 'Reading the page for questions…';
+    els.suggestHead.querySelector('.suggest-more').hidden = true;
+    try {
+      const kind = S.pageKind(pageMeta());
+      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(page, { context: kind.describe }), sitePrompts()), json: true, quick: true });
+      const questions = S.parseQuestions(S.stripThinking(reply));
+      if (run !== suggested.runs) return; // the page changed meanwhile
+      if (questions.length < 2) throw new Error('No questions');
+      suggested.cache.set(url, questions);
+      if (suggested.cache.size > 30) suggested.cache.delete(suggested.cache.keys().next().value);
+      if (location.href === url) renderQuestions(questions, 'Suggested for this page');
+    } catch (err) {
+      if (run === suggested.runs) {
+        suggested.url = '';
+        renderQuestions(STANDARD_QUESTIONS);
+      }
+    }
+  }
+  els.suggestHead.querySelector('.suggest-more').addEventListener('click', () => {
+    suggested.cache.delete(location.href);
+    suggested.url = '';
+    suggestQuestions(true);
+  });
 
   // Passive capture saved this page: the owl says so on hover.
   S.onCaptured = () => {
@@ -1451,6 +1529,7 @@
     state.pageContext = null;
     renderSiteBar();
     showPendingSummaries();
+    if (isOpen()) suggestQuestions();
   }, 800);
 
   // ---------------------------------------------------------------------------
@@ -1467,6 +1546,7 @@
       launcherCtl.placePanel();
       findRelated();
       if (state.status !== 'ready') connect();
+      else suggestQuestions();
     }
     if (focus) els.input.focus({ preventScroll: true });
   }

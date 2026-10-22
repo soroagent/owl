@@ -207,3 +207,17 @@ test('cloud errors explain bad keys and rate limits', async () => {
   const offline = fakeFetch({});
   await assert.rejects(S.listModels(cloud('mistral'), offline.fetch), (err) => err.code === 'unreachable' && /internet/.test(err.hint));
 });
+
+test('quick requests (suggested questions) skip long thinking and keep the reply short', async () => {
+  const ollama = fakeFetch({ 'http://127.0.0.1:11434/api/chat': { lines: [JSON.stringify({ message: { content: '{}' }, done: true })] } });
+  await S.chat({ connection: { ...local(), allowThinking: true }, api: 'ollama', messages: [{ role: 'user', content: 'q' }], json: true, quick: true }, ollama.fetch);
+  assert.equal(ollama.calls[0].body.think, false, 'no thinking even when thinking is allowed');
+  assert.equal(ollama.calls[0].body.options.num_predict, 400);
+
+  const ev = (obj) => `data: ${JSON.stringify(obj)}`;
+  const claude = fakeFetch({ 'https://api.anthropic.com/v1/messages': { lines: [ev({ type: 'message_stop' })] } });
+  const conn = { ...cloud('anthropic', 'sk-ant', { cloudModels: { anthropic: 'claude-opus-5-5' } }), allowThinking: true };
+  await S.chat({ connection: conn, messages: [{ role: 'user', content: 'q' }], quick: true }, claude.fetch);
+  assert.deepEqual(claude.calls[0].body.output_config, { effort: 'low' });
+  assert.equal(claude.calls[0].body.max_tokens, 2048);
+});

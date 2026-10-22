@@ -22,6 +22,7 @@ soroagent sits beside every page as a small owl and does three things:
 ## Features
 
 ### Understand any page
+- **Questions written for the page.** Open the owl and it suggests four questions that fit what you're reading: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Your model writes them in a few seconds in a quick mode (no long thinking). Turn it off in Settings → On the page.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
 - **Ask** anything about the page. Questions about soroagent itself ("where is my data stored?", "is this open source?") first ask whether you mean soroagent or the website, then get an accurate answer.
 - **Site profiles** read each site's structure before the AI sees it:
@@ -100,12 +101,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.26.1**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.27.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.26.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.26.1.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.26.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.26.1.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.27.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.27.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.27.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.27.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

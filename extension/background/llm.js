@@ -286,19 +286,19 @@
   const CLAUDE_EFFORT = /^claude-(opus|sonnet|haiku|fable|mythos)-[5-9]|^claude-opus-4-[5-8]|^claude-sonnet-4-6/;
   const CLAUDE_FALLBACKS = /^claude-(fable-5-1|opus-5-5|opus-5|sonnet-5-5)$/;
 
-  function anthropicBody(conn, messages) {
+  function anthropicBody(conn, messages, quick = false) {
     const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
     const modern = CLAUDE_EFFORT.test(conn.model);
     const body = {
       model: conn.model,
-      max_tokens: modern ? 64000 : 8192,
+      max_tokens: quick ? 2048 : modern ? 64000 : 8192,
       stream: true,
       messages: messages.filter((m) => m.role !== 'system'),
     };
     if (system) body.system = system;
     // Current Claude models reject sampling parameters, so temperature is not sent.
     // These tasks are quick reads of a page; low effort keeps them fast unless thinking is allowed.
-    if (modern && !conn.allowThinking) body.output_config = { effort: 'low' };
+    if (modern && (quick || !conn.allowThinking)) body.output_config = { effort: 'low' };
     const headers = {};
     if (CLAUDE_FALLBACKS.test(conn.model)) {
       // If a safety classifier declines, the API retries on a fallback model in the same call.
@@ -310,11 +310,12 @@
 
   /**
    * Streams a chat completion. Resolves with the full reply text (reasoning removed).
-   * opts: { connection, api, messages, json, signal, onToken(text), onThinking() }
+   * opts: { connection, api, messages, json, quick, signal, onToken(text), onThinking() }
+   * `quick`: a short answer wanted fast (suggested questions): no extended thinking, a small output.
    * `api` is the resolved wire format for local "auto" connections.
    */
   async function chat(opts, fetchImpl = root.fetch.bind(root)) {
-    const { connection: conn, messages, json, signal, onToken, onThinking } = opts;
+    const { connection: conn, messages, json, quick, signal, onToken, onThinking } = opts;
     checkConnection(conn);
     const baseUrl = normalizeBaseUrl(conn.baseUrl);
     const api = opts.api || (conn.api === 'auto' ? 'ollama' : conn.api);
@@ -332,12 +333,13 @@
         stream: true,
         options: { temperature: conn.temperature, num_ctx: conn.contextWindow },
       };
-      if (!conn.allowThinking) body.think = false;
+      if (!conn.allowThinking || quick) body.think = false;
+      if (quick) body.options.num_predict = 400;
       if (json) body.format = 'json';
       parse = parseOllamaLine;
     } else if (api === 'anthropic') {
       url = `${baseUrl}/messages`;
-      ({ body, headers: extraHeaders } = anthropicBody(conn, messages));
+      ({ body, headers: extraHeaders } = anthropicBody(conn, messages, quick));
       parse = parseAnthropicLine;
     } else {
       url = `${openaiRoot(conn, baseUrl)}/chat/completions`;
