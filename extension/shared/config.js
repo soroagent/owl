@@ -40,6 +40,7 @@
     panelHeight: 600,
     allowThinking: false,
     showLauncher: true,
+    preparePages: true, // summarize each page in the background on visit and prepare questions from it
     pageQuestions: true, // suggested questions written for each page by the model when the panel opens
     launcherPosition: 'auto', // 'auto' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     launcherPlacements: {}, // hostname -> { side: 'left' | 'right', y: 0..1 } after the user drags the button

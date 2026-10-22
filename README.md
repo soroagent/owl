@@ -22,7 +22,8 @@ soroagent sits beside every page as a small owl and does three things:
 ## Features
 
 ### Understand any page
-- **Questions written for the page.** Open the owl and it suggests four questions that fit what you're reading: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Your model writes them in a few seconds in a quick mode (no long thinking). Turn it off in Settings → On the page.
+- **Ready before you ask.** A few seconds after you open a page, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Open the owl and the questions are there; click Summarize and the summary appears at once. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. Turn it off in Settings → On the page.
+- **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
 - **Ask** anything about the page. Questions about soroagent itself ("where is my data stored?", "is this open source?") first ask whether you mean soroagent or the website, then get an accurate answer.
 - **Site profiles** read each site's structure before the AI sees it:
@@ -101,12 +102,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.27.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.28.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.27.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.27.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.27.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.27.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.28.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.28.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.28.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.28.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

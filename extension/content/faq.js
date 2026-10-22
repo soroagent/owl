@@ -29,7 +29,7 @@
    */
   function ownAnswer(topic, ctx = {}) {
     const model = ctx.cloud
-      ? `**Your AI model:** you're using **${ctx.providerLabel || 'a cloud AI'}** with your own key. When you summarize, ask or research (and when you open the panel, to suggest questions for the page, unless that's off in Settings), the page text and your question go to ${ctx.providerLabel || 'that provider'} to get an answer, and their privacy policy applies. Nothing goes to soroagent.`
+      ? `**Your AI model:** you're using **${ctx.providerLabel || 'a cloud AI'}** with your own key. When you summarize, ask or research (and, unless you turn it off in Settings → On the page, a few seconds after you open a page, to prepare its summary and questions), the page text and your question go to ${ctx.providerLabel || 'that provider'} to get an answer, and their privacy policy applies. Nothing goes to soroagent.`
       : '**Your AI model:** you\'re using a model on your own computer, so page text and your questions never leave this machine.';
     const local = [
       'Everything soroagent keeps (your snippets, screenshots, summary history and settings) is stored **in this browser on your computer**.',

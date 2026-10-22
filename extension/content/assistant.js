@@ -33,6 +33,7 @@
     stop: svg('<rect x="7" y="7" width="10" height="10" rx="1.5"/>', 'currentColor'),
     check: svg('<path d="M20 6 9 17l-5-5"/>'),
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
+    refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -75,6 +76,7 @@
         <button class="icon-btn home-btn" type="button" aria-label="Home" title="Home">${ICONS.home}</button>
         <button class="icon-btn" type="button" data-action="screenshot" aria-label="Screenshot" title="Screenshot: keep what you see in your snippets">${ICONS.camera}</button>
         <button class="icon-btn" type="button" data-action="page-history" aria-label="History of this page" title="History: what you saved from this page before">${ICONS.history}</button>
+        <button class="icon-btn refresh-btn" type="button" data-action="refresh" aria-label="Refresh the summary with new posts" hidden>${ICONS.refresh}<span class="new-count" hidden></span></button>
         <button class="icon-btn menu-btn" type="button" aria-label="More options" aria-haspopup="menu">${ICONS.more}</button>
         <button class="icon-btn close-btn" type="button" aria-label="Close soroagent">${ICONS.close}</button>
         <div class="menu" role="menu" hidden>
@@ -127,6 +129,7 @@
     where: $('.where'),
     emptyNote: $('.empty-note'),
     suggest: $('.suggest'),
+    refresh: $('.refresh-btn'),
     suggestHead: $('.suggest-head'),
     model: $('.model'),
     menuBtn: $('.menu-btn'),
@@ -651,6 +654,9 @@
   // ---------------------------------------------------------------------------
 
   function summarize({ fresh = false } = {}) {
+    // Prepared on visit: shown at once. On X, new posts since then → prepare again with all of them.
+    if (!fresh && isX() && prep.url === location.href && prep.status === 'done' && newPostCount() > 0) return refreshPrepared();
+    if (!fresh && preparedReady()) return usePrepared();
     const site = items();
     if (site && site.isFeed && site.isFeed(pageInfo())) return summarizeFeed({ fresh });
     if (site) {
@@ -1031,6 +1037,13 @@
     return { ldTypes, ogType: (og && og.content) || '', siteId: state.site.id || '', pageType: pageInfo().type, url: location.href };
   }
 
+  function showQuestionPlaceholders(label) {
+    els.suggest.replaceChildren(...[0, 1, 2, 3].map(() => el('div', { className: 'ghost' })));
+    els.suggestHead.hidden = false;
+    els.suggestHead.querySelector('.suggest-label').textContent = label;
+    els.suggestHead.querySelector('.suggest-more').hidden = true;
+  }
+
   function renderQuestions(list, label = '') {
     els.suggest.replaceChildren(...list.map((q) => el('button', { type: 'button', textContent: q.label || q })));
     els.suggest.querySelectorAll('button').forEach((b, i) => (b.dataset.ask = list[i].ask || list[i]));
@@ -1042,6 +1055,17 @@
   async function suggestQuestions(force = false) {
     const url = location.href;
     if (!state.settings.pageQuestions) return renderQuestions(STANDARD_QUESTIONS);
+    // Prepared on visit (from the page's summary): ready, being written, or started now.
+    if (!force && state.settings.preparePages && preparable()) {
+      if (prep.url === url && prep.status === 'done' && prep.questions.length >= 2) return renderQuestions(prep.questions, 'Suggested for this page');
+      if (prep.url === url && prep.status === 'working') return showQuestionPlaceholders(isX() ? 'Reading the posts for questions…' : 'Reading the page for questions…');
+      if (prep.url !== url || prep.status === 'idle') {
+        renderQuestions(STANDARD_QUESTIONS);
+        preparePage(); // the panel was opened before preparing started
+        return;
+      }
+      // Preparing failed or found no questions: ask for them directly below.
+    }
     if (!force && suggested.cache.has(url)) return renderQuestions(suggested.cache.get(url), 'Suggested for this page');
     if (state.status !== 'ready' || els.empty.hidden || state.busy) return;
     if (!force && suggested.url === url) return; // already writing them
@@ -1049,10 +1073,7 @@
     if (!page.text || page.text.length < 200) return renderQuestions(STANDARD_QUESTIONS);
     suggested.url = url;
     const run = ++suggested.runs;
-    els.suggest.replaceChildren(...[0, 1, 2, 3].map(() => el('div', { className: 'ghost' })));
-    els.suggestHead.hidden = false;
-    els.suggestHead.querySelector('.suggest-label').textContent = 'Reading the page for questions…';
-    els.suggestHead.querySelector('.suggest-more').hidden = true;
+    showQuestionPlaceholders('Reading the page for questions…');
     try {
       const kind = S.pageKind(pageMeta());
       const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(page, { context: kind.describe }), sitePrompts()), json: true, quick: true });
@@ -1074,6 +1095,205 @@
     suggested.url = '';
     suggestQuestions(true);
   });
+
+  // ---------------------------------------------------------------------------
+  // Prepared on visit: a summary of the page and the questions that follow from it
+  // ---------------------------------------------------------------------------
+  // A few seconds after a page comes to the front, the model summarizes it in the background and,
+  // from that summary, writes the questions the reader is likely to have. Opening the owl shows the
+  // questions at once, and Summarize shows the summary at once (then saves it like any other).
+  // Nothing is saved unless the reader acts. Never on sensitive pages (mail, banking, sign-in,
+  // checkout…, the same rules as passive capture), on pages with little text, or when Settings →
+  // On the page → "Prepare a summary and questions" is off.
+  // X keeps loading posts as you scroll: a watcher collects every post that appears on the URL,
+  // and the refresh button (showing how many are new) prepares again with all of them.
+  const PREPARE_DELAY = 4000;
+  const prep = { url: '', status: 'idle', summary: '', questions: [], ids: new Set(), label: '', print: '', kind: 'page', run: 0, timer: 0 };
+  const xPosts = new Map(); // X: posts seen on this URL (id -> post), in the order they appeared
+  let xPostsUrl = '';
+
+  const isX = () => state.site.id === 'x' && Boolean(items());
+
+  function preparable() {
+    if (!S.capture || !S.capture.captureAllowed) return true;
+    const hasPassword = Boolean(document.querySelector('input[type="password"]'));
+    return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity }, state.settings.captureExclude || []).ok;
+  }
+
+  function collectXPosts() {
+    if (xPostsUrl !== location.href) {
+      xPosts.clear();
+      xPostsUrl = location.href;
+    }
+    for (const post of items().visible(document, siteOptions())) {
+      if (xPosts.has(post.id)) continue;
+      const { el: _node, ...data } = post; // keep the data, not the DOM node (X recycles them)
+      xPosts.set(post.id, data);
+    }
+  }
+
+  // What to prepare from: the page's text, or on X every post loaded so far (the most recent ones
+  // that fit the page-text limit).
+  function preparedContent() {
+    if (isX()) {
+      collectXPosts();
+      const site = items();
+      const all = [...xPosts.values()];
+      const budget = maxChars();
+      const list = [];
+      let size = 0;
+      for (let i = all.length - 1; i >= 0; i--) {
+        const length = site.format([all[i]]).length + 2;
+        if (list.length && size + length > budget) break;
+        list.unshift(all[i]);
+        size += length;
+      }
+      if (!list.length) return null;
+      const noun = site.noun || 'posts';
+      return {
+        page: { title: document.title, url: location.href, text: site.format(list) },
+        context: `${pageInfo().context || ''} These are the ${list.length} ${noun} loaded on the page so far.`.trim(),
+        count: list.length,
+        ids: new Set(all.map((p) => p.id)),
+        label: `Summarize ${list.length} loaded ${noun}`,
+        kind: 'items',
+      };
+    }
+    const page = sitePage();
+    if (!page.text || page.text.length < 500) return null;
+    return { page, context: pageInfo().context || '', count: '', ids: new Set(), label: 'Summarize this page', kind: 'page' };
+  }
+
+  /** Summarizes the page, then writes questions from the summary. explicit: the reader asked (refresh). */
+  async function preparePage({ explicit = false } = {}) {
+    const url = location.href;
+    if (!state.settings.onboarded) return; // no AI set up yet
+    if (!explicit && (!state.settings.preparePages || (prep.url === url && prep.status !== 'idle'))) return;
+    if (!preparable()) return;
+    const content = preparedContent();
+    if (!content) return;
+    const run = ++prep.run;
+    Object.assign(prep, { url, status: 'working', summary: '', questions: [], ids: content.ids, label: content.label, kind: content.kind, print: fingerprint(`${url}\n${content.page.text}`) });
+    updateRefresh();
+    if (isOpen()) suggestQuestions();
+    try {
+      const prompts = sitePrompts();
+      const summary = S.stripThinking(await runChat({ messages: S.buildMessages('summarize', S.pageVars(content.page, { context: content.context, count: content.count }), prompts) })).trim();
+      if (run !== prep.run) return;
+      if (!summary) throw new Error('Empty summary');
+      prep.summary = summary;
+      const kind = S.pageKind(pageMeta());
+      const fromSummary = { ...content.page, text: `Summary of the page:\n${summary}` };
+      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(fromSummary, { context: kind.describe }), prompts), json: true, quick: true });
+      if (run !== prep.run) return;
+      prep.questions = S.parseQuestions(S.stripThinking(reply));
+      prep.status = 'done';
+    } catch (err) {
+      if (run !== prep.run) return;
+      prep.status = prep.summary ? 'done' : 'error';
+      console.warn('[soroagent] Preparing this page failed:', err.message || err);
+    }
+    if (location.href !== url) return;
+    updateRefresh();
+    if (isOpen()) suggestQuestions();
+  }
+
+  // Starts preparing a few seconds after the page is in front (not for tabs opened in the background).
+  function schedulePrepare() {
+    clearTimeout(prep.timer);
+    prep.timer = 0;
+    if (prep.url && prep.url !== location.href) {
+      prep.run++; // a reply for the old URL is ignored
+      Object.assign(prep, { url: '', status: 'idle', summary: '', questions: [], ids: new Set() });
+      updateRefresh();
+    }
+    if (!state.settings.preparePages || document.visibilityState !== 'visible' || prep.url === location.href) return;
+    prep.timer = setTimeout(() => {
+      prep.timer = 0;
+      preparePage();
+    }, PREPARE_DELAY);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') schedulePrepare();
+    else {
+      clearTimeout(prep.timer);
+      prep.timer = 0;
+    }
+  });
+
+  function preparedReady() {
+    if (prep.url !== location.href || prep.status !== 'done' || !prep.summary) return false;
+    if (isX()) return newPostCount() === 0;
+    return fingerprint(`${location.href}\n${sitePage().text}`) === prep.print; // the page hasn't changed
+  }
+
+  // The prepared summary as the reply to Summarize, saved to the history and snippets like any other.
+  function usePrepared() {
+    return runTask(async (signal) => {
+      addUserMessage(prep.label);
+      await runSummaryJob({ label: prep.label, kind: prep.kind, fingerprint: prep.print, final: [], preset: prep.summary }, { signal, reply: addAssistantMessage() });
+    });
+  }
+
+  // X: prepare again with every post loaded so far, then show the new summary.
+  async function refreshPrepared() {
+    if (prep.status === 'working' && prep.url === location.href) return;
+    if (!isOpen()) openPanel({ focus: false });
+    await preparePage({ explicit: true });
+    if (prep.url === location.href && prep.status === 'done' && prep.summary) usePrepared();
+    else append(card({ title: 'Couldn\'t refresh the summary.', body: 'No posts found yet, or the model is busy. Try again in a moment.' }));
+  }
+
+  function newPostCount() {
+    if (!isX() || prep.url !== location.href || prep.status === 'idle') return 0;
+    let n = 0;
+    for (const id of xPosts.keys()) if (!prep.ids.has(id)) n++;
+    return n;
+  }
+
+  function updateRefresh() {
+    const button = els.refresh;
+    button.hidden = !isX();
+    if (button.hidden) return;
+    const working = prep.status === 'working' && prep.url === location.href;
+    const n = newPostCount();
+    const badge = button.querySelector('.new-count');
+    badge.hidden = !n || working;
+    badge.textContent = n > 99 ? '99+' : String(n);
+    button.classList.toggle('spin', working);
+    button.title = working
+      ? 'Reading the posts…'
+      : n
+        ? `${n} new ${n === 1 ? 'post' : 'posts'} loaded since the summary: refresh the summary and questions`
+        : 'Refresh the summary and questions with the posts loaded now';
+  }
+  els.refresh.addEventListener('click', refreshPrepared);
+
+  // X: watch the page for posts as they load (throttled; the timeline changes constantly).
+  let xObserver = null;
+  let xTick = 0;
+  function watchX() {
+    if (!isX()) {
+      if (xObserver) xObserver.disconnect();
+      xObserver = null;
+      updateRefresh();
+      return;
+    }
+    if (xObserver) return;
+    xObserver = new MutationObserver(() => {
+      if (xTick) return;
+      xTick = setTimeout(() => {
+        xTick = 0;
+        if (!isX()) return;
+        collectXPosts();
+        updateRefresh();
+        // The timeline may load after the first try: prepare once posts are there.
+        if (prep.url !== location.href && !prep.timer && xPosts.size) schedulePrepare();
+      }, 800);
+    });
+    xObserver.observe(document.body, { childList: true, subtree: true });
+    updateRefresh();
+  }
 
   // Passive capture saved this page: the owl says so on hover.
   S.onCaptured = () => {
@@ -1529,6 +1749,8 @@
     state.pageContext = null;
     renderSiteBar();
     showPendingSummaries();
+    watchX();
+    schedulePrepare();
     if (isOpen()) suggestQuestions();
   }, 800);
 
@@ -1709,6 +1931,8 @@
     applySettings();
     applySiteOptions();
     showPendingSummaries();
+    watchX();
+    schedulePrepare();
   });
   updateControls();
 })();

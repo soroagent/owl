@@ -121,7 +121,8 @@
         if (notes.length) progress('Writing the summary…');
         if (notes.length) final = fillPlaceholder(final, spec.placeholder, notes.join('\n\n'));
         record.text = '';
-        const text = await runChat({
+        // A summary already written for this page (prepared on page visit) is just recorded.
+        const text = spec.preset ? spec.preset : await runChat({
           messages: final,
           model: record.model,
           signal: job.controller.signal,
@@ -136,6 +137,7 @@
             }
           },
         });
+        if (spec.preset) broadcast(job, { type: 'token', text });
         Object.assign(record, { text, status: 'done', statusText: '', finishedAt: new Date().toISOString(), seen: job.ports.size > 0 });
         // Every summary is kept as a snippet automatically; research is attached to its snippet.
         if (record.kind === 'research') await attachResearch(record, spec);
@@ -244,7 +246,7 @@
       record.snippetId = snippet.id;
     }
 
-    /** Starts a summary job. spec: { url, pageTitle, site, label, kind, fingerprint, model, notes, final, placeholder } */
+    /** Starts a summary job. spec: { url, pageTitle, site, label, kind, fingerprint, model, notes, final, placeholder, preset } */
     async function start(spec, port) {
       const record = {
         id: newId(),

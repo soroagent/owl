@@ -122,10 +122,19 @@ Features that send page text without the user clicking something need a Settings
   Overflow answers, Reddit/HN comment trees, GitHub issue state, X threads…) or `extract.js`, builds
   messages with `S.buildMessages(action, vars, sitePrompts())`, and streams through the `llm` port.
   Summaries run as background jobs (`jobs.js`).
-- **Suggested questions:** when the panel opens, `suggestQuestions()` sends the first 4,000 chars and
-  a page kind (`S.pageKind`: JSON-LD, og:type, site profile, URL → product, news, thread, docs…) to
-  the `questions` prompt with `quick: true` (no extended thinking, short output; `llm.js`). Cached per
-  URL. Falls back to the standard questions offline, on thin pages, or with `pageQuestions` off.
+- **Prepared on visit** (`preparePages`, on by default): 4 s after a page is in front, `preparePage()`
+  in `assistant.js` summarizes it (`summarize` prompt) and then writes questions from that summary
+  (`questions` prompt with `quick: true`: no extended thinking, short output; `llm.js`), using
+  `S.pageKind` (JSON-LD, og:type, site profile, URL → product, news, thread, docs…). Opening the panel
+  shows the questions; Summarize shows the prepared summary at once and saves it through a job with
+  `preset` (no second model call). Nothing is stored until the reader acts. Skipped on pages
+  `S.capture.captureAllowed` rejects (mail, banking, sign-in, checkout…), thin pages, or before setup.
+- **X refresh:** X loads posts as you scroll and recycles DOM nodes, so a throttled MutationObserver
+  collects every post seen on the URL (`xPosts`). The header's refresh button (X only) shows how many
+  are new since the prepared summary and prepares again with all of them (most recent that fit
+  `maxPageChars`). Other sites are static, so they get no watcher or button.
+- **Suggested questions without preparing** (`pageQuestions`): if preparing is off or failed, opening
+  the panel asks for questions from the page text directly. Standard questions are the last fallback.
 - **Library:** everything saved is labelled (title, summary, tags) by the model, indexed in
   `library.js`, related notes show on matching pages, and "Ask your library" answers with `[S#]`
   citations from `knowledge.js` formatting.

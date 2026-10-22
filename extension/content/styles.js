@@ -130,6 +130,14 @@ header {
   display: grid; place-items: center; color: var(--fg-muted); flex: none;
 }
 .icon-btn:hover { background: var(--bg-hover); color: var(--fg); }
+.refresh-btn { position: relative; }
+.refresh-btn .new-count {
+  position: absolute; top: -3px; right: -5px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px;
+  background: var(--spark); color: #1a1205; font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
+}
+.refresh-btn.spin svg { animation: soro-spin 0.9s linear infinite; }
+@keyframes soro-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refresh-btn.spin svg { animation: none; opacity: .5; } }
 .panel.resizing { transition: none; user-select: none; }
 
 /* Resize handles on the panel's free edges (set by launcher.js as data-edge-x / data-edge-y) */
