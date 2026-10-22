@@ -22,6 +22,6 @@ test('answers about soroagent reflect the actual setup', () => {
   const cloud = S.ownAnswer('data', { cloud: true, providerLabel: 'Anthropic (Claude)', autoBackup: false });
   assert.match(cloud, /go to Anthropic \(Claude\)/);
   assert.doesNotMatch(cloud, /Downloads/);
-  assert.match(S.ownAnswer('opensource'), /github\.com\/arjunmarri\/soroagent/);
+  assert.match(S.ownAnswer('opensource'), /github\.com\/soroagent\/owl/);
   assert.match(S.ownAnswer('opensource'), /MIT license/);
 });

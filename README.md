@@ -96,16 +96,16 @@ Answers come in two parts, **From your sources** (every claim cited [S1], [S2]�
 - **Opt-in only:** passive capture, sync and the Markdown folder are off until you turn them on, and only go where you point them.
 - **No tracking:** there are no soroagent accounts, servers, trackers or analytics.
 
-Read the full [privacy policy](https://arjunmarri.github.io/soroagent/privacy.html).
+Read the full [privacy policy](https://soroagent.github.io/owl/privacy.html).
 
 ## Download
 
-Current version: **v2.26.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.26.1**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.26.0.zip**](https://github.com/arjunmarri/soroagent/raw/main/downloads/soroagent-chrome-2.26.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.26.0.zip**](https://github.com/arjunmarri/soroagent/raw/main/downloads/soroagent-firefox-2.26.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.26.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.26.1.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.26.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.26.1.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

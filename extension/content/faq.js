@@ -40,7 +40,7 @@
     switch (topic) {
       case 'opensource':
         return [
-          '**About soroagent:** its code is on GitHub at [github.com/arjunmarri/soroagent](https://github.com/arjunmarri/soroagent), so anyone can read every line of what it does.',
+          '**About soroagent:** its code is on GitHub at [github.com/soroagent/owl](https://github.com/soroagent/owl), so anyone can read every line of what it does.',
           'Yes, it\'s **open source under the MIT license**: free to use, change and share. It\'s made by [soroagent.com](https://soroagent.com), and contributions are welcome.',
         ].join('\n\n');
       case 'keys':
