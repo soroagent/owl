@@ -14,8 +14,9 @@ library with citations, researches topics on the web, and syncs the library acro
 - **Brand:** always lowercase `soroagent`; owl colours green `#34D399` and orange `#F59E0B`.
 - **License:** MIT, © 2026 soroagent.com.
 - **Promise:** no soroagent servers, no accounts, no analytics. Everything lives in the user's browser.
-  The AI is either a model on the user's computer (Ollama, LM Studio, llama.cpp, Jan) or the user's
-  own cloud key (Anthropic, OpenAI, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, custom).
+  The AI is one of: inside the browser (Chrome's Gemini Nano, or Qwen2.5-1.5B via WebLLM on WebGPU),
+  a model server on the user's computer (Ollama, LM Studio, llama.cpp, Jan), or the user's own cloud
+  key (Anthropic, OpenAI, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, custom).
 
 ## Where things live
 
@@ -32,7 +33,8 @@ extension/
   manifest.json      base manifest; scripts/build.mjs derives the Chrome and Firefox ones
   background/        service worker (Chrome) / event page (Firefox); sw.js imports the files in order
     background.js    message router, menus, alarms, install/onboarding, wiring of everything below
-    llm.js           chat + model listing for Ollama, OpenAI-compatible and Anthropic wire formats
+    llm.js           chat + model listing for Ollama, OpenAI-compatible and Anthropic; "browser" → browserai.js
+    browserai.js     in-browser AI: Gemini Nano (Prompt API) and the WebLLM engine host + port client
     jobs.js          summaries/research run here, so they survive leaving the page
     library.js       library index: int8 embeddings ("vec:<id>") + BM25, fused with RRF
     research.js      web search (DuckDuckGo lite, Brave, Bing) + reading top results
@@ -50,7 +52,9 @@ extension/
   prompts/           every prompt as plain text (default.js + per-site overrides); see prompts/README.md
   shared/            loaded everywhere: config (settings, providers), prompts engine, snippets store,
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
-  pages/             options (Settings), onboard (first run), snippets, history, libchat (Ask your library)
+  pages/             options (Settings), onboard (first run; ?sync = sync setup), snippets, history,
+                     libchat (Ask your library), offscreen (Chrome: backup blobs + the WebLLM engine)
+  vendor/web-llm/    WebLLM 0.2.86 + the Qwen2.5-1.5B model library, vendored (README has sources/hashes)
 scripts/             build.mjs (manifests + zips, no deps), release.mjs, make-icons.mjs, try-prompt.mjs
 test/                node:test unit tests (no dependencies); test/helpers.mjs loads extension files
 downloads/           the released zips, one per browser, named with the version
@@ -66,8 +70,14 @@ bundler, no npm dependencies; the one third-party library, WebLLM, is vendored a
 `chrome.storage.local` keys: `settings`, `snippet:<id>` (library notes; kinds: summary, research,
 selection, page, deliverable, read, screenshot), `summary:<id>` (summary history), `vec:<id>`
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
-`backupState`. IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown
-folder handle. `storage.session` holds the Google access token.
+`backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
+IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
+`storage.session` holds the Google access token. WebLLM's weights live in the browser's Cache Storage.
+
+Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): `source` (`local` | `cloud` |
+`browser`), `browserEngine` (`nano` | `webllm`), `preparePages` (on), `pageQuestions` (on),
+`syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
+in-browser models via `S.pageCharLimit`).
 
 `shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 4). When a feature is
 removed, add a migration that converts or deletes its data (v3: wishlist → readlater; v4: readlater
@@ -87,7 +97,9 @@ npm run release -- minor
 git push owl soroagent-main:main           # local branch soroagent-main → soroagent/owl main
 ```
 
-Commit messages: `release: vX.Y.Z — <what changed>` with a short body.
+Commit messages: `release: vX.Y.Z — <what changed>` with a short body. The owner also edits on
+GitHub (README wording, the website move), so `git fetch owl` first and rebase onto `owl/main` if
+the push is rejected; keep their edits.
 
 ### Never change these (Google sign-in depends on them)
 - `keys/chrome-public-key.txt` → Chrome extension ID `jomghmmgdlajfonjihmagbhomimadpcg`.
@@ -111,7 +123,8 @@ Features that send page text without the user clicking something need a Settings
 
 ### Style
 - Code matches the surrounding code: small pure functions with a comment on top, unit tests for
-  anything pure, no new dependencies.
+  anything pure, no new dependencies. A third-party library is vendored as files only when there's no
+  other way (as WebLLM is), with its license and a README giving source and SHA-256.
 - User-facing text is plain and short; sentence case; no jargon. Say what happens to data.
 - Prompts live in `extension/prompts/`, never inline in code. JSON-returning prompts keep their
   documented shape (see `prompts/README.md`).
@@ -174,6 +187,15 @@ Features that send page text without the user clicking something need a Settings
 - Branded Chrome ignores `--load-extension`; use the CDP pipe as above. `chrome.runtime.reload()`
   under the pipe breaks extension pages (a harness quirk, not a bug).
 - Never complete a Google sign-in in tests; stop at the sign-in page and check the URL parameters.
+- Never start model downloads on the owner's machine without asking (Gemini Nano is several GB, the
+  WebLLM weights 880 MB, `ollama pull` several GB). To test WebLLM wiring, block `*huggingface.co*`
+  on the offscreen document's target (`Network.setBlockedURLs`) and check the engine loads from
+  `vendor/web-llm/` and requests the right model.
+- X needs a login: test against a stand-in page with X's markup (`article[data-testid="tweet"]`…)
+  served locally and mapped with `--host-resolver-rules="MAP x.com 127.0.0.1"`, with a function that
+  appends posts. Ollama's 403: a local server that always answers 403, set as the server URL.
+- The background worker can't `runtime.sendMessage` to itself; send test messages from an
+  extension page target instead.
 
 ## History of decisions
 
@@ -184,3 +206,12 @@ Features that send page text without the user clicking something need a Settings
 - "Summarize" (not "TL;DR"), "Save" (not "Read later"); screenshot and page history are icons.
 - Google Drive became the default sync because GitHub tokens and WebDAV were too hard for most
   users; a shared folder on disk can't work because Firefox extensions can't read files.
+- Sync is not part of first run: asking for Google access and a passphrase to sync an empty
+  library lost people. It's offered after 5 saved items.
+- First run configures an AI without questions when it can. The in-browser model's 880 MB download
+  is one click, not automatic, so nobody's data plan is used without consent.
+- The Ollama fix allows `chrome-extension://*,moz-extension://*`, not `*`, which would let every
+  website use the person's Ollama.
+- Preparing a summary and questions on every visit is on by default (the owner asked for it). With
+  a cloud key it sends each visited page to the provider; the Settings switch and privacy policy
+  say so. Revisit if cloud users find it surprising.
