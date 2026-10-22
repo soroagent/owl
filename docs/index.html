@@ -25,17 +25,16 @@ a { color: var(--accent); }
 a:hover { color: var(--accent-hover); }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 8px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 8px; }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--fg); text-decoration: none; }
 .brand img { width: 44px; height: 44px; border-radius: 11px; }
 .wordmark { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; }
 .wordmark span { color: var(--accent); }
-.nav { display: flex; align-items: center; gap: 4px; }
-.nav-link { color: var(--fg); text-decoration: none; font-weight: 500; font-size: 15px; padding: 10px 12px; border-radius: 10px; }
-.nav-link:hover { color: var(--accent); }
-.gh { color: var(--fg); width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
-.gh:hover { color: var(--accent); }
-.gh svg { width: 24px; height: 24px; fill: currentColor; }
+.nav { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+.nav-link { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 16px; border: 1px solid var(--card-border); border-radius: 999px; background: var(--bg); color: var(--fg); text-decoration: none; font-weight: 500; font-size: 15px; }
+.nav-link:hover { color: var(--accent); border-color: var(--accent); }
+.nav-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.badge-mark { fill: currentColor; flex: none; }
 .icon { flex: none; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 section { margin-top: 24px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 24px; padding: clamp(28px, 6vw, 56px); }
 section.hero { margin-top: 8px; }
@@ -102,6 +101,38 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 .h-steps span:not(.h-num) { color: var(--muted); font-size: 15px; }
 .h-num { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--soft); color: var(--accent); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
 .h-title .icon { stroke: var(--accent); }
+.d-stage { position: relative; min-height: 560px; }
+.d-page { padding: 24px 28px 96px; max-width: 520px; font-size: 15px; }
+.d-page h3 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+.d-page p { margin: 0 0 12px; color: var(--muted); }
+.d-page .d-by { font-size: 13px; margin-bottom: 16px; }
+.d-owl { position: absolute; right: 16px; bottom: 16px; width: 56px; height: 56px; padding: 6px; border-radius: 50%; border: 1px solid var(--card-border); background: var(--bg); box-shadow: 0 8px 20px rgba(0,0,0,.12); cursor: pointer; }
+.d-owl svg { width: 100%; height: 100%; display: block; }
+.d-owl:focus-visible, .d-btn:focus-visible, .d-chip:focus-visible, .d-x:focus-visible, .d-reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.d-owl[aria-expanded="false"] { animation: d-nudge 2.4s ease-in-out 1s 3; }
+@keyframes d-nudge { 0%, 100% { transform: none; } 10% { transform: translateY(-4px); } 20% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .d-owl { animation: none !important; } }
+.d-panel { position: absolute; right: 16px; bottom: 84px; width: min(320px, calc(100% - 32px)); max-height: calc(100% - 100px); overflow: auto; padding: 14px; border: 1px solid var(--card-border); border-radius: 14px; background: var(--bg); box-shadow: 0 16px 40px rgba(0,0,0,.18); display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.5; }
+.d-panel > * { flex-shrink: 0; }
+.d-panel[hidden], #d-out [hidden] { display: none !important; }
+.d-head { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.d-x { margin-left: auto; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.d-x:hover { background: var(--page); color: var(--fg); }
+.d-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.d-site { align-self: flex-start; padding: 2px 8px; border-radius: 6px; background: var(--soft); color: var(--accent); font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.d-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg); font-weight: 600; font-size: 13px; font-family: inherit; cursor: pointer; }
+.d-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.d-out { min-height: 120px; padding: 12px; border-radius: 10px; background: var(--page); }
+.d-out p { margin: 0 0 6px; }
+.d-out ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.d-muted { color: var(--muted); }
+.d-saved { display: flex; flex-direction: column; gap: 4px; }
+.d-saved b { color: var(--accent); }
+.d-tag { display: inline-block; margin: 4px 6px 0 0; padding: 1px 8px; border: 1px solid var(--card-border); border-radius: 999px; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent); }
+.d-q { font-weight: 600; }
+.d-chip { align-self: flex-start; padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); color: var(--fg); font-size: 13px; font-family: inherit; cursor: pointer; text-align: left; }
+.d-chip:hover, .d-btn:not(.d-primary):hover { border-color: var(--accent); color: var(--accent); }
+.d-reset { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -109,13 +140,15 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 
 <header>
   <a class="brand" href="./"><img src="owl.png" alt=""><span class="wordmark">soro<span>agent</span></span></a>
-  <nav class="nav" aria-label="Main"><a class="nav-link" href="#how">How it works</a>
-  <a class="gh" href="https://github.com/soroagent/owl" aria-label="soroagent on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a></nav>
+  <nav class="nav" aria-label="Main">
+  <a class="nav-link" href="#how"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 19.1 2.1-2.1"></path><path d="m17 7 2.1-2.1"></path></svg>How it works</a>
+  <a class="nav-link" href="#demo"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m10 8 6 4-6 4z"></path></svg>Demo</a>
+</nav>
 </header>
 
 <main>
   <section class="hero">
-    <a class="badge" href="https://github.com/soroagent/owl"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>Open source · MIT license</a>
+    <a class="badge" href="https://github.com/soroagent/owl"><svg class="badge-mark" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Open source · MIT license</a>
     <h1>Supercharge your browsing.</h1>
     <p class="lede">An AI companion on every page that makes you more knowledgeable.</p>
     <div class="actions">
@@ -168,6 +201,38 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 </ol>
 </section>
 
+  <section id="demo">
+    <h2 class="h-title"><svg class="icon" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m10 8 6 4-6 4z"></path></svg>Demo</h2>
+    <p class="h-lede">Click the owl on this example page, then try Summarize, Save or a question.</p>
+    <div class="h-demo">
+      <div class="h-bar"><span class="h-dot"></span><span class="h-dot"></span><span class="h-dot"></span><span class="h-url">blog.example.com/agents</span></div>
+      <div class="d-stage">
+        <article class="d-page">
+          <h3>How AI agents use tools</h3>
+          <p class="d-by">blog.example.com · 6 min read</p>
+<p>An AI agent is a language model that can act: it reads a task, decides which tool to call, looks at the result and decides what to do next.</p>
+<p>The decision starts with descriptions. Each tool comes with a short explanation of what it does and what it needs, and the model matches the task against them.</p>
+<p>Good agents also check their work. After every call they compare the result with the goal, and stop or try another tool when something looks wrong.</p>
+        </article>
+        <button type="button" class="d-owl" id="d-owl" aria-expanded="false" aria-controls="d-panel" aria-label="Open soroagent"><svg viewBox="0 0 128 128" aria-hidden="true"><path fill="#34D399" d="M42 40 L37 19 L54 31 Q64 28 74 31 L91 19 L86 40 Q95 50 95 66 Q99 82 93 94 Q85 107 64 107 Q43 107 35 94 Q29 82 33 66 Q33 50 42 40 Z"></path><ellipse fill="#7AE3BE" cx="64" cy="88" rx="17" ry="16"></ellipse><path fill="#28A477" d="M35 66 Q24 84 37 104 Q46 92 45 76 Q42 69 35 66 Z"></path><path fill="#28A477" d="M93 66 Q104 84 91 104 Q82 92 83 76 Q86 69 93 66 Z"></path><circle fill="#0A0A0C" cx="51" cy="55" r="14.5"></circle><circle fill="#0A0A0C" cx="77" cy="55" r="14.5"></circle><circle fill="#FFFFFF" cx="56" cy="50" r="4.6"></circle><circle fill="#FFFFFF" cx="82" cy="50" r="4.6"></circle><path fill="#FDE68A" d="M59.5 68 L68.5 68 L64 74.5 Z"></path><rect fill="#7C5A3A" x="24" y="109" width="80" height="6" rx="3"></rect></svg></button>
+        <div class="d-panel" id="d-panel" role="region" aria-label="soroagent" hidden>
+          <div class="d-head"><svg width="22" height="22" viewBox="0 0 128 128" aria-hidden="true"><path fill="#34D399" d="M42 40 L37 19 L54 31 Q64 28 74 31 L91 19 L86 40 Q95 50 95 66 Q99 82 93 94 Q85 107 64 107 Q43 107 35 94 Q29 82 33 66 Q33 50 42 40 Z"></path><ellipse fill="#7AE3BE" cx="64" cy="88" rx="17" ry="16"></ellipse><path fill="#28A477" d="M35 66 Q24 84 37 104 Q46 92 45 76 Q42 69 35 66 Z"></path><path fill="#28A477" d="M93 66 Q104 84 91 104 Q82 92 83 76 Q86 69 93 66 Z"></path><circle fill="#0A0A0C" cx="51" cy="55" r="14.5"></circle><circle fill="#0A0A0C" cx="77" cy="55" r="14.5"></circle><circle fill="#FFFFFF" cx="56" cy="50" r="4.6"></circle><circle fill="#FFFFFF" cx="82" cy="50" r="4.6"></circle><path fill="#FDE68A" d="M59.5 68 L68.5 68 L64 74.5 Z"></path><rect fill="#7C5A3A" x="24" y="109" width="80" height="6" rx="3"></rect></svg><span>soroagent</span><button type="button" class="d-x" id="d-close" aria-label="Close soroagent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg></button></div>
+          <span class="d-site">blog.example.com</span>
+          <div class="h-actions"><button type="button" class="d-btn d-primary" id="d-sum">Summarize</button><button type="button" class="d-btn" id="d-save">Save</button></div>
+          <div class="d-out" id="d-out" aria-live="polite">
+            <p class="d-muted" data-view="idle">Summarize this page, save it to your library, or ask a question.</p>
+            <p class="d-muted" data-view="loading" hidden>Reading the page…</p>
+            <div data-view="summary" hidden><p><b>TL;DR:</b> Agents choose a tool by matching the task to each tool’s description, then check every result before the next step.</p><ul><li>An agent is a model that can call tools.</li><li>Clear tool descriptions drive the choice.</li><li>Checking results keeps agents on track.</li></ul></div>
+            <div class="d-saved" data-view="saved" hidden><b>Saved to your library</b><span>How AI agents use tools</span><div><span class="d-tag">ai-agents</span><span class="d-tag">llm</span></div></div>
+            <div data-view="answer" hidden><p class="d-q">How does an agent pick a tool?</p><p>By comparing the task with each tool’s description and calling the closest match. It then checks the result before moving on.</p></div>
+          </div>
+          <button type="button" class="d-chip" id="d-ask">How does an agent pick a tool?</button>
+        </div>
+      </div>
+    </div>
+    <p class="h-cap">An example page and example answers. <button type="button" class="d-reset" id="d-reset">Reset demo</button></p>
+  </section>
+
   <section class="private">
     <h2><svg class="icon" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>Private by design.</h2>
     <p class="muted">Use a local model and nothing leaves your computer, or bring your own Claude, OpenAI or Gemini key. No accounts, no servers, no tracking.</p>
@@ -185,5 +250,26 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 </footer>
 
 </div>
+<script>
+(function () {
+  var owl = document.getElementById('d-owl');
+  var panel = document.getElementById('d-panel');
+  var views = document.querySelectorAll('#d-out [data-view]');
+  var timer;
+  function show(name) { views.forEach(function (v) { v.hidden = v.dataset.view !== name; }); }
+  function open(on) {
+    panel.hidden = !on;
+    owl.setAttribute('aria-expanded', on);
+    owl.setAttribute('aria-label', on ? 'Close soroagent' : 'Open soroagent');
+  }
+  function run(name) { clearTimeout(timer); show('loading'); timer = setTimeout(function () { show(name); }, 900); }
+  owl.addEventListener('click', function () { open(panel.hidden); });
+  document.getElementById('d-close').addEventListener('click', function () { open(false); owl.focus(); });
+  document.getElementById('d-sum').addEventListener('click', function () { run('summary'); });
+  document.getElementById('d-save').addEventListener('click', function () { clearTimeout(timer); show('saved'); });
+  document.getElementById('d-ask').addEventListener('click', function () { run('answer'); });
+  document.getElementById('d-reset').addEventListener('click', function () { clearTimeout(timer); show('idle'); open(false); });
+})();
+</script>
 </body>
 </html>
