@@ -6,609 +6,99 @@
 <title>soroagent — your browser is your knowledge base</title>
 <meta name="description" content="soroagent: an AI companion for every web page that turns what you read into a personal library you can think with.">
 <link rel="icon" href="owl.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#0B0B0D}
-a{color:#34D399}a:hover{color:#7AE3BE}
-*{box-sizing:border-box}
-kbd{font-family:'JetBrains Mono',monospace;font-size:.85em;background:#1A1A1E;border:1px solid #33333A;border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:#E4E4E7}
-.hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
-.fb-field:focus{outline:2px solid #34D399;outline-offset:1px;border-color:#34D399}
-.chip-btn{border:1px solid #2A2A2E;background:#141417;color:#C4C4CC;border-radius:999px;padding:10px 16px;min-height:44px;font:500 14px Inter,sans-serif;cursor:pointer;text-align:left}
-.chip-btn:hover{border-color:#3F3F46;color:#F4F4F5}
-.chip-btn:focus-visible,.site-tab:focus-visible{outline:2px solid #34D399;outline-offset:2px}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-[hidden]{display:none!important}
-section[id]{scroll-margin-top:16px}
-.site-tab{text-align:left;border:1px solid transparent;background:transparent;color:#A1A1AA;border-radius:12px;padding:12px 16px;min-height:48px;font:500 16px Inter,sans-serif;cursor:pointer}
-.site-tab:hover{color:#F4F4F5}
-.site-tab[aria-selected="true"]{border-color:#1E4D3B;background:#0E1F18;color:#ECFDF5;font-weight:600}
-.q-btn[aria-pressed="true"]{border-color:#1E4D3B;background:#0E1F18;color:#ECFDF5}
-.br-tab{border:0;border-radius:999px;padding:10px 16px;min-height:44px;font:500 14px Inter,sans-serif;cursor:pointer;background:transparent;color:#A1A1AA}
-.br-tab[aria-selected="true"]{background:#1E4D3B;color:#D1FAE5;font-weight:600}
-.br-tab:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --fg: #111613; --muted: #5f6763; --border: #e3e7e5;
+  --accent: #047857; --accent-hover: #065f46; --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151716; --fg: #eef2f0; --muted: #9aa39f; --border: #2e3330;
+    --accent: #34d399; --accent-hover: #6ee7b7; --on-accent: #052e1f;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 28px 0; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; }
+.brand img { width: 32px; height: 32px; border-radius: 8px; }
+.wordmark { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.wordmark span { color: var(--accent); }
+.quiet { color: var(--muted); text-decoration: none; font-size: 15px; padding: 10px 0; }
+section { padding-top: 120px; }
+section.hero { padding-top: 104px; }
+h1 { margin: 0 0 20px; font-size: clamp(40px, 7vw, 60px); line-height: 1.05; letter-spacing: -0.035em; }
+h2 { margin: 0 0 12px; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; }
+p { margin: 0; }
+.lede { font-size: 20px; color: var(--muted); max-width: 520px; margin-bottom: 36px; }
+.muted { color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { font-weight: 600; text-decoration: none; padding: 12px 20px; border-radius: 10px; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+.btn.ghost { border: 1px solid var(--border); color: var(--fg); }
+.btn.ghost:hover { border-color: var(--muted); color: var(--fg); }
+.meta { margin-top: 16px; font-size: 14px; color: var(--muted); }
+dl { margin: 0; border-top: 1px solid var(--border); }
+dl div { display: flex; flex-wrap: wrap; gap: 4px 32px; padding: 22px 0; border-bottom: 1px solid var(--border); }
+dt { flex: 0 0 120px; font-weight: 600; }
+dd { flex: 1 1 360px; margin: 0; color: var(--muted); }
+.private p { max-width: 560px; margin-bottom: 12px; }
+.more { font-weight: 600; text-decoration: none; }
+footer { margin-top: 120px; padding: 24px 0 40px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); }
+footer nav { display: flex; flex-wrap: wrap; gap: 20px; }
+footer a { color: var(--muted); }
 </style>
 </head>
 <body>
-<div style="background: #0B0B0D; color: #F4F4F5; font-family: Inter, system-ui, sans-serif; font-size: 17px; line-height: 1.6; min-height: 100vh">
+<div class="wrap">
 
-<!-- NAV -->
-<header style="border-bottom: 1px solid #1F1F24">
-<nav aria-label="Main" style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-<a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #F4F4F5">
-<svg width="36" height="36" viewBox="0 0 128 128" aria-hidden="true"><rect width="128" height="128" rx="30" fill="#141417"></rect><g><path fill="#34D399" d="M42 40 L37 19 L54 31 Q64 28 74 31 L91 19 L86 40 Q95 50 95 66 Q99 82 93 94 Q85 107 64 107 Q43 107 35 94 Q29 82 33 66 Q33 50 42 40 Z"></path><ellipse fill="#7AE3BE" cx="64" cy="88" rx="17" ry="16"></ellipse><path fill="#28A477" d="M35 66 Q24 84 37 104 Q46 92 45 76 Q42 69 35 66 Z"></path><path fill="#28A477" d="M93 66 Q104 84 91 104 Q82 92 83 76 Q86 69 93 66 Z"></path><circle fill="#0A0A0C" cx="51" cy="55" r="14.5"></circle><circle fill="#0A0A0C" cx="77" cy="55" r="14.5"></circle><circle fill="#FFFFFF" cx="56" cy="50" r="4.6"></circle><circle fill="#FFFFFF" cx="82" cy="50" r="4.6"></circle><path fill="#FDE68A" stroke="#FDE68A" stroke-width="3" stroke-linejoin="round" d="M59.5 68 L68.5 68 L64 74.5 Z"></path><rect fill="#7C5A3A" x="24" y="109" width="80" height="6" rx="3"></rect></g></svg>
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.02em">soroagent</span>
-</a>
-<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; font-size: 15px">
-<a href="#understand" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Understand</a>
-<a href="#library" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Library</a>
-<a href="#ask" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Ask</a>
-<a href="#notes" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Notes &amp; sync</a>
-<a href="#privacy" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Privacy</a>
-<a href="#feedback" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">Feedback</a>
-<a href="https://github.com/soroagent/owl" style="color: #A1A1AA; text-decoration: none; padding: 10px 0">GitHub</a>
-<a href="#download" style="background: #34D399; color: #052E1F; font-weight: 600; text-decoration: none; padding: 10px 18px; border-radius: 999px">Download free</a>
-</div>
-</nav>
+<header>
+  <a class="brand" href="./"><img src="owl.png" alt=""><span class="wordmark">soro<span>agent</span></span></a>
+  <a class="quiet" href="https://github.com/soroagent/owl">GitHub</a>
 </header>
 
-<!-- HERO -->
-<section id="top" style="max-width: 1200px; margin: 0 auto; padding: 88px 24px 64px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px">
-<div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px">
-<span style="border: 1px solid #1E4D3B; background: #0E1F18; border-radius: 999px; padding: 4px 12px; color: #7AE3BE">New in v2.26 · Sync through your own Google Drive</span>
-</div>
-<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(44px, 6.6vw, 78px); line-height: 1; letter-spacing: -0.035em">Your browser is your knowledge base.</h1>
-<p style="margin: 0; font-size: 20px; color: #C4C4CC; max-width: 540px">An AI companion for every web page that turns what you read into a personal library you can think with. Every answer cited to your own sources.</p>
-<div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 8px">
-<a href="#download" style="background: #34D399; color: #052E1F; font-weight: 600; text-decoration: none; padding: 14px 24px; border-radius: 999px; display: inline-flex; align-items: center; gap: 10px">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
-Download for your browser</a>
-<a href="https://github.com/soroagent/owl" style="border: 1px solid #33333A; color: #F4F4F5; font-weight: 500; text-decoration: none; padding: 14px 24px; border-radius: 999px">View source on GitHub</a>
-</div>
-<p style="margin: 0; font-size: 14px; color: #8B8B94">Chrome · Edge · Brave · Arc · Firefox — macOS &amp; Windows — MIT licensed</p>
-</div>
+<main>
+  <section class="hero">
+    <h1>Your browser is your knowledge base.</h1>
+    <p class="lede">An owl beside every page that turns what you read into a library you can think with.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.26.1.zip">Download for Chrome</a>
+      <a class="btn ghost" href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.26.1.zip">Firefox</a>
+    </div>
+    <p class="meta">v2.26.1 · Free and open source · Also Edge, Brave, Arc · <a href="https://github.com/soroagent/owl#install">Install guide</a></p>
+  </section>
 
-<!-- Browser mockup: Stack Overflow page with the panel open -->
-<div style="flex: 1 1 520px; min-width: 0">
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 16px; overflow: hidden; box-shadow: 0 40px 80px -30px rgba(0,0,0,0.7)">
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #26262B">
-<span style="width: 11px; height: 11px; border-radius: 50%; background: #3A3A40"></span>
-<span style="width: 11px; height: 11px; border-radius: 50%; background: #3A3A40"></span>
-<span style="width: 11px; height: 11px; border-radius: 50%; background: #3A3A40"></span>
-<span style="margin-left: 12px; flex: 1; background: #0B0B0D; border-radius: 8px; padding: 5px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8B8B94; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">stackoverflow.com/questions/…</span>
-</div>
-<div style="display: flex; min-height: 460px">
-<div style="flex: 1; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 12px; opacity: 0.55">
-<div style="height: 14px; width: 74%; background: #2A2A30; border-radius: 4px"></div>
-<div style="height: 10px; width: 40%; background: #222227; border-radius: 4px"></div>
-<div style="height: 64px; width: 100%; background: #17171B; border: 1px solid #222227; border-radius: 6px; margin-top: 12px"></div>
-<div style="height: 10px; width: 88%; background: #1D1D22; border-radius: 4px; margin-top: 8px"></div>
-<div style="height: 10px; width: 80%; background: #1D1D22; border-radius: 4px"></div>
-<div style="height: 10px; width: 56%; background: #1D1D22; border-radius: 4px"></div>
-<div style="height: 10px; width: 90%; background: #1D1D22; border-radius: 4px; margin-top: 12px"></div>
-<div style="height: 10px; width: 70%; background: #1D1D22; border-radius: 4px"></div>
-</div>
-<div style="flex: 0 1 310px; min-width: 0; background: #111113; border-left: 1px solid #26262B; padding: 16px; display: flex; flex-direction: column; gap: 12px">
-<div style="display: flex; align-items: center; gap: 8px">
-<svg width="26" height="26" viewBox="0 0 128 128" aria-hidden="true"><path fill="#34D399" d="M42 40 L37 19 L54 31 Q64 28 74 31 L91 19 L86 40 Q95 50 95 66 Q99 82 93 94 Q85 107 64 107 Q43 107 35 94 Q29 82 33 66 Q33 50 42 40 Z"></path><ellipse fill="#7AE3BE" cx="64" cy="88" rx="17" ry="16"></ellipse><circle fill="#0A0A0C" cx="51" cy="55" r="14.5"></circle><circle fill="#0A0A0C" cx="77" cy="55" r="14.5"></circle><circle fill="#FFFFFF" cx="56" cy="50" r="4.6"></circle><circle fill="#FFFFFF" cx="82" cy="50" r="4.6"></circle><path fill="#FDE68A" d="M59.5 68 L68.5 68 L64 74.5 Z"></path></svg>
-<span style="font-weight: 600; font-size: 14px">soroagent</span>
-</div>
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7AE3BE; background: #0E1F18; border: 1px solid #1E4D3B; border-radius: 8px; padding: 6px 10px">Q&amp;A · Accepted-solution mode</div>
-<div style="display: flex; gap: 8px">
-<span style="flex: 1; text-align: center; background: #34D399; color: #052E1F; font-weight: 600; font-size: 13px; border-radius: 8px; padding: 8px">Summarize</span>
-<span style="flex: 1; text-align: center; border: 1px solid #33333A; font-weight: 500; font-size: 13px; border-radius: 8px; padding: 8px; color: #E4E4E7">Save</span>
-</div>
-<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #C4C4CC">
-<div style="font-weight: 600; color: #F4F4F5">TL;DR</div>
-<div>[One-line summary of the question]</div>
-<div style="display: flex; gap: 8px"><span style="color: #34D399">✓</span><span>Accepted solution</span></div>
-<div style="display: flex; gap: 8px"><span style="color: #34D399">●</span><span>Better alternatives</span></div>
-<div style="display: flex; gap: 8px"><span style="color: #F59E0B">●</span><span>Caveats</span></div>
-</div>
-<div style="margin-top: auto; background: #17171B; border: 1px solid #2A2A2E; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #E4E4E7">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"></path><path d="M8 7h6"></path></svg>
-3 of your saved notes relate to this page</div>
-<span style="align-self: flex-start; font-size: 12px; font-weight: 600; color: #052E1F; background: #7AE3BE; border-radius: 999px; padding: 4px 10px">Use in chat</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
+  <section aria-label="What it does">
+    <dl>
+      <div><dt>Understand</dt><dd>Summaries shaped by the site: the accepted answer, a thread's consensus, an issue's status.</dd></div>
+      <div><dt>Archive</dt><dd>What you read, filed and tagged. Searchable by meaning, written to your Obsidian or Logseq folder.</dd></div>
+      <div><dt>Think</dt><dd>Ask questions across everything you've read. Every answer is cited to your own sources.</dd></div>
+    </dl>
+  </section>
 
-<!-- THREE THINGS -->
-<section style="max-width: 1200px; margin: 0 auto; padding: 0 24px 80px">
-<ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0; border: 1px solid #26262B; border-radius: 20px; overflow: hidden">
-<li style="padding: 28px; border-right: 1px solid #26262B; border-bottom: 1px solid #26262B; margin: 0 -1px -1px 0">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #34D399; margin-bottom: 10px">01 · Understands</div>
-<div style="font-size: 16px; color: #C4C4CC">Summaries and answers shaped by the site you're on: the accepted solution, the thread consensus, the issue status.</div>
-</li>
-<li style="padding: 28px; border-right: 1px solid #26262B; border-bottom: 1px solid #26262B; margin: 0 -1px -1px 0">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #34D399; margin-bottom: 10px">02 · Archives</div>
-<div style="font-size: 16px; color: #C4C4CC">Everything you summarize, and optionally every page you actually read, filed into a library with consistent tags.</div>
-</li>
-<li style="padding: 28px; border-right: 1px solid #26262B; border-bottom: 1px solid #26262B; margin: 0 -1px -1px 0">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #34D399; margin-bottom: 10px">03 · Thinks with you</div>
-<div style="font-size: 16px; color: #C4C4CC">Chat with everything you've read and turn it into briefs, decisions, study guides and drafts, all cited.</div>
-</li>
-</ol>
-</section>
+  <section class="private">
+    <h2>Private by design.</h2>
+    <p class="muted">Use a local model and nothing leaves your computer, or bring your own Claude, OpenAI or Gemini key. No accounts, no servers, no tracking.</p>
+    <a class="more" href="privacy.html">Privacy policy →</a>
+  </section>
+</main>
 
-<!-- HISTORY REINVENTED -->
-<section style="border-top: 1px solid #1F1F24; border-bottom: 1px solid #1F1F24; background: #0F0F12">
-<div style="max-width: 1200px; margin: 0 auto; padding: 72px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; align-items: center">
-<div>
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Browsing history, reinvented</p>
-<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(30px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.02em">Not where you went. What you learned, and how it connects.</h2>
-</div>
-<div style="display: flex; flex-direction: column; gap: 12px">
-<div style="border: 1px solid #26262B; border-radius: 14px; padding: 18px 20px; color: #8B8B94; font-family: 'JetBrains Mono', monospace; font-size: 14px">
-<div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px">Your browser today</div>
-"You visited 214 pages yesterday."</div>
-<div style="border: 1px solid #1E4D3B; background: #0E1F18; border-radius: 14px; padding: 18px 20px; color: #D1FAE5; font-size: 16px">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; color: #34D399">With soroagent</div>
-"Here's what you read, what it said, and how it connects to what you already know."</div>
-</div>
-</div>
-</section>
-
-<!-- UNDERSTAND -->
-<section id="understand" style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Understand any page</p>
-<h2 style="margin: 0 0 16px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em; max-width: 760px">It reads the site's structure before the AI does.</h2>
-<p style="margin: 0 0 40px; font-size: 19px; color: #A1A1AA; max-width: 680px">Site profiles know what matters on each page, so you get the answer, not a paraphrase of the layout. Pick a site:</p>
-
-<div style="display: flex; flex-wrap: wrap; gap: 32px">
-<div role="tablist" aria-label="Site profiles" style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
-<button type="button" role="tab" class="site-tab" id="tab-so" aria-controls="site-panel" aria-selected="true" tabindex="0" data-mode="Q&amp;A · Accepted-solution mode" data-reads="The question and its answers, ranked with the accepted one first, code intact." data-gets="The accepted solution, better alternatives and caveats.">Stack Overflow</button>
-<button type="button" role="tab" class="site-tab" id="tab-reddit" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Thread consensus" data-reads="The post and its comment tree." data-gets="Thread consensus and the most useful answer.">Reddit threads</button>
-<button type="button" role="tab" class="site-tab" id="tab-hn" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Discussion consensus" data-reads="The story and its comment tree, reply depth kept." data-gets="Discussion consensus and the main disagreements.">Hacker News</button>
-<button type="button" role="tab" class="site-tab" id="tab-gh" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Status" data-reads="Issue or PR state, labels and conversation; READMEs." data-gets="Status and next steps.">GitHub</button>
-<button type="button" role="tab" class="site-tab" id="tab-yt" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Chapters" data-reads="Title, channel, description, chapters and top comments." data-gets="A chapter-by-chapter overview and what viewers say.">YouTube</button>
-<button type="button" role="tab" class="site-tab" id="tab-wiki" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Key facts" data-reads="Infobox facts, the lead and the outline." data-gets="Key facts, with “citation needed” flagged.">Wikipedia</button>
-<button type="button" role="tab" class="site-tab" id="tab-x" aria-controls="site-panel" aria-selected="false" tabindex="-1" data-mode="Themes" data-reads="Posts with handles, verification and engagement." data-gets="Themes and notable posts, every @handle linked.">X</button>
-</div>
-<div role="tabpanel" id="site-panel" aria-labelledby="tab-so" style="flex: 999 1 520px; min-width: 0; background: #141417; border: 1px solid #26262B; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 24px">
-<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between">
-<h3 id="site-name" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.01em">Stack Overflow</h3>
-<span id="site-mode" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7AE3BE; background: #0E1F18; border: 1px solid #1E4D3B; border-radius: 8px; padding: 6px 10px">Q&amp;A · Accepted-solution mode</span>
-</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
-<div style="background: #0B0B0D; border: 1px solid #26262B; border-radius: 14px; padding: 20px">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #8B8B94; margin-bottom: 8px">What soroagent reads</div>
-<div style="color: #E4E4E7" id="site-reads">The question and its answers, ranked with the accepted one first, code intact.</div>
-</div>
-<div style="background: #0E1F18; border: 1px solid #1E4D3B; border-radius: 14px; padding: 20px">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #34D399; margin-bottom: 8px">What you get</div>
-<div style="color: #D1FAE5" id="site-gets">The accepted solution, better alternatives and caveats.</div>
-</div>
-</div>
-<p style="margin: 0; font-size: 14px; color: #8B8B94">LinkedIn, Amazon and major news sites have tuned prompts too.</p>
-</div>
-</div>
-
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 32px">
-<article style="border: 1px solid #26262B; border-radius: 18px; padding: 24px">
-<h3 style="margin: 0 0 8px; font-size: 19px; font-weight: 600">Summarize</h3>
-<p style="margin: 0; color: #A1A1AA; font-size: 15px">A one-line TL;DR, then the key points. Runs in the background, so switch tabs and the result waits for you.</p>
-</article>
-<article style="border: 1px solid #26262B; border-radius: 18px; padding: 24px">
-<h3 style="margin: 0 0 8px; font-size: 19px; font-weight: 600">Ask</h3>
-<p style="margin: 0; color: #A1A1AA; font-size: 15px">Ask anything about the page. Ask about soroagent itself and it checks which one you mean first.</p>
-</article>
-<article style="border: 1px solid #26262B; border-radius: 18px; padding: 24px">
-<h3 style="margin: 0 0 8px; font-size: 19px; font-weight: 600">Feeds, one batch at a time</h3>
-<p style="margin: 0; color: #A1A1AA; font-size: 15px">On X and Reddit it reads only what's on screen, then offers Read more. Promoted posts are left out.</p>
-</article>
-<article style="border: 1px solid #26262B; border-radius: 18px; padding: 24px">
-<h3 style="margin: 0 0 8px; font-size: 19px; font-weight: 600">Research</h3>
-<p style="margin: 0; color: #A1A1AA; font-size: 15px">Turns a summary into a cited brief from the top web sources. Only the search query leaves your machine.</p>
-</article>
-</div>
-</section>
-
-<!-- LIBRARY -->
-<section id="library" style="background: #0F0F12; border-top: 1px solid #1F1F24; border-bottom: 1px solid #1F1F24">
-<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start">
-<div style="flex: 1 1 420px; min-width: 0">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Your personal library</p>
-<h2 style="margin: 0 0 16px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em">Filed, tagged and findable by meaning.</h2>
-<p style="margin: 0 0 32px; font-size: 18px; color: #A1A1AA">Every summary is saved with a title, a short summary and tags. The tagger reuses the tags you already have, so "AI Agents" files under your existing ai-agents.</p>
-<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px">
-<div><dt style="font-weight: 600; margin-bottom: 4px">Search by meaning</dt><dd style="margin: 0; font-size: 15px; color: #A1A1AA">Finds notes about the same idea even when the words differ, and still finds exact names. Vectors stay on your device.</dd></div>
-<div><dt style="font-weight: 600; margin-bottom: 4px">Related notes</dt><dd style="margin: 0; font-size: 15px; color: #A1A1AA">The panel shows which saved notes relate to the page you're on. Use in chat cites them as [N1], [N2].</dd></div>
-<div><dt style="font-weight: 600; margin-bottom: 4px">Save</dt><dd style="margin: 0; font-size: 15px; color: #A1A1AA">Puts the page itself in your library, with its text for search.</dd></div>
-<div><dt style="font-weight: 600; margin-bottom: 4px">Screenshots</dt><dd style="margin: 0; font-size: 15px; color: #A1A1AA">What you see, in its own gallery beside your snippets.</dd></div>
-</dl>
-</div>
-
-<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
-<div style="display: flex; align-items: center; gap: 10px; background: #0B0B0D; border: 1px solid #2A2A2E; border-radius: 12px; padding: 12px 14px; color: #8B8B94; font-size: 15px">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-how do agents decide which tool to call</div>
-<div style="border: 1px solid #2A2A2E; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #8B8B94"><span>blog.example.com</span><span style="font-family: 'JetBrains Mono', monospace">summary</span></div>
-<div style="font-weight: 600; font-size: 17px">How AI agents use tools</div>
-<div style="font-size: 14px; color: #A1A1AA">[Short summary of the note]</div>
-<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px">
-<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7AE3BE; border: 1px solid #1E4D3B; border-radius: 999px; padding: 2px 10px">ai-agents</span>
-<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7AE3BE; border: 1px solid #1E4D3B; border-radius: 999px; padding: 2px 10px">llm</span>
-</div>
-</div>
-<div style="border: 1px dashed #2A2A2E; border-radius: 14px; padding: 14px 18px; font-size: 14px; color: #8B8B94">Matched by meaning, not by the words you typed.</div>
-</div>
-
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 20px; padding: 24px">
-<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px">
-<h3 style="margin: 0; font-size: 19px; font-weight: 600">Passive capture</h3>
-<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #FDE68A; border: 1px solid #5B4A1A; border-radius: 999px; padding: 2px 8px">opt-in</span>
-</div>
-<p style="margin: 0 0 14px; font-size: 15px; color: #A1A1AA">Saves the pages you actually read: active for a while (45 seconds by default) and scrolled through at least half. Exclude any site. These are never captured:</p>
-<div style="display: flex; flex-wrap: wrap; gap: 6px">
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Mail</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Chat</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Banking</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Logins</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Checkouts</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Search results</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Feeds</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Password pages</span>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- ASK YOUR LIBRARY -->
-<section id="ask" style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start">
-<div style="flex: 1 1 380px; min-width: 0">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Ask your library</p>
-<h2 style="margin: 0 0 16px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em">Think with everything you've read.</h2>
-<p style="margin: 0 0 24px; font-size: 18px; color: #A1A1AA">A chat console over the past week, month, three months or all time. Press <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>K</kbd> on the snippets page. Try a question:</p>
-<div style="display: flex; flex-direction: column; gap: 8px">
-<button type="button" class="chip-btn q-btn" aria-pressed="true">What have I learned about this topic over the past month?</button>
-<button type="button" class="chip-btn q-btn" aria-pressed="false">Where do my saved sources disagree?</button>
-<button type="button" class="chip-btn q-btn" aria-pressed="false">What evidence supports this argument?</button>
-<button type="button" class="chip-btn q-btn" aria-pressed="false">What should I read next?</button>
-<button type="button" class="chip-btn q-btn" aria-pressed="false">What conclusions can I draw from these sources?</button>
-</div>
-</div>
-
-<div style="flex: 1 1 480px; min-width: 0; background: #141417; border: 1px solid #26262B; border-radius: 20px; overflow: hidden">
-<div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 16px; border-bottom: 1px solid #26262B; font-size: 13px">
-<span style="color: #8B8B94; padding: 4px 0; margin-right: 6px">Range</span>
-<span style="color: #8B8B94; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Week</span>
-<span style="color: #052E1F; background: #7AE3BE; border-radius: 999px; padding: 4px 10px; font-weight: 600">Month</span>
-<span style="color: #8B8B94; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">3 months</span>
-<span style="color: #8B8B94; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">All time</span>
-</div>
-<div style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-<div style="align-self: flex-end; max-width: 85%; background: #1E4D3B; color: #ECFDF5; border-radius: 14px 14px 4px 14px; padding: 10px 14px; font-size: 15px" id="ask-q" aria-live="polite">What have I learned about this topic over the past month?</div>
-<div style="display: flex; flex-direction: column; gap: 14px; background: #0B0B0D; border: 1px solid #26262B; border-radius: 14px; padding: 18px">
-<div>
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #34D399; margin-bottom: 6px">From your sources</div>
-<div style="font-size: 15px; color: #E4E4E7">[A claim drawn from your notes] <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7AE3BE">[S1]</span> [Another, where a second source agrees] <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7AE3BE">[S2]</span></div>
-</div>
-<div>
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #F59E0B; margin-bottom: 6px">My interpretation</div>
-<div style="font-size: 15px; color: #C4C4CC">[What the model concludes, kept apart from what your sources say]</div>
-</div>
-<div style="border-top: 1px solid #26262B; padding-top: 12px; font-size: 13px; color: #8B8B94">Notes used: S1 · S2</div>
-</div>
-<div>
-<div style="font-size: 13px; color: #8B8B94; margin-bottom: 8px">Or turn it into, in one click:</div>
-<div style="display: flex; flex-wrap: wrap; gap: 8px">
-<span style="font-size: 14px; color: #F4F4F5; border: 1px solid #33333A; border-radius: 10px; padding: 8px 12px">Research brief</span>
-<span style="font-size: 14px; color: #F4F4F5; border: 1px solid #33333A; border-radius: 10px; padding: 8px 12px">Technical decision</span>
-<span style="font-size: 14px; color: #F4F4F5; border: 1px solid #33333A; border-radius: 10px; padding: 8px 12px">Study guide</span>
-<span style="font-size: 14px; color: #F4F4F5; border: 1px solid #33333A; border-radius: 10px; padding: 8px 12px">Draft</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- NOTES EVERYWHERE -->
-<section id="notes" style="background: #0F0F12; border-top: 1px solid #1F1F24; border-bottom: 1px solid #1F1F24">
-<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Your notes, everywhere</p>
-<h2 style="margin: 0 0 40px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em; max-width: 760px">Plain Markdown in your vault. Encrypted sync in your own storage.</h2>
-<div style="display: flex; flex-wrap: wrap; gap: 24px">
-<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
-<h3 style="margin: 0; font-size: 21px; font-weight: 600">Markdown folder</h3>
-<span style="font-size: 13px; color: #C4C4CC; border: 1px solid #33333A; border-radius: 999px; padding: 3px 10px">Obsidian</span>
-<span style="font-size: 13px; color: #C4C4CC; border: 1px solid #33333A; border-radius: 999px; padding: 3px 10px">Logseq</span>
-</div>
-<p style="margin: 0; font-size: 16px; color: #A1A1AA">A clean .md file with YAML frontmatter for every note, written to the folder you choose. Renamed when titles change, removed when notes are deleted, and files you edit in your vault are never overwritten.</p>
-<pre style="margin: 0; background: #0B0B0D; border: 1px solid #26262B; border-radius: 14px; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; color: #D4D4D8; overflow-x: auto"><span style="color: #8B8B94">---</span>
-<span style="color: #7AE3BE">title:</span> "How AI agents use tools"
-<span style="color: #7AE3BE">source:</span> "https://blog.example.com/agents"
-<span style="color: #7AE3BE">site:</span> "blog.example.com"
-<span style="color: #7AE3BE">type:</span> "summary"
-<span style="color: #7AE3BE">tags:</span>
-  - ai-agents
-  - llm
-<span style="color: #7AE3BE">created:</span> 2026-10-22T05:42:05.952Z
-<span style="color: #7AE3BE">soroagent_id:</span> "mvj465xcrzqzek"
-<span style="color: #8B8B94">---</span>
-
-<span style="color: #F4F4F5"># How AI agents use tools</span>
-<span style="color: #8B8B94">…summary, research and sources…</span></pre>
-<p style="margin: 0; font-size: 14px; color: #8B8B94">Chrome, Edge, Brave and Arc write to the folder you pick; Firefox writes to Downloads/soroagent/notes/.</p>
-</div>
-
-<div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px">
-<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
-<h3 style="margin: 0; font-size: 21px; font-weight: 600">Sync across browsers</h3>
-<p style="margin: 0; font-size: 15px; color: #A1A1AA">Every browser, on any computer, can share one library. The shared copy lives in your own storage and is end-to-end encrypted with your passphrase before it leaves the browser. With Google Drive it sits in a hidden folder only soroagent can see.</p>
-<div style="display: flex; flex-wrap: wrap; gap: 6px">
-<span style="font-size: 13px; color: #ECFDF5; background: #1E4D3B; border: 1px solid #1E4D3B; border-radius: 999px; padding: 4px 10px">Google Drive</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">WebDAV: Nextcloud, ownCloud, Synology, Koofr</span>
-<span style="font-size: 13px; color: #C4C4CC; background: #1A1A1E; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px 10px">Private GitHub Gist</span>
-</div>
-<p style="margin: 0; font-size: 14px; color: #8B8B94">Notes merge one by one: newest wins, deletions carry over. Keys and screenshots stay on each device.</p>
-</div>
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px">
-<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
-<h3 style="margin: 0; font-size: 21px; font-weight: 600">Backups and restore</h3>
-<p style="margin: 0; font-size: 15px; color: #A1A1AA">A backup in Downloads/soroagent/ stays up to date automatically. After a reinstall, soroagent finds it and restores everything in one click. Export as Markdown or JSON any time.</p>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- PRIVACY -->
-<section id="privacy" style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 48px">
-<div style="flex: 1 1 360px; min-width: 0">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">Private by design</p>
-<h2 style="margin: 0 0 16px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em">What you read stays yours.</h2>
-<p style="margin: 0; font-size: 18px; color: #A1A1AA">No soroagent accounts, servers, trackers or analytics. Capture, sync and the Markdown folder are off until you turn them on, and only go where you point them. <a href="privacy.html">Read the privacy policy</a>.</p>
-</div>
-<ul style="flex: 1 1 480px; min-width: 0; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px">
-<li style="border: 1px solid #26262B; border-radius: 14px; padding: 20px"><div style="font-weight: 600; margin-bottom: 4px">Your AI</div><div style="font-size: 15px; color: #A1A1AA">With a local model, page text never leaves your computer. With a cloud API, it goes only to the provider you chose.</div></li>
-<li style="border: 1px solid #26262B; border-radius: 14px; padding: 20px"><div style="font-weight: 600; margin-bottom: 4px">API keys</div><div style="font-size: 15px; color: #A1A1AA">Encrypted with AES-256-GCM using a key that can't be exported, and sent only to their own provider.</div></li>
-<li style="border: 1px solid #26262B; border-radius: 14px; padding: 20px"><div style="font-weight: 600; margin-bottom: 4px">Your data</div><div style="font-size: 15px; color: #A1A1AA">Library, history and settings live in your browser. Search vectors stay on your device.</div></li>
-<li style="border: 1px solid #26262B; border-radius: 14px; padding: 20px"><div style="font-weight: 600; margin-bottom: 4px">Google Drive sync</div><div style="font-size: 15px; color: #A1A1AA">Asks only for soroagent's own app folder (drive.appdata), never your files.</div></li>
-<li style="border: 1px solid #26262B; border-radius: 14px; padding: 20px"><div style="font-weight: 600; margin-bottom: 4px">Research</div><div style="font-size: 15px; color: #A1A1AA">Reads public web pages only. Addresses on your computer or local network are never fetched.</div></li>
-</ul>
-</div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section id="how" style="background: #0F0F12; border-top: 1px solid #1F1F24; border-bottom: 1px solid #1F1F24">
-<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #34D399">How it works</p>
-<h2 style="margin: 0 0 40px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(30px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.02em">Everything runs in your browser.</h2>
-<div style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px">
-<div style="flex: 1 1 160px; min-width: 0; border: 1px solid #33333A; border-radius: 14px; padding: 18px; background: #141417">
-<div style="font-weight: 600; margin-bottom: 6px">Web page</div>
-<div style="font-size: 14px; color: #A1A1AA">The site you're reading</div>
-</div>
-<div aria-hidden="true" style="display: flex; align-items: center; color: #52525B; font-size: 22px">→</div>
-<div style="flex: 1 1 220px; min-width: 0; border: 1px solid #33333A; border-radius: 14px; padding: 18px; background: #141417">
-<div style="font-weight: 600; margin-bottom: 6px">Content scripts</div>
-<div style="font-size: 14px; color: #A1A1AA">Panel in a closed shadow root, page extraction, passive capture</div>
-</div>
-<div aria-hidden="true" style="display: flex; align-items: center; color: #52525B; font-size: 22px">→</div>
-<div style="flex: 1 1 200px; min-width: 0; border: 1px solid #1E4D3B; border-radius: 14px; padding: 18px; background: #0E1F18">
-<div style="font-weight: 600; margin-bottom: 6px; color: #D1FAE5">Background worker</div>
-<div style="font-size: 14px; color: #A7F3D0">Makes every model request, so page security policies never block it</div>
-</div>
-<div aria-hidden="true" style="display: flex; align-items: center; color: #52525B; font-size: 22px">→</div>
-<div style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
-<div style="border: 1px solid #33333A; border-radius: 12px; padding: 12px 14px; background: #141417; font-size: 14px"><span style="font-weight: 600">Your model</span> <span style="color: #A1A1AA">· Ollama, OpenAI-compatible or Anthropic</span></div>
-<div style="border: 1px solid #33333A; border-radius: 12px; padding: 12px 14px; background: #141417; font-size: 14px"><span style="font-weight: 600">Library index</span> <span style="color: #A1A1AA">· embeddings + BM25</span></div>
-<div style="border: 1px solid #33333A; border-radius: 12px; padding: 12px 14px; background: #141417; font-size: 14px"><span style="font-weight: 600">Markdown folder</span> <span style="color: #A1A1AA">· encrypted sync</span></div>
-</div>
-</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-top: 40px; border-top: 1px solid #26262B; padding-top: 32px">
-<div><div style="font-weight: 600; margin-bottom: 6px">Search</div><div style="font-size: 15px; color: #A1A1AA">Notes are embedded once and stored as 8-bit vectors. Meaning and word rankings are fused with reciprocal rank fusion.</div></div>
-<div><div style="font-weight: 600; margin-bottom: 6px">Sync</div><div style="font-size: 15px; color: #A1A1AA">Gzipped, then AES-GCM encrypted with a key derived from your passphrase (PBKDF2, 250,000 rounds). The passphrase is never stored.</div></div>
-<div><div style="font-weight: 600; margin-bottom: 6px">Keys</div><div style="font-size: 15px; color: #A1A1AA">Only the background worker decrypts them. Settings pages see the last four characters, and first-run entry happens in soroagent's own frame.</div></div>
-</div>
-</div>
-</section>
-
-<!-- MODELS + MAKE IT YOURS -->
-<section id="models" style="max-width: 1200px; margin: 0 auto; padding: 96px 24px">
-<h2 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(32px, 4.5vw, 52px); line-height: 1.05; letter-spacing: -0.025em">Bring any model. Make it yours.</h2>
-<p style="margin: 0 0 40px; font-size: 18px; color: #A1A1AA; max-width: 660px">soroagent recommends the best of your installed local models, or connects with your own key. Rewrite the prompt for any site and let Optimize with AI improve it.</p>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px">
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 18px; padding: 28px">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #34D399; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px">Local · free · nothing leaves your machine</div>
-<div style="display: flex; flex-wrap: wrap; gap: 8px">
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Ollama</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">LM Studio</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">llama.cpp</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Jan</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Any OpenAI-compatible server</span>
-</div>
-<pre style="margin: 20px 0 0; background: #0B0B0D; border: 1px solid #26262B; border-radius: 10px; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.8; color: #D4D4D8; overflow-x: auto"><span style="color: #8B8B94">$</span> ollama pull llama3.2
-<span style="color: #8B8B94">$</span> ollama pull nomic-embed-text  <span style="color: #8B8B94"># search by meaning</span></pre>
-</div>
-<div style="background: #141417; border: 1px solid #26262B; border-radius: 18px; padding: 28px">
-<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #F59E0B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px">Cloud · your own API key</div>
-<div style="display: flex; flex-wrap: wrap; gap: 8px">
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Anthropic Claude</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">OpenAI</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Google Gemini <span style="color: #8B8B94">· free tier</span></span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Groq <span style="color: #8B8B94">· free tier</span></span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">OpenRouter</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">Mistral</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">DeepSeek</span>
-<span style="border: 1px solid #33333A; border-radius: 999px; padding: 6px 14px; font-size: 15px">xAI</span>
-</div>
-<p style="margin: 20px 0 0; font-size: 15px; color: #A1A1AA">Paste a key and go. How do I get a key? walks you through it.</p>
-</div>
-</div>
-</section>
-
-<!-- DOWNLOAD -->
-<section id="download" style="max-width: 1200px; margin: 0 auto; padding: 0 24px 96px">
-<div style="background: #0E1F18; border: 1px solid #1E4D3B; border-radius: 28px; padding: clamp(28px, 5vw, 56px); display: flex; flex-wrap: wrap; gap: 48px">
-<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -0.03em">Get soroagent.</h2>
-<p style="margin: 0; font-size: 18px; color: #C4C4CC">Free and open source. Version 2.26.1 for macOS and Windows.</p>
-<div role="tablist" aria-label="Browser" style="display: inline-flex; flex-wrap: wrap; align-self: flex-start; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 999px; padding: 4px; gap: 4px; margin-top: 8px">
-<button type="button" role="tab" class="br-tab" data-browser="chrome" aria-selected="true">Chrome · Edge · Brave · Arc</button>
-<button type="button" role="tab" class="br-tab" data-browser="firefox" aria-selected="false">Firefox 128+</button>
-</div>
-<div class="br-pane" data-browser="chrome" style="display: contents"><a href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.26.1.zip" style="align-self: flex-start; background: #34D399; color: #052E1F; font-weight: 600; text-decoration: none; padding: 14px 24px; border-radius: 999px; display: inline-flex; align-items: center; gap: 10px">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
-soroagent-chrome-2.26.1.zip</a></div>
-<div class="br-pane" data-browser="firefox" hidden style="display: contents"><a href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.26.1.zip" style="align-self: flex-start; background: #34D399; color: #052E1F; font-weight: 600; text-decoration: none; padding: 14px 24px; border-radius: 999px; display: inline-flex; align-items: center; gap: 10px">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
-soroagent-firefox-2.26.1.zip</a></div>
-<p style="margin: 0; font-size: 14px; color: #A1A1AA">Prefer to build it? <code style="font-family: 'JetBrains Mono', monospace; color: #D1FAE5">npm run build</code> with Node 20+, no dependencies.</p>
-</div>
-<ol class="br-pane" data-browser="chrome" style="flex: 1 1 420px; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">1</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Download and unzip</div><div style="font-size: 15px; color: #A1A1AA">Unzip into a folder you will keep. Chrome loads the extension from it.</div></div>
-</li>
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">2</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Load it</div><div style="font-size: 15px; color: #A1A1AA">Open chrome://extensions, turn on Developer mode, click Load unpacked and choose the folder.</div></div>
-</li>
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">3</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Connect an AI</div><div style="font-size: 15px; color: #A1A1AA">A welcome page opens. Paste a key (Gemini and Groq have free tiers) or run a free local model with Ollama. Optionally connect Google Drive to sync.</div></div>
-</li>
-</ol>
-<ol class="br-pane" data-browser="firefox" hidden style="flex: 1 1 420px; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">1</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Download the zip</div><div style="font-size: 15px; color: #A1A1AA">No need to unzip: Firefox loads it directly.</div></div>
-</li>
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">2</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Load it</div><div style="font-size: 15px; color: #A1A1AA">Open about:debugging, go to This Firefox and click Load Temporary Add-on…. Sign it on addons.mozilla.org to keep it after restarts.</div></div>
-</li>
-<li style="display: flex; gap: 16px; background: #0B0B0D; border: 1px solid #1E4D3B; border-radius: 16px; padding: 20px">
-<span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #1E4D3B; color: #D1FAE5; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">3</span>
-<div><div style="font-weight: 600; margin-bottom: 4px">Connect an AI</div><div style="font-size: 15px; color: #A1A1AA">A welcome page opens. Paste a key (Gemini and Groq have free tiers) or run a free local model with Ollama. Optionally connect Google Drive to sync.</div></div>
-</li>
-</ol>
-</div>
-</section>
-
-<!-- FEEDBACK -->
-<section id="feedback" style="max-width: 720px; margin: 0 auto; padding: 0 24px 96px">
-<h2 style="margin: 0 0 8px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: clamp(26px, 3.2vw, 36px); letter-spacing: -0.02em">Send feedback</h2>
-<p style="margin: 0 0 28px; color: #A1A1AA">Bugs, ideas, a site that needs a profile. Sending opens a pre-filled issue on GitHub, where you post it publicly.</p>
-<form id="fb-form" novalidate style="position: relative; display: flex; flex-direction: column; gap: 18px">
-<div style="display: flex; flex-direction: column; gap: 6px">
-<label for="fb-msg" style="font-size: 14px; font-weight: 500; color: #D4D4D8">Message</label>
-<textarea id="fb-msg" name="message" class="fb-field" rows="5" maxlength="2000" placeholder="What's working, what isn't?" style="background: #111113; border: 1px solid #2A2A2E; border-radius: 12px; padding: 14px 16px; font: 16px/1.5 Inter, sans-serif; color: #F4F4F5; resize: vertical; min-height: 132px"></textarea>
-</div>
-<div class="hp" aria-hidden="true">
-<label for="fb-website">Leave this field empty</label>
-<input id="fb-website" name="website" type="text" tabindex="-1" autocomplete="off">
-</div>
-<p id="fb-error" role="alert" hidden style="margin: 0; font-size: 14px; color: #FCA5A5"></p>
-<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
-<span id="fb-count" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8B8B94">0 / 2000</span>
-<button type="submit" style="border: 0; border-radius: 999px; padding: 12px 24px; min-height: 48px; background: #34D399; color: #052E1F; font: 600 15px Inter, sans-serif; cursor: pointer">Open on GitHub</button>
-</div>
-</form>
-<div id="fb-sent" role="status" hidden style="border: 1px solid #1E4D3B; background: #0E1F18; border-radius: 16px; padding: 24px; display: flex; gap: 14px; align-items: flex-start">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-<div><div style="font-weight: 600; margin-bottom: 4px">Thanks! Finish posting it in the GitHub tab.</div><div style="font-size: 15px; color: #A1A1AA">Every issue is read. Didn't open? <a href="https://github.com/soroagent/owl/issues/new">Open a new issue</a>.</div></div>
-</div>
-</section>
-
-<!-- FOOTER -->
-<footer style="border-top: 1px solid #1F1F24">
-<div style="max-width: 1200px; margin: 0 auto; padding: 32px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; font-size: 14px; color: #8B8B94">
-<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: #F4F4F5">soroagent</span>
-<span>tech is art. © 2026 soroagent.com · MIT License</span>
-</div>
-<div style="display: flex; flex-wrap: wrap; gap: 20px">
-<a href="https://github.com/soroagent/owl" style="color: #A1A1AA">GitHub</a>
-<a href="#how" style="color: #A1A1AA">How it works</a>
-<a href="privacy.html" style="color: #A1A1AA">Privacy policy</a>
-<a href="#feedback" style="color: #A1A1AA">Send feedback</a>
-</div>
-</div>
+<footer>
+  <span>© 2026 soroagent.com · MIT</span>
+  <nav aria-label="Footer">
+    <a href="privacy.html">Privacy</a>
+    <a href="https://github.com/soroagent/owl/issues/new">Feedback</a>
+    <a href="https://github.com/soroagent/owl">GitHub</a>
+  </nav>
 </footer>
 
 </div>
-<script>
-(function () {
-  // Site profiles: tabs with arrow-key support
-  var tabs = Array.prototype.slice.call(document.querySelectorAll('.site-tab'));
-  function pickSite(t) {
-    tabs.forEach(function (b) { var on = b === t; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
-    document.getElementById('site-name').textContent = t.textContent;
-    document.getElementById('site-mode').textContent = t.dataset.mode;
-    document.getElementById('site-reads').textContent = t.dataset.reads;
-    document.getElementById('site-gets').textContent = t.dataset.gets;
-    document.getElementById('site-panel').setAttribute('aria-labelledby', t.id);
-  }
-  tabs.forEach(function (t, i) {
-    t.addEventListener('click', function () { pickSite(t); });
-    t.addEventListener('keydown', function (e) {
-      var d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
-      if (!d) return;
-      e.preventDefault();
-      var n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); pickSite(n);
-    });
-  });
-
-  // Ask your library: example questions
-  var qs = document.querySelectorAll('.q-btn');
-  qs.forEach(function (q) {
-    q.addEventListener('click', function () {
-      qs.forEach(function (b) { b.setAttribute('aria-pressed', b === q); });
-      document.getElementById('ask-q').textContent = q.textContent;
-    });
-  });
-
-  // Download: browser toggle
-  document.querySelectorAll('.br-tab').forEach(function (t) {
-    t.addEventListener('click', function () {
-      var b = t.dataset.browser;
-      document.querySelectorAll('.br-tab').forEach(function (x) { x.setAttribute('aria-selected', x === t); });
-      document.querySelectorAll('.br-pane').forEach(function (p) { p.hidden = p.dataset.browser !== b; });
-    });
-  });
-
-  // Feedback: spam checks, then a pre-filled GitHub issue (this site has no server)
-  var form = document.getElementById('fb-form');
-  var msg = document.getElementById('fb-msg');
-  var trap = document.getElementById('fb-website');
-  var err = document.getElementById('fb-error');
-  var count = document.getElementById('fb-count');
-  var loadedAt = Date.now();
-  function fail(text) { err.textContent = text; err.hidden = false; }
-  msg.addEventListener('input', function () { count.textContent = msg.value.length; err.hidden = true; });
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    // Honeypot filled: only bots see this field. Act as if it worked so they don't retry.
-    if (trap.value) { form.hidden = true; document.getElementById('fb-sent').hidden = false; return; }
-    if (Date.now() - loadedAt < 3000) return fail('That was quick. Give it a second and send again.');
-    var text = msg.value.trim();
-    if (text.length < 10) return fail('Add a little more detail (at least 10 characters).');
-    if ((text.match(/https?:\/\//g) || []).length > 2) return fail('Please include two links or fewer.');
-    var title = text.split('\n')[0].slice(0, 70);
-    var url = 'https://github.com/soroagent/owl/issues/new?labels=feedback&title=' + encodeURIComponent('Feedback: ' + title) + '&body=' + encodeURIComponent(text);
-    window.open(url, '_blank', 'noopener');
-    form.hidden = true;
-    document.getElementById('fb-sent').hidden = false;
-  });
-})();
-</script>
 </body>
 </html>
