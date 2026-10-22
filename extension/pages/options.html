@@ -83,6 +83,19 @@
         <label class="source"><input type="radio" name="source" value="cloud">
           <span><b>Cloud API</b><small>Claude, OpenAI, Gemini and others with your own API key. Nothing to install.</small></span>
         </label>
+        <label class="source"><input type="radio" name="source" value="browser">
+          <span><b>In this browser</b><small>Chrome's built-in AI, or a small model on your graphics chip. Free and private, nothing to install; simpler answers.</small></span>
+        </label>
+      </div>
+
+      <div id="browserFields" hidden>
+        <label class="field"><span>Engine</span>
+          <select id="browserEngine">
+            <option value="nano">Chrome's built-in AI (Gemini Nano)</option>
+            <option value="webllm">Qwen2.5-1.5B on WebGPU (one-time 880 MB download)</option>
+          </select>
+        </label>
+        <div class="row"><button class="btn small" type="button" id="browserSetup">Download and set up</button><span class="muted" id="browserMsg" role="status"></span></div>
       </div>
 
       <div id="localFields">
@@ -368,6 +381,7 @@
 <script src="../shared/backup.js"></script>
 <script src="../background/mdexport.js"></script>
 <script src="../background/sync.js"></script>
+<script src="../background/browserai.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

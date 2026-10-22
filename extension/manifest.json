@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "soroagent",
   "short_name": "soroagent",
-  "version": "2.28.0",
+  "version": "2.29.0",
   "description": "AI assistant for any web page, powered by your local LLM (Ollama, LM Studio…) or your own API key (Claude, OpenAI, Gemini…). Summarize, ask and save.",
   "permissions": [
     "storage",
@@ -20,6 +20,9 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
     "service_worker": "background/sw.js",
     "scripts": [
@@ -33,6 +36,7 @@
       "background/sync.js",
       "background/mdexport.js",
       "background/llm.js",
+      "background/browserai.js",
       "background/recommend.js",
       "background/secrets.js",
       "background/research.js",

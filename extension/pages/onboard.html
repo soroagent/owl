@@ -63,7 +63,6 @@
     .status.err { color: var(--err); }
     .status.ok { color: var(--ok); font-weight: 600; }
     .fine { margin-top: 10px; color: var(--fg-muted); font-size: 11.5px; }
-    .step { margin: 0 0 4px; color: var(--fg-muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
     #sync h2 { font-size: 15px; margin: 0 0 6px; letter-spacing: -0.01em; }
     #sync > p { margin: 0 0 10px; }
     .access { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); }
@@ -75,6 +74,22 @@
     .access li.no::before { content: "✕"; color: var(--err); }
     #syncPass { display: block; width: 100%; }
     .field-hint { margin: 4px 0 0; color: var(--fg-muted); font-size: 11.5px; }
+    .finding { display: flex; align-items: center; gap: 10px; color: var(--fg-muted); margin: 6px 0 4px; }
+    .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+    .options { display: grid; gap: 8px; }
+    .option { text-align: left; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--fg); font: inherit; cursor: pointer; }
+    .option:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .option b { display: block; font-size: 13px; }
+    .option small { display: block; color: var(--fg-muted); font-size: 12px; margin-top: 2px; }
+    .option:disabled { opacity: .6; cursor: wait; }
+    .cmd { display: flex; gap: 6px; align-items: stretch; margin: 8px 0; }
+    .cmd code { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg); font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .progress { margin-top: 10px; }
+    .progress .bar { height: 8px; border-radius: 4px; background: var(--bg-soft); border: 1px solid var(--border); overflow: hidden; }
+    .progress .bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--brand), var(--spark)); transition: width .3s ease; }
+    .progress p { margin: 6px 0 0; color: var(--fg-muted); font-size: 12px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
   </style>
 </head>
@@ -88,9 +103,35 @@
     </div>
   </div>
 
+  <section id="detect">
+    <p class="finding"><span class="spinner" aria-hidden="true"></span>Looking for an AI on this computer…</p>
+  </section>
+
+  <section id="fix" hidden>
+    <div class="guide">
+      <h2 id="fixTitle">Ollama is running, but it's blocking browser extensions</h2>
+      <p id="fixWhy">Ollama only answers apps it trusts. Run this once in Terminal to let browser extensions (and nothing else) use it:</p>
+      <div class="cmd"><code id="fixCmd"></code><button class="btn" id="fixCopy" type="button">Copy</button></div>
+      <p id="fixThen"></p>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="fixCheck" type="button">Check again</button>
+    </div>
+  </section>
+
+  <section id="choices" hidden>
+    <label class="title">Pick an AI to power me</label>
+    <div class="options">
+      <button class="option" id="useNano" type="button" hidden><b>Use Chrome's built-in AI</b><small>Free and private: it runs on this computer. Chrome downloads it once and keeps it up to date.</small></button>
+      <button class="option" id="useWebllm" type="button" hidden><b>Run a small AI in this browser</b><small>Free and private: it runs on this computer's graphics chip. One-time 880 MB download.</small></button>
+      <button class="option" id="useCloud" type="button"><b>Use Claude, ChatGPT or Gemini</b><small>Best answers. Paste your own API key.</small></button>
+      <button class="option" id="useLocal" type="button"><b>Use Ollama or LM Studio</b><small>Free and private, with bigger models. Needs a one-time install.</small></button>
+    </div>
+    <div class="progress" id="progress" hidden><div class="bar"><span id="progressBar"></span></div><p id="progressText"></p></div>
+  </section>
+
   <section id="sync" hidden>
-    <p class="step">Step 1 of 2</p>
-    <h2>Use soroagent in more than one browser or computer?</h2>
+    <h2>Keep your library safe in every browser</h2>
     <p>Sync keeps one library (your saved snippets, summaries and research) in every browser where you install soroagent: Chrome, Firefox, Edge or Brave, on any computer.</p>
     <div class="access">
       <h3>What soroagent asks Google for</h3>
@@ -105,14 +146,13 @@
     <p class="field-hint">Already use soroagent in another browser? Enter the same passphrase you chose there. soroagent never stores or sends it, so keep it somewhere safe.</p>
     <div class="actions">
       <button class="btn primary" id="syncConnect" type="button">Connect Google Drive</button>
-      <button class="link" id="syncSkip" type="button">Skip, keep it in this browser only</button>
+      <button class="link" id="syncSkip" type="button">Not now</button>
     </div>
     <p class="fine">You can turn sync on or off any time in Settings → Sync across browsers.</p>
   </section>
 
-  <section id="cloud">
-    <p class="step" id="aiStep" hidden>Step 2 of 2</p>
-    <label class="title" id="providerLabel">1. Pick an AI to power me</label>
+  <section id="cloud" hidden>
+    <label class="title" id="providerLabel">1. Pick a cloud AI</label>
     <div class="providers" id="providers" role="group" aria-labelledby="providerLabel"></div>
     <label class="title" for="key">2. Paste your API key</label>
     <div class="key-row">
@@ -122,7 +162,7 @@
     <div class="row">
       <button class="link help-btn" id="helpBtn" type="button" aria-expanded="false"><b aria-hidden="true">?</b>How do I get a key?</button>
       <span aria-hidden="true">·</span>
-      <button class="link" id="localBtn" type="button">I have a local model (free)</button>
+      <button class="link back" type="button">← Other options</button>
     </div>
     <div class="guide" id="guide" hidden></div>
   </section>
@@ -135,19 +175,21 @@
         <li>In a terminal, run <code>ollama pull llama3.2</code> (or any chat model).</li>
         <li>Come back here and click <b>Check again</b>.</li>
       </ol>
-      <p>Nothing leaves your computer with a local model. LM Studio, llama.cpp and Jan work too (set their URL in Settings).</p>
+      <p>Nothing leaves your computer with a local model. soroagent finds Ollama by itself; LM Studio, llama.cpp and Jan work too (set their URL in Settings).</p>
     </div>
     <div class="row">
       <button class="btn primary" id="checkLocal" type="button">Check again</button>
-      <button class="link" id="backToCloud" type="button">← Use an API key instead</button>
+      <button class="link back" type="button">← Other options</button>
     </div>
   </section>
 
   <div class="status" id="status" role="status" aria-live="polite"></div>
-  <p class="fine" id="keyNote">🔒 Your key is encrypted and stays in this browser. soroagent only sends it to the AI you picked. This box is part of soroagent, so the website you're on can't see what you type.</p>
+  <div class="row" id="doneRow" hidden><button class="link" id="changeAi" type="button">Use a different AI</button></div>
+  <p class="fine" id="keyNote" hidden>🔒 Your key is encrypted and stays in this browser. soroagent only sends it to the AI you picked. This box is part of soroagent, so the website you're on can't see what you type.</p>
 </main>
 <script src="../shared/config.js"></script>
 <script src="../background/sync.js"></script>
+<script src="../background/browserai.js"></script>
 <script src="onboard.js"></script>
 </body>
 </html>

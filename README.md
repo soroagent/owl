@@ -22,6 +22,7 @@ soroagent sits beside every page as a small owl and does three things:
 ## Features
 
 ### Understand any page
+- **Works out of the box.** The first-run setup looks for an AI on your computer and uses it without asking: Ollama if it's running, or Chrome's built-in AI (Gemini Nano). If neither is there, one click sets up Chrome's built-in AI or a small model that runs in the browser on your graphics chip (Qwen2.5-1.5B, a one-time 880 MB download). Or paste a Claude, OpenAI or Gemini key. If Ollama is running but blocks browser extensions, you get the one command that fixes it, ready to copy.
 - **Ready before you ask.** A few seconds after you open a page, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Open the owl and the questions are there; click Summarize and the summary appears at once. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. Turn it off in Settings → On the page.
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
@@ -102,12 +103,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.28.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.29.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.28.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.28.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.28.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.28.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.29.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.29.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.29.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.29.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

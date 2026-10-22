@@ -58,7 +58,8 @@ keys/                chrome-public-key.txt pins the Chrome extension ID (see key
 ```
 
 All extension code is classic scripts that attach to `globalThis.soroagent` (aliased `S`). No
-bundler, no npm dependencies. Pure functions are exported on `soroagent` so tests can load them.
+bundler, no npm dependencies; the one third-party library, WebLLM, is vendored as a file in
+`extension/vendor/web-llm/` (see its README). Pure functions are exported on `soroagent` so tests can load them.
 
 ## Data
 
@@ -144,8 +145,22 @@ Features that send page text without the user clicking something need a Settings
   `drive.appdata` scope (hidden app folder). The sign-in window opens from an extension page
   (Settings or onboarding), and the background then reads the token from `storage.session` and
   renews it silently. WebDAV and Gist are the alternatives.
-- **First run** (`pages/onboard.html`, install tab only): step 1 offers Google Drive sync (clearly
-  says soroagent only sees its own hidden folder; Skip is one click), step 2 connects an AI.
+- **First run** (`pages/onboard.html`, install tab and inside the panel): no questions if it can
+  avoid them. `ai:detect` checks Ollama at 127.0.0.1:11434, Chrome's Gemini Nano and WebGPU at once:
+  Ollama with a model, or Nano/WebLLM already downloaded → configured silently. Ollama 403 → the
+  `S.ollamaOriginsFix()` command (extension origins only, never `*`) with a copy button; the panel
+  and Settings show the same card. Otherwise one click for Nano (download must start in a click) or
+  WebLLM (progress bar), a cloud key, or Ollama/LM Studio.
+- **In-browser AI** (`source: 'browser'`, `background/browserai.js`): Nano runs where it's called
+  (`LanguageModel`, also in the service worker). WebLLM is an ES module, so in Chrome it runs in the
+  offscreen document (shared with the backup helper; never closed) behind a `webllm` port; in
+  Firefox it runs in the background page. Engine and Qwen model library are vendored in
+  `vendor/web-llm/` (MV3 forbids remote code; CSP allows `wasm-unsafe-eval`); weights (880 MB) are
+  data from Hugging Face. Small models get `pageCharLimit` 6,000 chars. Ollama's 403 only happens
+  when the Origin rewrite can't apply (e.g. Ollama on another computer).
+- **Sync offer:** not in first run. `sync:offer` (`S.syncOfferDue`) offers it in the panel once 5
+  items are saved; "Not now" waits 15 more items, two "Not now"s stop it. The setup page is
+  `onboard.html?sync`.
 - **Markdown export:** File System Access folder handle (Chrome family) or Downloads/soroagent/notes
   (Firefox); never overwrites a file the user edited in the vault.
 

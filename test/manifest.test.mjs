@@ -95,3 +95,13 @@ test('Google Drive sync can sign in (identity), and its redirect matches the pin
   assert.equal(id, 'jomghmmgdlajfonjihmagbhomimadpcg');
   assert.equal(createHash('sha1').update(manifest.browser_specific_settings.gecko.id).digest('hex'), '2cc4144500e90330e1a3d0c39bbd9cc2e7ce6aeb');
 });
+
+test('the in-browser AI ships its engine (no remote code) and may run WebAssembly', () => {
+  assert.match(manifest.content_security_policy.extension_pages, /'wasm-unsafe-eval'/);
+  assert.doesNotMatch(manifest.content_security_policy.extension_pages, /https?:|'unsafe-eval'/, 'no remote or eval scripts');
+  for (const f of ['vendor/web-llm/index.js', 'vendor/web-llm/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm', 'vendor/web-llm/LICENSE']) assert.ok(existsSync(join(ext, f)), f);
+  const engine = readFileSync(join(ext, 'background/browserai.js'), 'utf8');
+  assert.ok(engine.includes("'vendor/web-llm/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm'"), 'the model library comes from the extension');
+  const offscreen = readFileSync(join(ext, 'pages/offscreen.html'), 'utf8');
+  assert.match(offscreen, /browserai\.js/);
+});

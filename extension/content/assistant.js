@@ -386,7 +386,9 @@
       els.where.textContent = status.providerLabel;
       els.emptyNote.textContent = status.cloud
         ? `Runs on ${status.providerLabel} with your API key. Page text you act on is sent to ${status.providerLabel}.`
-        : 'Runs on the model served at your local URL. Nothing leaves your machine.';
+        : status.browser
+          ? `Runs on ${status.providerLabel}, inside this browser. Nothing leaves your machine.`
+          : 'Runs on the model served at your local URL. Nothing leaves your machine.';
       if (!status.models.length) {
         setStatus('offline', 'No models');
         const pull = status.pullSuggestion ? `Download one first, for example: ${status.pullSuggestion.command}` : 'Choose a model in settings.';
@@ -566,17 +568,61 @@
   }
 
   function showError(err, hint, offerRetry) {
+    if (err && err.code === 'forbidden' && state.settings.source === 'local') return showOllamaFix();
     const actions = [];
     if (offerRetry) actions.push({ label: 'Retry', onClick: () => connect() });
     actions.push({ label: 'Open settings', onClick: () => sendMessage({ type: 'open:options' }) });
     return append(card({ kind: 'error', icon: 'alert', title: err.message, pre: hint || '', actions }));
   }
 
+  // The local server answered 403: Ollama blocks browser extensions by default. The one command
+  // that fixes it on this computer, ready to copy, and a Retry for after restarting Ollama.
+  function showOllamaFix() {
+    const fix = S.ollamaOriginsFix(navigator.platform || navigator.userAgent);
+    const copy = { label: 'Copy command' };
+    copy.onClick = async (e) => {
+      const button = e.currentTarget;
+      try {
+        await navigator.clipboard.writeText(fix.command);
+        button.textContent = 'Copied';
+      } catch {
+        button.textContent = 'Select the command and copy it';
+      }
+      setTimeout(() => (button.textContent = 'Copy command'), 2500);
+    };
+    return append(card({
+      kind: 'error',
+      icon: 'alert',
+      title: "Ollama is blocking browser extensions",
+      body: `Run this once in ${fix.os === 'Windows' ? 'Command Prompt' : 'Terminal'}. It lets browser extensions (and no websites) use Ollama. ${fix.then}`,
+      pre: fix.command,
+      actions: [copy, { label: 'Retry', onClick: () => connect() }],
+    }));
+  }
+
+  // Once the library holds 5 things worth keeping, offer sync (once; "Not now" waits for more).
+  async function maybeOfferSync() {
+    if (els.thread.querySelector('.sync-offer')) return;
+    const res = await sendMessage({ type: 'sync:offer' }).catch(() => null);
+    if (!res || !res.offer) return;
+    const node = card({
+      kind: 'sync-offer',
+      icon: 'save',
+      title: `You've saved ${res.count} things. Keep them safe?`,
+      body: 'Sync your library to every browser where you use soroagent, through your own Google Drive, encrypted with your passphrase. soroagent only sees its own hidden folder there.',
+      actions: [
+        { label: 'Set up sync', onClick: () => (node.remove(), sendMessage({ type: 'open:sync-setup' })) },
+        { label: 'Not now', onClick: () => (node.remove(), sendMessage({ type: 'sync:offer-later' })) },
+      ],
+    });
+    append(node);
+  }
+
   // ---------------------------------------------------------------------------
   // Running tasks
   // ---------------------------------------------------------------------------
 
-  const maxChars = () => Number(state.settings.maxPageChars) || 12000;
+  const maxChars = () => S.pageCharLimit(state.settings);
   const getPage = (limit = maxChars()) => S.extractPage(document, { maxChars: limit });
   // Site profiles with extract() read the page's structure (Stack Overflow answers with the
   // accepted one marked, Hacker News comment trees, GitHub issue state…); others get its text.
@@ -842,6 +888,7 @@
 
   // Under each finished summary: it's saved, and it can be researched further.
   function afterJob(record) {
+    if (record.snippetId) maybeOfferSync();
     if (record.kind === 'research') {
       if (record.sources && record.sources.length) append(sourcesCard(record.query, record.sources, 'Sources'));
       return;
@@ -1407,6 +1454,7 @@
         const messages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: page.text.slice(0, 5000) }), sitePrompts());
         sendMessage({ type: 'capture:label', id: snippet.id, messages }).catch(() => {});
       }
+      setTimeout(maybeOfferSync, 1500);
       append(card({ kind: 'ok', icon: 'save', title: 'Saved to your library.', body: state.status === 'ready' ? 'Your AI is adding a title, summary and tags.' : snippet.title, actions: [open(snippet.id)] }));
     } catch (err) {
       showError(err, '', false);

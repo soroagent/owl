@@ -4,7 +4,7 @@
   const S = globalThis.soroagent;
   const { ext, DEFAULT_SETTINGS, PROVIDER_PRESETS, CLOUD_PROVIDERS } = S;
   const $ = (id) => document.getElementById(id);
-  const TEXT_FIELDS = ['baseUrl', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
+  const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
   const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'preparePages', 'pageQuestions', 'autoBackup', 'captureLabel', 'semanticSearch'];
 
@@ -153,7 +153,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     saved = settings;
     for (const id of [...TEXT_FIELDS, ...NUMBER_FIELDS]) $(id).value = settings[id];
     for (const id of CHECK_FIELDS) $(id).checked = Boolean(settings[id]);
-    document.querySelector(`input[name="source"][value="${settings.source === 'cloud' ? 'cloud' : 'local'}"]`).checked = true;
+    document.querySelector(`input[name="source"][value="${['cloud', 'browser'].includes(settings.source) ? settings.source : 'local'}"]`).checked = true;
     modelChoice = { local: settings.model || '', cloud: { ...(settings.cloudModels || {}) } };
     hiddenSites = [...(settings.hiddenSites || [])];
     renderSites();
@@ -332,8 +332,12 @@ Rewrite it to get better results on this website. Keep the intent and every rule
   // Shows the fields for the selected source/provider and resets the model list.
   function showSource() {
     const cloud = source() === 'cloud';
-    $('localFields').hidden = cloud;
+    const browser = source() === 'browser';
+    $('localFields').hidden = cloud || browser;
     $('cloudFields').hidden = !cloud;
+    $('browserFields').hidden = !browser;
+    $('model').closest('.field').hidden = browser; // one model each
+    $('browserMsg').textContent = '';
     const provider = S.cloudProvider($('cloudProvider').value);
     $('customBaseUrlField').hidden = provider.id !== 'custom';
     showKeyField();
@@ -446,14 +450,21 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     const form = readForm();
     const run = ++testRun;
     const connection = S.resolveConnection(form);
-    showResult('connecting', `Connecting to ${connection.cloud ? connection.label : form.baseUrl}…`);
+    showResult('connecting', `Connecting to ${connection.cloud || connection.api === 'browser' ? connection.label : form.baseUrl}…`);
     $('test').disabled = true;
     try {
       // Typed keys are tested before saving; otherwise the background uses the saved, encrypted key.
       const res = await ext.runtime.sendMessage({ type: 'llm:status', overrides: { settings: form, apiKeys: { ...pendingKeys } } });
       if (run !== testRun) return; // a newer test started (source or provider changed)
       if (!res || res.ok === false) {
-        showResult('offline', (res && res.error) || 'Connection failed.', res && res.hint);
+        const forbidden = res && res.code === 'forbidden' && form.source === 'local';
+        const fix = forbidden ? S.ollamaOriginsFix(navigator.platform || navigator.userAgent) : null;
+        showResult('offline', forbidden ? 'Ollama is blocking browser extensions.' : (res && res.error) || 'Connection failed.', fix ? `Run this once in ${fix.os === 'Windows' ? 'Command Prompt' : 'Terminal'}:\n${fix.command}\n${fix.then}` : res && res.hint);
+        if (fix) addCopy(fix.command);
+        return;
+      }
+      if (res.browser) {
+        showResult('ready', `Ready: ${res.providerLabel} (${res.model}), running inside this browser.`);
         return;
       }
       const where = res.cloud ? res.providerLabel : `${res.api === 'ollama' ? 'Ollama' : 'OpenAI-compatible API'} at ${res.baseUrl}`;
@@ -469,6 +480,45 @@ Rewrite it to get better results on this website. Keep the intent and every rule
       if (run === testRun) $('test').disabled = false;
     }
   }
+
+  // A copy button under the result, for the Ollama fix command.
+  function addCopy(command) {
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'btn small', textContent: 'Copy command' });
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(command).then(() => (button.textContent = 'Copied'), () => (button.textContent = 'Select and copy it above'));
+      setTimeout(() => (button.textContent = 'Copy command'), 2500);
+    });
+    $('resultText').append(button);
+  }
+
+  // In-browser AI: Chrome's model must be downloaded after a click; WebLLM's weights load once.
+  $('browserEngine').addEventListener('change', () => {
+    $('browserMsg').textContent = '';
+    testConnection();
+  });
+  $('browserSetup').addEventListener('click', async () => {
+    const button = $('browserSetup');
+    button.disabled = true;
+    try {
+      if ($('browserEngine').value === 'nano') {
+        $('browserMsg').textContent = 'Chrome is downloading its built-in AI…';
+        await S.downloadNano((f) => ($('browserMsg').textContent = `Downloading Chrome's built-in AI… ${Math.round(f * 100)}%`));
+      } else {
+        $('browserMsg').textContent = 'Starting…';
+        await ext.runtime.sendMessage({ type: 'ai:host' });
+        await S.webllmClient(ext).load((st) => {
+          if (st.phase === 'loading') $('browserMsg').textContent = `${Math.round((st.progress || 0) * 100)}% · ${(st.text || 'Downloading…').replace(/\[[^\]]*\]\s*/, '').slice(0, 80)}`;
+        });
+        await ext.runtime.sendMessage({ type: 'ai:webllm-ready' });
+      }
+      $('browserMsg').textContent = 'Ready. Save to use it.';
+      testConnection();
+    } catch (err) {
+      $('browserMsg').textContent = `Couldn't set it up: ${err.message}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   for (const preset of PROVIDER_PRESETS) {
     const button = document.createElement('button');
@@ -490,7 +540,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
   for (const radio of document.querySelectorAll('input[name="source"]')) {
     radio.addEventListener('change', () => {
       showSource();
-      if (source() === 'local' || hasKey($('cloudProvider').value)) testConnection();
+      if (source() !== 'cloud' || hasKey($('cloudProvider').value)) testConnection();
     });
   }
   $('cloudProvider').addEventListener('change', () => {

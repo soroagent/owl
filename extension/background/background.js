@@ -6,6 +6,9 @@
   const { ext, getSettings, resolveConnection, listModels, chat, normalizeBaseUrl, createSecretStore, recommendModels, PULL_SUGGESTION, createJobRunner } =
     globalThis.soroagent;
 
+  // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
+  globalThis.soroagent.browserAI = globalThis.soroagent.createBrowserAI({ ext });
+
   const secrets = createSecretStore();
   // Keys saved in plain text by 2.1.0 are encrypted and removed from chrome.storage on first run.
   const migrated = secrets.migrateFrom(ext.storage.local).catch((err) => console.warn('[soroagent] Key migration failed:', err));
@@ -84,17 +87,18 @@
     const apiKeys = { ...(await secrets.getAll()), ...(overrides.apiKeys || {}) };
     const connection = resolveConnection(settings, apiKeys);
     // Only local servers need the Origin rewrite; hosted APIs accept extension requests.
-    if (!connection.cloud) await ensureOriginRewrite(normalizeBaseUrl(connection.baseUrl));
+    if (!connection.cloud && connection.api !== 'browser') await ensureOriginRewrite(normalizeBaseUrl(connection.baseUrl));
     return connection;
   }
 
   async function getStatus(overrides) {
     const connection = await getConnection(overrides);
     const result = await listModels(connection);
-    if (!connection.cloud) apiCache.set(result.baseUrl, result.api);
+    const server = !connection.cloud && connection.api !== 'browser';
+    if (server) apiCache.set(result.baseUrl, result.api);
     const ids = result.models.map((m) => m.id);
     // For local servers, rank what's installed and suggest the best fit for soroagent.
-    const recommended = connection.cloud ? [] : recommendModels(result.models);
+    const recommended = server ? recommendModels(result.models) : [];
     let model = connection.model;
     if (!model || (!connection.cloud && !ids.includes(model))) model = (recommended[0] && recommended[0].id) || result.suggested;
     // Hosted APIs accept models that aren't listed (aliases, new releases): keep the user's choice.
@@ -109,7 +113,8 @@
       providerLabel: connection.label,
       recommended,
       // When nothing installed fits well, suggest a download.
-      pullSuggestion: !connection.cloud && (!recommended.length || recommended[0].score < 8) ? PULL_SUGGESTION : null,
+      browser: connection.api === 'browser',
+      pullSuggestion: server && (!recommended.length || recommended[0].score < 8) ? PULL_SUGGESTION : null,
     };
   }
 
@@ -361,6 +366,46 @@
       return { ok: true, id: snippet.id };
     },
     'open:options': () => ext.runtime.openOptionsPage(),
+
+    // First run: what AI this computer already has. Ollama on its default address (the request
+    // never leaves the computer), Chrome's built-in model, and whether WebGPU can run one.
+    'ai:detect': async (msg, sender) => {
+      requireExtensionPage(sender);
+      const ollama = await getStatus({ settings: { source: 'local', baseUrl: S.DEFAULT_SETTINGS.baseUrl, provider: 'auto', model: '' } })
+        .then((st) => (st.models.length ? { state: 'ok', model: st.model, count: st.models.length } : { state: 'no-models' }))
+        .catch((err) => ({ state: err.code === 'forbidden' ? 'forbidden' : 'offline', error: err.message }));
+      const nano = await S.nanoAvailability();
+      const webllm = await S.browserAI.status('webllm').catch(() => ({ ready: false, webgpu: false }));
+      return { ok: true, ollama, nano, webgpu: webllm.webgpu, webllmReady: webllm.ready };
+    },
+    // Pages talk to the in-browser engine over a port; in Chrome it lives in the offscreen document.
+    'ai:host': async (msg, sender) => {
+      requireExtensionPage(sender);
+      await S.browserAI.ensureOffscreen();
+      return { ok: true };
+    },
+    'ai:webllm-ready': async (msg, sender) => {
+      requireExtensionPage(sender);
+      await S.browserAI.markReady();
+      return { ok: true };
+    },
+
+    // Sync is offered once the library holds 5 things worth keeping (see syncOfferDue).
+    'sync:offer': async () => {
+      const all = await ext.storage.local.get(null);
+      const count = Object.keys(all).filter((k) => k.startsWith('snippet:') && all[k] && all[k].kind !== 'screenshot').length;
+      const settings = await getSettings();
+      return { ok: true, count, offer: S.syncOfferDue({ count, syncOn: Boolean(all.syncConfig), offer: settings.syncOffer || {} }) };
+    },
+    'sync:offer-later': async () => {
+      const all = await ext.storage.local.get(null);
+      const count = Object.keys(all).filter((k) => k.startsWith('snippet:')).length;
+      const settings = await getSettings();
+      const offer = settings.syncOffer || {};
+      await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
+      return { ok: true };
+    },
+    'open:sync-setup': () => ext.tabs.create({ url: ext.runtime.getURL('pages/onboard.html?sync') }),
     // Pages report the browser's light/dark theme (the worker itself can't see it).
     theme: (msg) => setThemeIcon(Boolean(msg.dark)),
     // Automatic backup file (see autobackup.js).

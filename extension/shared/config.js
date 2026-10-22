@@ -10,7 +10,8 @@
     root.browser && root.browser.runtime && root.browser.runtime.id ? root.browser : root.chrome;
 
   const DEFAULT_SETTINGS = Object.freeze({
-    source: 'local', // 'local' | 'cloud'
+    source: 'local', // 'local' (a model server such as Ollama) | 'cloud' (your API key) | 'browser' (runs inside the browser)
+    browserEngine: 'nano', // with source 'browser': 'nano' (Chrome's built-in Gemini Nano) | 'webllm' (Qwen2.5-1.5B on WebGPU)
 
     // Local model server
     baseUrl: 'http://127.0.0.1:11434',
@@ -41,7 +42,8 @@
     allowThinking: false,
     showLauncher: true,
     preparePages: true, // summarize each page in the background on visit and prepare questions from it
-    pageQuestions: true, // suggested questions written for each page by the model when the panel opens
+    pageQuestions: true,
+    syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens
     launcherPosition: 'auto', // 'auto' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     launcherPlacements: {}, // hostname -> { side: 'left' | 'right', y: 0..1 } after the user drags the button
     hiddenSites: [],
@@ -160,6 +162,11 @@
       contextWindow: Number(settings.contextWindow) || 8192,
       allowThinking: Boolean(settings.allowThinking),
     };
+    if (settings.source === 'browser') {
+      const engine = BROWSER_ENGINES[settings.browserEngine] ? settings.browserEngine : 'nano';
+      const e = BROWSER_ENGINES[engine];
+      return { id: 'browser', label: e.label, cloud: false, api: 'browser', engine, baseUrl: '', apiKey: '', model: e.model, catalog: null, ...generation };
+    }
     if (settings.source === 'cloud') {
       const p = cloudProvider(settings.cloudProvider);
       return {
@@ -187,8 +194,47 @@
     };
   }
 
+  // AI that runs inside the browser, with no server and no key. Small models: they get less page text.
+  const BROWSER_ENGINES = Object.freeze({
+    nano: { label: "Chrome's built-in AI", model: 'Gemini Nano', maxPageChars: 6000 },
+    webllm: { label: 'In-browser AI', model: 'Qwen2.5-1.5B', maxPageChars: 6000, downloadMB: 880 },
+  });
+
+  /** Page text to send the model: less for the small in-browser models. */
+  const pageCharLimit = (settings) =>
+    Math.min(Number(settings.maxPageChars) || 12000, settings.source === 'browser' ? (BROWSER_ENGINES[settings.browserEngine] || BROWSER_ENGINES.nano).maxPageChars : Infinity);
+
+  /**
+   * Pure: the one command that lets Ollama accept requests from browser extensions, for this
+   * computer. Only extension origins are allowed ("*" would let every website use your Ollama).
+   */
+  function ollamaOriginsFix(platform = '') {
+    const origins = 'chrome-extension://*,moz-extension://*';
+    if (/win/i.test(platform) && !/darwin/i.test(platform)) {
+      return { os: 'Windows', command: `setx OLLAMA_ORIGINS "${origins}"`, then: 'Then quit Ollama from the system tray and start it again.' };
+    }
+    if (/linux|x11|cros/i.test(platform)) {
+      return {
+        os: 'Linux',
+        command: `sudo mkdir -p /etc/systemd/system/ollama.service.d && printf '[Service]\\nEnvironment="OLLAMA_ORIGINS=${origins}"\\n' | sudo tee /etc/systemd/system/ollama.service.d/origins.conf && sudo systemctl daemon-reload && sudo systemctl restart ollama`,
+        then: 'Ollama restarts by itself.',
+      };
+    }
+    return { os: 'macOS', command: `launchctl setenv OLLAMA_ORIGINS "${origins}"`, then: 'Then quit Ollama (menu bar icon → Quit Ollama) and open it again. Run it again after restarting your Mac.' };
+  }
+
+  /**
+   * Pure: whether to offer sync now. Offered once the library holds 5 items (something worth
+   * keeping), never while sync is on; "Not now" waits for 15 more items, and after two it stops.
+   */
+  function syncOfferDue({ count, syncOn, offer = {} }) {
+    if (syncOn || count < 5 || (offer.times || 0) >= 2) return false;
+    return offer.snoozedAt === undefined || count >= offer.snoozedAt + 15;
+  }
+
   // Settings patch that stores `model` as the choice for whichever connection is active.
   function modelPatch(settings, model) {
+    if (settings.source === 'browser') return {};
     if (settings.source !== 'cloud') return { model };
     return { cloudModels: { ...(settings.cloudModels || {}), [settings.cloudProvider]: model } };
   }
@@ -242,6 +288,10 @@
     NON_CHAT,
     cloudProvider,
     resolveConnection,
+    BROWSER_ENGINES,
+    pageCharLimit,
+    ollamaOriginsFix,
+    syncOfferDue,
     modelPatch,
     getSettings,
     saveSettings,

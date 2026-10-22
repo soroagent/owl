@@ -184,6 +184,15 @@
    * For a local connection with api "auto", tries Ollama first, then the OpenAI dialect.
    */
   async function listModels(conn, fetchImpl = root.fetch.bind(root)) {
+    if (conn.api === 'browser') {
+      // In-browser AI: one model, usable once it's downloaded.
+      const ai = soroagent.browserAI;
+      const st = ai ? await ai.status(conn.engine) : { ready: false };
+      if (!st.ready) {
+        throw new LLMError('browser_not_ready', conn.engine === 'nano' ? "Chrome's built-in AI isn't ready on this computer yet." : "The in-browser AI hasn't been downloaded yet.", 'Open soroagent settings → AI to set it up, or choose another AI.');
+      }
+      return { api: 'browser', baseUrl: '', models: [{ id: conn.model, size: '', capabilities: [] }], suggested: conn.model };
+    }
     checkConnection(conn);
     const baseUrl = normalizeBaseUrl(conn.baseUrl);
     const order =
@@ -316,6 +325,10 @@
    */
   async function chat(opts, fetchImpl = root.fetch.bind(root)) {
     const { connection: conn, messages, json, quick, signal, onToken, onThinking } = opts;
+    if (conn.api === 'browser') {
+      if (!soroagent.browserAI) throw new LLMError('browser_unavailable', 'The in-browser AI is not available here.');
+      return soroagent.stripThinking(await soroagent.browserAI.chat({ connection: conn, messages, json, quick, signal, onToken }));
+    }
     checkConnection(conn);
     const baseUrl = normalizeBaseUrl(conn.baseUrl);
     const api = opts.api || (conn.api === 'auto' ? 'ollama' : conn.api);
