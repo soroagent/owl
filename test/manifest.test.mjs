@@ -29,7 +29,7 @@ test('the Chrome service worker loads the same scripts as Firefox, in order', ()
 });
 
 test('pages only load scripts that exist', () => {
-  for (const page of ['options', 'snippets', 'history', 'onboard']) {
+  for (const page of ['options', 'snippets', 'history', 'onboard', 'sidepanel', 'offscreen']) {
     const html = readFileSync(join(ext, 'pages', `${page}.html`), 'utf8');
     for (const [, src] of html.matchAll(/<script src="([^"]+)"/g)) {
       assert.ok(existsSync(join(ext, 'pages', src)), `${page}.html -> ${src}`);
@@ -104,4 +104,16 @@ test('the in-browser AI ships its engine (no remote code) and may run WebAssembl
   assert.ok(engine.includes("'vendor/web-llm/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm'"), 'the model library comes from the extension');
   const offscreen = readFileSync(join(ext, 'pages/offscreen.html'), 'utf8');
   assert.match(offscreen, /browserai\.js/);
+});
+
+test('soroagent opens with Alt+Shift+O from the side panel or toolbar, and the floating owl is opt-in', () => {
+  assert.equal(manifest.commands['open-soroagent'].suggested_key.default, 'Alt+Shift+O');
+  assert.equal(manifest.commands['open-soroagent'].suggested_key.mac, 'Alt+Shift+O');
+  const keys = Object.values(manifest.commands).flatMap((c) => Object.values(c.suggested_key || {}));
+  // Taken by the browsers: Firefox's Library (Ctrl/Cmd+Shift+O), Chrome's bookmark manager on Windows,
+  // screenshots in Firefox and Edge (Ctrl/Cmd+Shift+S), Firefox's History menu (Alt+S).
+  for (const taken of ['Ctrl+Shift+O', 'Command+Shift+O', 'Ctrl+Shift+S', 'Command+Shift+S', 'Alt+S']) assert.ok(!keys.includes(taken), taken);
+  assert.ok(manifest.permissions.includes('sidePanel'));
+  assert.equal(manifest.side_panel.default_path, 'pages/sidepanel.html');
+  assert.ok(existsSync(join(ext, manifest.side_panel.default_path)));
 });

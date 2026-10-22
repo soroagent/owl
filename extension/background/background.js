@@ -6,6 +6,11 @@
   const { ext, getSettings, resolveConnection, listModels, chat, normalizeBaseUrl, createSecretStore, recommendModels, PULL_SUGGESTION, createJobRunner } =
     globalThis.soroagent;
 
+  // Flight recorder (flight.js): the last 50 internal problems, scrubbed, in session storage only.
+  const diag = (globalThis.soroagent.diag = globalThis.soroagent.createFlightRecorder({ ext }));
+  globalThis.addEventListener('error', (e) => diag.record({ area: 'error', code: 'uncaught', message: e.message, detail: { where: 'background' } }));
+  globalThis.addEventListener('unhandledrejection', (e) => diag.record({ area: 'error', code: 'unhandled', message: (e.reason && e.reason.message) || String(e.reason), detail: { where: 'background' } }));
+
   // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
   globalThis.soroagent.browserAI = globalThis.soroagent.createBrowserAI({ ext });
 
@@ -134,6 +139,17 @@
     return { ok: false, code: err.code || 'error', error: err.message || String(err), hint: err.hint || '' };
   }
 
+  // Model errors go to the flight recorder with what's safe to know about the connection.
+  function recordLlmError(err, connection, where) {
+    if (!err || err.name === 'AbortError') return;
+    diag.record({
+      area: 'llm',
+      code: err.code || 'error',
+      message: err.message,
+      detail: { where, api: connection && connection.api, provider: connection && connection.id, engine: connection && connection.engine, model: connection && connection.model, status: err.status || undefined },
+    });
+  }
+
   // Long-lived port per request. The content script pings it while waiting, which also keeps
   // Chrome's service worker alive during slow model loads.
   ext.runtime.onConnect.addListener((port) => {
@@ -156,8 +172,10 @@
     port.onMessage.addListener(async (msg) => {
       if (!msg || msg.type !== 'chat') return;
       let sentThinking = false;
+      let used = null;
       try {
         const { connection, api } = await resolveChat(msg.model);
+        used = { ...connection, api };
         const text = await chat({
           connection,
           api,
@@ -174,6 +192,7 @@
         post({ type: 'done', text, model: connection.model });
       } catch (err) {
         if (err && err.name === 'AbortError') return;
+        recordLlmError(err, used, 'chat');
         post({ type: 'error', ...errorPayload(err) });
       }
     });
@@ -185,7 +204,7 @@
 
   const jobs = createJobRunner({
     ext,
-    errorPayload,
+    errorPayload: (err) => (recordLlmError(err, null, 'summary job'), errorPayload(err)),
     getSettings,
     runChat: async ({ messages, model, signal, onToken, onThinking, json }) => {
       const { connection, api } = await resolveChat(model);
@@ -351,7 +370,10 @@
     // Screenshot of the visible part of the sender's tab, saved as a snippet. The page hides
     // soroagent's own button and panel before asking.
     'screenshot:capture': async (msg, sender) => {
-      if (!sender.tab || fromExtensionPage(sender)) throw new Error('Screenshots are taken from a web page.');
+      // From the page itself, or from the side panel (which sits beside the page, so nothing to hide).
+      const tab = fromExtensionPage(sender) && msg.tabId ? await ext.tabs.get(msg.tabId) : sender.tab;
+      if (!tab || (fromExtensionPage(sender) && !msg.tabId)) throw new Error('Screenshots are taken from a web page.');
+      sender = { ...sender, tab };
       const image = await ext.tabs.captureVisibleTab(sender.tab.windowId, { format: 'jpeg', quality: 90 });
       const snippet = await globalThis.soroagent.addSnippet({
         kind: 'screenshot',
@@ -403,6 +425,33 @@
       const settings = await getSettings();
       const offer = settings.syncOffer || {};
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
+      return { ok: true };
+    },
+    // Flight recorder: anything of ours may report (it's scrubbed again here); only extension pages read it.
+    'diag:record': async (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id) return { ok: false };
+      await diag.record(msg.event || {});
+      return { ok: true };
+    },
+    'diag:report': async (msg, sender) => {
+      requireExtensionPage(sender);
+      const all = await ext.storage.local.get(null);
+      const env = S.describeEnvironment({
+        settings: await getSettings(),
+        version: ext.runtime.getManifest().version,
+        userAgent: (globalThis.navigator && globalThis.navigator.userAgent) || '',
+        schemaVersion: (all.meta && all.meta.schemaVersion) || '',
+        libraryCount: Object.keys(all).filter((k) => k.startsWith('snippet:')).length,
+        syncOn: Boolean(all.syncConfig),
+        markdownOn: Boolean(all.markdownExport),
+      });
+      const events = await diag.list();
+      const markdown = S.formatReport({ events, env });
+      return { ok: true, markdown, issueUrl: S.issueUrl(markdown), count: events.length };
+    },
+    'diag:clear': async (msg, sender) => {
+      requireExtensionPage(sender);
+      await diag.clear();
       return { ok: true };
     },
     'open:sync-setup': () => ext.tabs.create({ url: ext.runtime.getURL('pages/onboard.html?sync') }),
@@ -508,7 +557,11 @@
     Promise.resolve()
       .then(() => handler(msg, sender))
       .then((result) => sendResponse(result === undefined ? { ok: true } : result))
-      .catch((err) => sendResponse(errorPayload(err)));
+      .catch((err) => {
+        if (msg.type.startsWith('llm:') || msg.type.startsWith('ai:')) recordLlmError(err, null, msg.type);
+        else if (!/^Not allowed/.test(err.message)) diag.record({ area: 'error', code: err.code || 'handler', message: err.message, detail: { where: msg.type } });
+        sendResponse(errorPayload(err));
+      });
     return true; // respond asynchronously
   });
 
@@ -570,22 +623,61 @@
 
   // Clicking the toolbar owl opens (or closes) the panel on the current page. Pages extensions
   // can't run on (browser pages, web stores) get the settings page instead.
-  ext.action.onClicked.addListener((tab) => {
+  // Where soroagent opens: the side panel (Chrome's side panel, Firefox's sidebar; no site CSS, and
+  // it stays open across tabs and pages) or the floating panel on the page. Kept in memory because
+  // the browser only lets a side panel open during the click or key press itself.
+  const hasSidePanel = Boolean(ext.sidePanel || ext.sidebarAction);
+  let openIn = 'sidepanel';
+  const applyOpenIn = (settings) => {
+    openIn = hasSidePanel && settings.openIn !== 'page' ? 'sidepanel' : 'page';
+    // Chrome opens the side panel from the toolbar button by itself; Firefox calls onClicked.
+    if (ext.sidePanel && ext.sidePanel.setPanelBehavior) ext.sidePanel.setPanelBehavior({ openPanelOnActionClick: openIn === 'sidepanel' }).catch(() => {});
+  };
+  getSettings().then(applyOpenIn).catch(() => {});
+  ext.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.settings) applyOpenIn({ ...S.DEFAULT_SETTINGS, ...(changes.settings.newValue || {}) });
+  });
+
+  function openSidePanel(tab) {
+    if (ext.sidebarAction) return ext.sidebarAction.toggle(); // Firefox
+    return ext.sidePanel.open({ windowId: tab.windowId });
+  }
+  function togglePagePanel(tab) {
     if (!tab || tab.id === undefined || !/^https?:/.test(tab.url || '')) {
       ext.runtime.openOptionsPage();
       return;
     }
     sendToTab(tab.id, { type: 'assistant:toggle' }).catch(() => ext.runtime.openOptionsPage());
+  }
+
+  ext.action.onClicked.addListener((tab) => {
+    if (openIn === 'sidepanel') openSidePanel(tab).catch((err) => console.warn('[soroagent]', err));
+    else togglePagePanel(tab);
   });
 
-  ext.commands.onCommand.addListener((command) => {
-    if (command === 'toggle-assistant') {
+  ext.commands.onCommand.addListener((command, tab) => {
+    if (command === 'open-soroagent') {
+      if (openIn === 'sidepanel') {
+        const open = tab ? openSidePanel(tab) : ext.windows.getLastFocused().then((w) => ext.sidePanel.open({ windowId: w.id }));
+        Promise.resolve(open).catch((err) => console.warn('[soroagent]', err));
+      } else if (tab) togglePagePanel(tab);
+      else sendToActiveTab({ type: 'assistant:toggle' }).catch((err) => console.warn('[soroagent]', err));
+    } else if (command === 'toggle-assistant') {
       sendToActiveTab({ type: 'assistant:toggle' }).catch((err) => console.warn('[soroagent]', err));
     }
   });
 
   // Upgrade stored data in place whenever a new version is installed (and on first start).
-  globalThis.soroagent.migrate(ext.storage.local).catch((err) => console.warn('[soroagent] Storage upgrade failed:', err));
+  ext.storage.local.get('meta').then(({ meta }) => {
+    const from = Number((meta && meta.schemaVersion) || 1);
+    return globalThis.soroagent.migrate(ext.storage.local).then(
+      (changed) => from !== globalThis.soroagent.SCHEMA_VERSION && diag.record({ area: 'migration', code: 'upgraded', message: 'Stored data upgraded', detail: { from, to: globalThis.soroagent.SCHEMA_VERSION, changed } }),
+      (err) => {
+        console.warn('[soroagent] Storage upgrade failed:', err);
+        diag.record({ area: 'migration', code: 'failed', message: err.message, detail: { from, to: globalThis.soroagent.SCHEMA_VERSION } });
+      }
+    );
+  }).catch(() => {});
 
   ext.runtime.onInstalled.addListener(async (details) => {
     createMenus();

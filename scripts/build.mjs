@@ -45,9 +45,12 @@ function manifestFor(browser) {
     // Firefox picks the icon for the toolbar's theme itself ("light" = icon for dark themes).
     manifest.action.theme_icons = [16, 32].map((size) => ({ light: `icons/dark/icon-${size}.png`, dark: `icons/icon-${size}.png`, size }));
     manifest.permissions = manifest.permissions
-      // Chrome-only: DNR Origin rewrite, the offscreen backup helper, and quiet downloads.
-      .filter((p) => !['declarativeNetRequestWithHostAccess', 'offscreen', 'downloads.ui'].includes(p))
+      // Chrome-only: DNR Origin rewrite, the offscreen backup helper, quiet downloads, the side panel.
+      .filter((p) => !['declarativeNetRequestWithHostAccess', 'offscreen', 'downloads.ui', 'sidePanel'].includes(p))
       .concat(['webRequest', 'webRequestBlocking']);
+    // Firefox's sidebar hosts the same page as Chrome's side panel.
+    delete manifest.side_panel;
+    manifest.sidebar_action = { default_panel: base.side_panel.default_path, default_title: 'soroagent', default_icon: base.action.default_icon, open_at_install: false };
   }
   return manifest;
 }

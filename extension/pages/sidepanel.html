@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>soroagent</title>
+  <link rel="stylesheet" href="pages.css">
+  <style>
+    html, body { height: 100%; }
+    body { margin: 0; display: flex; flex-direction: column; background: var(--surface); color: var(--fg); font: 13.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--border); position: relative; }
+    header::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, var(--brand), var(--spark)); }
+    .logo { width: 24px; height: 24px; border-radius: 7px; }
+    .wordmark { font-size: 15px; }
+    .wordmark span { color: var(--accent); }
+    .status { display: flex; align-items: center; gap: 5px; min-width: 0; color: var(--fg-muted); font-size: 11.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .status .dot.ready { background: var(--ok); }
+    .status .dot.offline { background: var(--err); }
+    .grow { flex: 1; }
+    .icon-btn { position: relative; display: inline-grid; place-items: center; width: 30px; height: 30px; border: none; border-radius: 8px; background: none; color: var(--fg-muted); cursor: pointer; }
+    .icon-btn:hover { background: var(--surface-soft); color: var(--fg); }
+    .icon-btn svg { width: 17px; height: 17px; }
+    .icon-btn.spin svg { animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .icon-btn.spin svg { animation: none; opacity: .5; } .ghost { animation: none !important; } }
+    .badge { position: absolute; top: 0; right: -2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--spark); color: #1a1205; font-size: 9.5px; font-weight: 700; line-height: 15px; }
+    .menu { position: absolute; top: 42px; right: 8px; z-index: 5; display: grid; min-width: 190px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(10, 30, 20, .16); }
+    .menu button { text-align: left; padding: 7px 10px; border: none; border-radius: 8px; background: none; color: var(--fg); font: inherit; cursor: pointer; }
+    .menu button:hover { background: var(--surface-soft); }
+    .actions { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .chip:hover { border-color: var(--accent); }
+    .chip svg { width: 14px; height: 14px; }
+    .chip:disabled { opacity: .5; cursor: default; }
+    .page { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--fg-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .page b { color: var(--fg); font-weight: 600; }
+    main { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .home { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; margin: auto 0; color: var(--fg-muted); }
+    .home img { width: 44px; height: 44px; border-radius: 12px; }
+    .home strong { color: var(--fg); font-size: 15px; }
+    .suggest-head { display: flex; justify-content: space-between; width: 100%; max-width: 320px; margin-top: 10px; font-size: 11.5px; }
+    .suggest { display: grid; gap: 6px; width: 100%; max-width: 320px; }
+    .suggest button { text-align: left; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+    .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
+    .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .ghost { height: 34px; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(90deg, var(--surface-soft) 0%, var(--border) 50%, var(--surface-soft) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .thread { display: flex; flex-direction: column; gap: 10px; }
+    .msg.user { align-self: flex-end; max-width: 88%; padding: 7px 12px; border-radius: 14px 14px 4px 14px; background: var(--accent); color: var(--accent-fg); white-space: pre-wrap; }
+    .msg.assistant { font-size: 13.5px; line-height: 1.6; overflow-wrap: anywhere; }
+    .msg.assistant > :first-child { margin-top: 0; }
+    .msg.assistant > :last-child { margin-bottom: 0; }
+    .msg.assistant a { color: var(--accent); }
+    .msg.assistant pre { overflow-x: auto; padding: 8px 10px; border-radius: 8px; background: var(--surface-soft); }
+    .msg.pending { color: var(--fg-muted); font-style: italic; }
+    .divider { align-self: stretch; text-align: center; color: var(--fg-muted); font-size: 11.5px; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .card { padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); font-size: 12.5px; }
+    .card.error { border-color: color-mix(in srgb, var(--err) 45%, var(--border)); }
+    .card.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+    .card b { display: block; margin-bottom: 3px; font-size: 13px; }
+    .card p { margin: 0 0 6px; color: var(--fg-muted); }
+    .card pre { margin: 6px 0; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+    .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .card-actions button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+    form { display: flex; align-items: flex-end; gap: 6px; padding: 8px 10px 10px; border-top: 1px solid var(--border); }
+    textarea { flex: 1; min-height: 36px; max-height: 140px; resize: none; padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--fg); font: inherit; outline: none; }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .send { width: 36px; height: 36px; flex: none; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-fg); cursor: pointer; display: grid; place-items: center; }
+    .send svg { width: 17px; height: 17px; }
+    .send:disabled { opacity: .5; cursor: default; }
+  </style>
+</head>
+<body>
+<header>
+  <img class="logo" src="../icons/icon-48.png" alt="">
+  <span class="wordmark">soro<span>agent</span></span>
+  <span class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></span>
+  <span class="grow"></span>
+  <button class="icon-btn" type="button" id="refresh" hidden aria-label="Refresh with new posts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span class="badge" id="newCount" hidden></span></button>
+  <button class="icon-btn" type="button" id="home" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></button>
+  <button class="icon-btn" type="button" id="moreBtn" aria-label="More options" aria-haspopup="menu"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+  <div class="menu" id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-cmd="page">Open the panel on the page</button>
+    <button type="button" role="menuitem" data-cmd="notes">Ask your library</button>
+    <button type="button" role="menuitem" data-cmd="snippets">Saved snippets</button>
+    <button type="button" role="menuitem" data-cmd="history">Summary history</button>
+    <button type="button" role="menuitem" data-cmd="settings">Settings</button>
+  </div>
+</header>
+<div class="actions">
+  <button class="chip" type="button" id="summarize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Summarize</button>
+  <button class="chip" type="button" id="save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Save</button>
+  <button class="chip" type="button" id="shot" title="Screenshot: keep what you see in your snippets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button>
+</div>
+<div class="page" id="page"></div>
+<main id="main">
+  <div class="home" id="homeView">
+    <img src="../icons/icon-128.png" alt="">
+    <strong>How can I help with this page?</strong>
+    <span id="homeNote"></span>
+    <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span></div>
+    <div class="suggest" id="suggest" role="group" aria-label="Suggested questions"></div>
+  </div>
+</main>
+<form id="composer">
+  <textarea id="input" rows="1" placeholder="Ask about this page…" aria-label="Ask about this page"></textarea>
+  <button class="send" type="submit" id="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+</form>
+<script src="../shared/config.js"></script>
+<script src="../shared/markdown.js"></script>
+<script src="../content/faq.js"></script>
+<script src="sidepanel.js"></script>
+</body>
+</html>

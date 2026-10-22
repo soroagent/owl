@@ -35,6 +35,7 @@ extension/
     background.js    message router, menus, alarms, install/onboarding, wiring of everything below
     llm.js           chat + model listing for Ollama, OpenAI-compatible and Anthropic; "browser" → browserai.js
     browserai.js     in-browser AI: Gemini Nano (Prompt API) and the WebLLM engine host + port client
+    flight.js        flight recorder: scrubbed ring buffer (50) in storage.session + the Markdown report
     jobs.js          summaries/research run here, so they survive leaving the page
     library.js       library index: int8 embeddings ("vec:<id>") + BM25, fused with RRF
     research.js      web search (DuckDuckGo lite, Brave, Bing) + reading top results
@@ -52,7 +53,8 @@ extension/
   prompts/           every prompt as plain text (default.js + per-site overrides); see prompts/README.md
   shared/            loaded everywhere: config (settings, providers), prompts engine, snippets store,
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
-  pages/             options (Settings), onboard (first run; ?sync = sync setup), snippets, history,
+  pages/             sidepanel (the default UI: Chrome side panel / Firefox sidebar), options (Settings),
+                     onboard (first run; ?sync = sync setup), snippets, history,
                      libchat (Ask your library), offscreen (Chrome: backup blobs + the WebLLM engine)
   vendor/web-llm/    WebLLM 0.2.86 + the Qwen2.5-1.5B model library, vendored (README has sources/hashes)
 scripts/             build.mjs (manifests + zips, no deps), release.mjs, make-icons.mjs, try-prompt.mjs
@@ -72,10 +74,11 @@ selection, page, deliverable, read, screenshot), `summary:<id>` (summary history
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
 `backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
-`storage.session` holds the Google access token. WebLLM's weights live in the browser's Cache Storage.
+`storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
-Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): `source` (`local` | `cloud` |
-`browser`), `browserEngine` (`nano` | `webllm`), `preparePages` (on), `pageQuestions` (on),
+Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): `openIn` (`sidepanel` | `page`),
+`showLauncher` (the floating owl, off by default; existing installs keep their saved value),
+`source` (`local` | `cloud` | `browser`), `browserEngine` (`nano` | `webllm`), `preparePages` (on), `pageQuestions` (on),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
@@ -121,6 +124,12 @@ If a change alters what data leaves the browser, or when, update `privacy.html` 
 soroagent/soroagent.github.io and the answers in `extension/content/faq.js` in the same change.
 Features that send page text without the user clicking something need a Settings switch.
 
+### Diagnostics stay scrubbed
+Anything that may reach a report goes through `diag.record()` (background) or the `diag:record`
+message (pages, content scripts), and `sanitizeEvent`/`scrubDiagnostic` in `flight.js` run on it in
+the background. Add new detail fields to `DETAIL_KEYS` only if they can't hold addresses or page
+text, and extend `test/flight.test.mjs` when you add a kind of event.
+
 ### Style
 - Code matches the surrounding code: small pure functions with a comment on top, unit tests for
   anything pure, no new dependencies. A third-party library is vendored as files only when there's no
@@ -132,6 +141,20 @@ Features that send page text without the user clicking something need a Settings
 
 ## How the main features work
 
+- **Opening:** the toolbar button and `open-soroagent` (Alt+Shift+O, also ⌥⇧O on Mac) open the side
+  panel (Chrome: `sidePanel.setPanelBehavior` + `sidePanel.open` in the command; Firefox:
+  `sidebarAction.toggle`) or, with `openIn: 'page'`, the floating panel. `toggle-assistant`
+  (Alt+Shift+K) always toggles the floating panel. The choice is cached in memory in the background
+  because browsers only open a side panel inside the click or key press. Cmd/Ctrl+Shift+O (Firefox
+  Library, Chrome's Windows bookmark manager), Cmd/Ctrl+Shift+S (Firefox/Edge screenshots) and Alt+S
+  (Firefox History menu) are taken; `test/manifest.test.mjs` keeps them out.
+- **Side panel** (`pages/sidepanel.js`): follows the active tab (`tabs.onActivated`/`onUpdated`),
+  keeps a conversation per tab, and asks the tab's content script for everything page-related:
+  `assistant:sp-snapshot` (title, site, prepared questions, new X posts), `sp-summary` (a job spec,
+  with `preset` when the prepared summary is current), `sp-ask` (messages, or the "soroagent or this
+  website?" topic), `sp-save`, `sp-refresh`, `sp-open`. The content script sends
+  `sidepanel:changed` when something shown there changes. It runs chats over the `llm` port and
+  summaries as jobs, like the floating panel.
 - **Summarize / Ask:** `assistant.js` reads the page via the site profile's `extract()` (Stack
   Overflow answers, Reddit/HN comment trees, GitHub issue state, X threads…) or `extract.js`, builds
   messages with `S.buildMessages(action, vars, sitePrompts())`, and streams through the `llm` port.
@@ -196,6 +219,11 @@ Features that send page text without the user clicking something need a Settings
   appends posts. Ollama's 403: a local server that always answers 403, set as the server URL.
 - The background worker can't `runtime.sendMessage` to itself; send test messages from an
   extension page target instead.
+- Open the real side panel with `Extensions.triggerAction({ id, targetId })`, where `targetId` is
+  the **tab** target (`Target.getTargets({ filter: [{ type: 'tab' }] })`), not the page target. Its
+  page then shows up as a target with `sidepanel.html` in the URL.
+- Chrome's storage returns objects with their keys sorted; never compare stored objects with
+  `JSON.stringify` directly.
 
 ## History of decisions
 
@@ -212,6 +240,9 @@ Features that send page text without the user clicking something need a Settings
   is one click, not automatic, so nobody's data plan is used without consent.
 - The Ollama fix allows `chrome-extension://*,moz-extension://*`, not `*`, which would let every
   website use the person's Ollama.
+- The side panel is the default UI and the floating owl is opt-in: no site CSS conflicts, and it
+  persists across navigations. The floating panel stays for people who prefer it.
+- Shortcut is Alt+Shift+O, not Cmd+Shift+O/S as first asked: those are taken by the browsers.
 - Preparing a summary and questions on every visit is on by default (the owner asked for it). With
   a cloud key it sends each visited page to the provider; the Settings switch and privacy policy
   say so. Revisit if cloud users find it surprising.

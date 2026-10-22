@@ -40,7 +40,8 @@
     panelWidth: 400, // panel size in px, set by dragging its edges
     panelHeight: 600,
     allowThinking: false,
-    showLauncher: true,
+    showLauncher: false, // the floating owl on every page: opt-in (soroagent opens from the toolbar or Alt+Shift+O)
+    openIn: 'sidepanel', // 'sidepanel' (the browser's side panel / Firefox sidebar) | 'page' (floating panel on the page)
     preparePages: true, // summarize each page in the background on visit and prepare questions from it
     pageQuestions: true,
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens
@@ -278,7 +279,18 @@
   /** Only http(s) links are made clickable; anything else (javascript:, data:…) becomes "#". */
   const safeUrl = (url) => (/^https?:\/\//i.test(String(url || '')) ? String(url) : '#');
 
+  /**
+   * Extension pages (Settings, snippets, first run…): send their own uncaught errors to the flight
+   * recorder. Not for content scripts, where window errors belong to the website.
+   */
+  function watchPageErrors(where) {
+    const send = (code, message) => ext.runtime.sendMessage({ type: 'diag:record', event: { area: 'error', code, message, detail: { where } } }).catch(() => {});
+    root.addEventListener('error', (e) => send('uncaught', e.message));
+    root.addEventListener('unhandledrejection', (e) => send('unhandled', (e.reason && e.reason.message) || String(e.reason)));
+  }
+
   Object.assign(soroagent, {
+    watchPageErrors,
     safeUrl,
     ext,
     feedbackUrl,

@@ -13,6 +13,7 @@
   'use strict';
 
   const S = globalThis.soroagent;
+  S.watchPageErrors('setup');
   const { ext, CLOUD_PROVIDERS } = S;
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
@@ -39,7 +40,7 @@
     const what = res.providerLabel || 'your model';
     const model = res.model ? ` (${res.model})` : '';
     const where = res.local ? ' Nothing you read leaves this computer.' : '';
-    status(`${auto ? `You're all set: I found ${what} on this computer and I'll use it${model}.` : `You're all set: connected to ${what}${model}.`}${where} ${embedded ? 'Ask me anything about this page!' : 'Click the owl on any website to start.'}`, 'ok');
+    status(`${auto ? `You're all set: I found ${what} on this computer and I'll use it${model}.` : `You're all set: connected to ${what}${model}.`}${where} ${embedded ? 'Ask me anything about this page!' : 'On any website, click the soroagent button in the toolbar (pin it from the puzzle-piece menu) or press Alt+Shift+O (⌥⇧O on a Mac).'}`, 'ok');
     show();
     $('doneRow').hidden = false;
   }

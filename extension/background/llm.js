@@ -387,12 +387,14 @@
 
     let text = '';
     let refused = false;
+    let malformed = 0;
     await readLines(res.body, (line) => {
       let chunk;
       try {
         chunk = parse(line);
       } catch (err) {
         if (err instanceof LLMError) throw err;
+        if (line.trim() && !/^(:|event:|id:|retry:)/.test(line.trim())) malformed++;
         return true; // skip keep-alive comments and malformed lines
       }
       if (!chunk) return true;
@@ -404,6 +406,8 @@
       }
       return !chunk.done;
     });
+    // The flight recorder learns how many lines were unreadable (never their content).
+    if (malformed && soroagent.diag) soroagent.diag.record({ area: 'llm', code: 'malformed-lines', message: 'Some reply lines were not in the expected format', detail: { api, provider: conn.id, model: conn.model, lines: malformed } });
     const reply = soroagent.stripThinking(text);
     if (refused && !reply) throw new LLMError('refused', 'The model declined to answer this request.', 'Try another model or a different page.');
     return reply;

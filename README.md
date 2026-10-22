@@ -11,7 +11,7 @@ An AI companion for every web page that turns what you read into a personal libr
 
 ## Why soroagent
 
-soroagent sits beside every page as a small owl and does three things:
+soroagent opens beside every page, in your browser's side panel, and does three things:
 
 - **Understands the page.** Summaries and answers shaped by the site you're on: the accepted solution on Stack Overflow, the consensus in a Reddit or Hacker News thread, the status of a GitHub issue. This will improve productivity.
 - **Archives what you read.** Every summary (and, if you like, every page you actually read) is filed into a personal library with a title, summary and consistent tags. It's searchable by meaning, and you can write it to your Obsidian or Logseq folder.
@@ -22,6 +22,7 @@ soroagent sits beside every page as a small owl and does three things:
 ## Features
 
 ### Understand any page
+- **Opens beside the page.** Click soroagent in the toolbar or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac). It opens in the browser's side panel (Firefox: the sidebar), where no website's styles can touch it, and it stays open as you switch tabs and pages, with a conversation per tab. Prefer it on the page? Choose the floating panel in Settings, and turn on the owl button in the corner of every page if you like.
 - **Works out of the box.** The first-run setup looks for an AI on your computer and uses it without asking: Ollama if it's running, or Chrome's built-in AI (Gemini Nano). If neither is there, one click sets up Chrome's built-in AI or a small model that runs in the browser on your graphics chip (Qwen2.5-1.5B, a one-time 880 MB download). Or paste a Claude, OpenAI or Gemini key. If Ollama is running but blocks browser extensions, you get the one command that fixes it, ready to copy.
 - **Ready before you ask.** A few seconds after you open a page, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Open the owl and the questions are there; click Summarize and the summary appears at once. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. Turn it off in Settings → On the page.
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
@@ -88,7 +89,7 @@ Answers come in two parts, **From your sources** (every claim cited [S1], [S2]�
 ### Make it yours
 - **Prompts in settings.** Rewrite the system prompt for all websites or any one site, and click **Optimize with AI** to have your model improve it.
 - **Any model.** An AI inside the browser (Chrome's built-in Gemini Nano, or Qwen2.5-1.5B on your graphics chip), a model server on your computer (Ollama, LM Studio, llama.cpp, Jan, any OpenAI-compatible server), or your own key for Anthropic Claude, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek or xAI. soroagent recommends the best of your installed local models.
-- **A quiet owl.** It places itself where it doesn't cover the page's own buttons, can be dragged to either side (remembered per site), and follows your browser's light or dark theme. Drag the panel's edges to resize it.
+- **Side panel or floating panel.** The side panel is the default. The floating panel opens over the page (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> always opens it), and the optional owl button places itself where it doesn't cover the page's own buttons, can be dragged to either side (remembered per site), and follows your browser's light or dark theme. Drag the panel's edges to resize it.
 
 ## Private by design
 
@@ -104,12 +105,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.29.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.30.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.29.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.29.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.29.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.29.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.30.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.30.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.30.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.30.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -147,10 +148,10 @@ This creates `dist/chrome` and `dist/firefox`.
 
 | Where | How |
 |---|---|
-| Any page | Click the owl. The panel has **Summarize** and **Save**, plus Home, Screenshot and this page's History in the header. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
-| Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the panel (change it at `chrome://extensions/shortcuts`). <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> opens Ask your library on the snippets page. |
+| Any page | Click soroagent in the toolbar (pin it from the puzzle-piece menu). The side panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
+| Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> opens Ask your library on the snippets page. We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Take a screenshot* |
-| Toolbar owl | Click to open the panel; a number means summaries finished while you were away. Right-click for **Summary history**, **Saved snippets**, **Ask your library**, **Send feedback** and **Settings**. |
+| Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Summary history**, **Saved snippets**, **Ask your library**, **Send feedback** and **Settings**. |
 
 Your data carries over to every update. The Chrome build has a fixed extension ID (`jomghmmgdlajfonjihmagbhomimadpcg`), so a newer version loaded from any folder keeps the same storage, and stored data is upgraded automatically.
 
@@ -162,9 +163,11 @@ Your data carries over to every update. The Chrome build has a fixed extension I
 ## How it works
 
 ```
- web page ──► content scripts (panel in a closed shadow root, page extraction, prepared summary
-                 │            and questions, passive capture)
+ web page ──► content scripts (page extraction, prepared summary and questions, passive capture,
+                 │            the optional floating panel in a closed shadow root)
                  ▼
+          side panel / Firefox sidebar ◄── asks the page's content script for a snapshot and prompts
+                 │
           background worker ──► your model (Ollama, OpenAI-compatible or Anthropic API,
                  │                or in the browser: Gemini Nano, or WebLLM in the offscreen document)
                  │           ──► library index (embeddings + BM25), Markdown folder, encrypted sync
@@ -178,17 +181,19 @@ Your data carries over to every update. The Chrome build has a fixed extension I
 - **In-browser AI:** Gemini Nano is Chrome's Prompt API. Qwen2.5-1.5B runs with [WebLLM](https://github.com/mlc-ai/web-llm) on WebGPU; its engine ships inside the extension (`extension/vendor/web-llm/`, Apache-2.0) because extensions can't run code from the web, and only the model weights download from Hugging Face. Small models get less page text (6,000 characters).
 - **Search:** notes are embedded once (again only when they change) and stored as 8-bit vectors. A search fuses the meaning and word rankings (reciprocal rank fusion).
 - **Sync:** the shared document is gzipped, encrypted with AES-GCM using a key derived from your passphrase (PBKDF2, 250,000 rounds), and merged per item with tombstones for deletions. The passphrase is never stored; the derived key is non-extractable.
+- **Side panel:** the page's content script still reads the page and builds the prompts, so the side panel and the floating panel give the same answers; the side panel runs the model and shows the result.
+- **Flight recorder:** the last 50 internal problems (errors, site readers that found nothing, model replies in an unexpected shape, storage upgrades) are kept in session storage, scrubbed of web addresses, host names, page text, emails, keys and file paths. **Settings → Troubleshooting → Copy diagnostic report** turns them into Markdown and opens a pre-filled GitHub issue for you to check and submit.
 - **Research** only reads public web pages: addresses on your computer or local network are never fetched. Only `http(s)` links are ever made clickable.
 
 ## Development
 
 ```
 extension/
-  background/   background.js (routing, menus) · llm.js (model client, embeddings) · browserai.js (Gemini Nano, WebLLM)
+  background/   background.js (routing, menus) · llm.js (model client, embeddings) · browserai.js (Gemini Nano, WebLLM) · flight.js (diagnostics)
                 jobs.js (summaries, auto-filing) · library.js (search) · mdexport.js (Markdown folder) · sync.js · research.js
                 autobackup.js · secrets.js (encrypted keys) · recommend.js (local model ranking) · sw.js (Chrome entry)
   content/      assistant.js (the panel) · launcher.js (the owl) · capture.js (passive capture) · extract.js · faq.js · styles.js
-  pages/        snippets (library + libchat.js console) · history · options (settings) · onboard (first run) · offscreen
+  pages/        sidepanel · snippets (library + libchat.js console) · history · options (settings) · onboard (first run) · offscreen
   prompts/      prompt texts per site, with a fine-tuning guide
   sites/        site profiles: X, Reddit, Stack Overflow, Hacker News, GitHub, YouTube, Wikipedia
   shared/       config · prompts · markdown · snippets · knowledge (BM25, related notes) · backup · ask · brand
@@ -214,7 +219,8 @@ After editing, run `npm run build` and click **Reload** on the extension card.
 - **In-browser AI isn't offered:** Chrome's built-in AI needs a recent Chrome on a supported computer; the in-browser model needs WebGPU (recent Chrome or Edge). Firefox has neither yet on most systems, so use Ollama or a cloud key there.
 - **Search only "by words":** install an embedding model with `ollama pull nomic-embed-text`, or use an OpenAI, Gemini or Mistral key.
 - **Markdown folder says it needs permission:** browsers sometimes ask again after a restart. Click **Allow access again** in Settings, and choose "Allow on every visit" if offered.
-- **The owl doesn't appear:** browser pages (`chrome://`, extension stores, PDFs) can't run extensions. On a normal site, reload the tab after installing.
+- **The side panel says it can't read the page:** browser pages (`chrome://`, extension stores, PDFs) can't run extensions. On a normal site, reload the tab once after installing or updating.
+- **Something else went wrong:** Settings → Troubleshooting → **Copy diagnostic report** opens a GitHub issue with a scrubbed report attached. Read it before you submit.
 - **Cloud API errors:**
   - *rejected the API key* means a wrong or expired key, or no billing set up
   - *rate limiting* means wait a minute

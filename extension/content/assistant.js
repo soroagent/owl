@@ -623,6 +623,16 @@
   // ---------------------------------------------------------------------------
 
   const maxChars = () => S.pageCharLimit(state.settings);
+
+  // Problems worth a diagnostic report go to the flight recorder (scrubbed there: no addresses or
+  // page text). Each kind is reported once per page.
+  const reported = new Set();
+  function report(area, code, message, detail = {}) {
+    const key = `${location.href}|${area}|${code}`;
+    if (reported.has(key)) return;
+    reported.add(key);
+    sendMessage({ type: 'diag:record', event: { area, code, message, detail: { site: state.site.id, pageType: pageInfo().type, ...detail } } }).catch(() => {});
+  }
   const getPage = (limit = maxChars()) => S.extractPage(document, { maxChars: limit });
   // Site profiles with extract() read the page's structure (Stack Overflow answers with the
   // accepted one marked, Hacker News comment trees, GitHub issue state…); others get its text.
@@ -633,8 +643,10 @@
         if (page && page.text && page.text.length > 120) {
           return { title: page.title || document.title, url: location.href, text: page.text.slice(0, limit), truncated: page.text.length > limit };
         }
+        report('extractor', 'empty', 'The site profile found no content; read the page as plain text instead');
       } catch (err) {
         console.warn('[soroagent] Site extraction failed, reading the page as text:', err);
+        report('extractor', 'threw', err.message, { where: 'extract' });
       }
     }
     return getPage(limit);
@@ -1218,7 +1230,11 @@
     if (!explicit && (!state.settings.preparePages || (prep.url === url && prep.status !== 'idle'))) return;
     if (!preparable()) return;
     const content = preparedContent();
-    if (!content) return;
+    if (!content) {
+      // X: the timeline loaded but none of its posts matched (X may have changed its markup).
+      if (isX() && document.querySelector('main [data-testid="primaryColumn"], main section')) report('extractor', 'no-items', 'No posts matched on X', { where: 'prepare', selector: 'article[data-testid="tweet"]' });
+      return;
+    }
     const run = ++prep.run;
     Object.assign(prep, { url, status: 'working', summary: '', questions: [], ids: content.ids, label: content.label, kind: content.kind, print: fingerprint(`${url}\n${content.page.text}`) });
     updateRefresh();
@@ -1242,6 +1258,7 @@
     }
     if (location.href !== url) return;
     updateRefresh();
+    notifySidePanel();
     if (isOpen()) suggestQuestions();
   }
 
@@ -1298,7 +1315,56 @@
     return n;
   }
 
+  // ---------------------------------------------------------------------------
+  // The side panel (pages/sidepanel.html) works from here: it asks this page for a snapshot and for
+  // ready-built messages, and runs the model itself. Reading the page and building prompts stays in
+  // one place (this file), whichever UI is used.
+  // ---------------------------------------------------------------------------
+
+  function snapshot() {
+    const page = isX() ? null : sitePage(2000);
+    const info = pageInfo();
+    return {
+      ok: true,
+      url: location.href,
+      title: document.title,
+      site: { id: state.site.id, name: state.site.name || '', label: info.label || '', noun: items() ? items().noun || 'items' : '' },
+      readable: isX() ? xPosts.size > 0 || Boolean(document.querySelector('article')) : Boolean(page && page.text && page.text.length > 200),
+      prepare: { on: Boolean(state.settings.preparePages), allowed: preparable() },
+      prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
+      newPosts: newPostCount(),
+    };
+  }
+  let lastNotice = '';
+  function notifySidePanel() {
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}`;
+    if (notice === lastNotice) return; // only when something the side panel shows changed
+    lastNotice = notice;
+    sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
+  }
+
+  // A summary job spec for the side panel: the prepared summary when it's current, else the page.
+  function summarySpec({ fresh = false } = {}) {
+    const base = { url: location.href, pageTitle: document.title, site: state.site.id === 'default' ? location.hostname : state.site.name, model: '', placeholder: NOTES_PLACEHOLDER };
+    const saveMessages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: S.JOB_PLACEHOLDERS.summary }), sitePrompts());
+    if (!fresh && preparedReady()) return { ...base, saveMessages, label: prep.label, kind: prep.kind, fingerprint: prep.print, final: [], preset: prep.summary };
+    const content = preparedContent();
+    if (!content) throw new Error(isX() ? 'No posts found on this page yet. Wait for it to load, then try again.' : 'This page has no readable text to summarize.');
+    const print = fingerprint(`${location.href}\n${content.page.text}`);
+    return { ...base, saveMessages, label: content.label, kind: content.kind, fingerprint: print, final: S.buildMessages('summarize', S.pageVars(content.page, { context: content.context, count: content.count }), sitePrompts()) };
+  }
+
+  // Messages for a question about this page, for the side panel (it keeps its own history).
+  function askMessages(question, history = []) {
+    const content = isX() ? preparedContent() : null;
+    const page = content ? content.page : currentContext();
+    const vars = S.pageVars(page, { context: (content && content.context) || pageInfo().context || '', question });
+    const [system] = S.buildMessages('ask', vars, sitePrompts());
+    return [system, ...history.slice(-12), { role: 'user', content: question }];
+  }
+
   function updateRefresh() {
+    notifySidePanel();
     const button = els.refresh;
     button.hidden = !isX();
     if (button.hidden) return;
@@ -1421,14 +1487,12 @@
 
   // Save: the page itself goes into the library as a snippet (once per page), with its text for
   // search and a short excerpt; the AI adds a title, summary and tags when a model is connected.
-  async function savePage() {
-    const open = (id) => ({ label: 'Open in snippets', onClick: () => sendMessage({ type: 'open:snippets', id }) });
-    try {
-      const saved = (await S.snippetsForPage(location.href)).find((s) => s.kind !== 'screenshot');
-      if (saved) {
-        append(card({ kind: 'ok', icon: 'save', title: 'Already in your library.', body: saved.title, actions: [open(saved.id)] }));
-        return;
-      }
+  // Saves this page to the library (or finds it there). Used by Save here and in the side panel.
+  // Resolves with { already, snippet, labelling }.
+  async function savePageData({ label = state.status === 'ready' } = {}) {
+    const saved = (await S.snippetsForPage(location.href)).find((s) => s.kind !== 'screenshot');
+    if (saved) return { already: true, snippet: saved, labelling: false };
+    {
       // The page's own description, else its first real paragraph, else the start of its text.
       const description = document.querySelector('meta[name="description"], meta[property="og:description"]');
       const scope = document.querySelector('article, main, [role="main"]') || document.body;
@@ -1450,12 +1514,24 @@
         summary: full.length > 280 ? `${full.slice(0, 280).replace(/\s+\S*$/, '')}…` : full,
         text: page.text,
       });
-      if (state.status === 'ready') {
+      if (label) {
         const messages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: page.text.slice(0, 5000) }), sitePrompts());
         sendMessage({ type: 'capture:label', id: snippet.id, messages }).catch(() => {});
       }
+      return { already: false, snippet, labelling: label };
+    }
+  }
+
+  async function savePage() {
+    const open = (id) => ({ label: 'Open in snippets', onClick: () => sendMessage({ type: 'open:snippets', id }) });
+    try {
+      const { already, snippet, labelling } = await savePageData();
+      if (already) {
+        append(card({ kind: 'ok', icon: 'save', title: 'Already in your library.', body: snippet.title, actions: [open(snippet.id)] }));
+        return;
+      }
       setTimeout(maybeOfferSync, 1500);
-      append(card({ kind: 'ok', icon: 'save', title: 'Saved to your library.', body: state.status === 'ready' ? 'Your AI is adding a title, summary and tags.' : snippet.title, actions: [open(snippet.id)] }));
+      append(card({ kind: 'ok', icon: 'save', title: 'Saved to your library.', body: labelling ? 'Your AI is adding a title, summary and tags.' : snippet.title, actions: [open(snippet.id)] }));
     } catch (err) {
       showError(err, '', false);
     }
@@ -1600,6 +1676,7 @@
       const loaded = site.visible(document, options);
       if (!loaded.length) {
         append(card({ title: `No ${noun} found on this page yet.`, body: 'Wait for the page to load, then try again.' }));
+        report('extractor', 'no-items', `No ${noun} found by the site profile`, { where: 'summarize' });
         return;
       }
       // Unchanged since the last summary: every post on screen was part of it.
@@ -1941,6 +2018,32 @@
     } else if (msg.type === 'assistant:run') {
       openPanel();
       if (msg.action === 'summarize') summarize();
+    } else if (msg.type.startsWith('assistant:sp-')) {
+      // Requests from the side panel (an extension page), answered asynchronously.
+      if (sender.id !== ext.runtime.id) return false;
+      (async () => {
+        if (msg.type === 'assistant:sp-snapshot') {
+          if (state.settings.preparePages && prep.url !== location.href && preparable()) preparePage();
+          return snapshot();
+        }
+        if (msg.type === 'assistant:sp-summary') return { ok: true, spec: summarySpec({ fresh: Boolean(msg.fresh) }) };
+        if (msg.type === 'assistant:sp-ask') {
+          const topic = S.ownTopic(String(msg.question || ''));
+          if (topic && !msg.aboutPage) return { ok: true, topic, host: location.hostname.replace(/^www\./, '') };
+          return { ok: true, messages: askMessages(String(msg.question || ''), msg.history || []) };
+        }
+        if (msg.type === 'assistant:sp-save') return { ok: true, ...(await savePageData({ label: true })) };
+        if (msg.type === 'assistant:sp-refresh') {
+          await preparePage({ explicit: true });
+          return snapshot();
+        }
+        if (msg.type === 'assistant:sp-open') {
+          openPanel();
+          return { ok: true };
+        }
+        return { ok: false, error: 'Unknown request.' };
+      })().then(sendResponse, (err) => sendResponse({ ok: false, error: err.message, code: err.code || '' }));
+      return true;
     }
     sendResponse({ ok: true });
     return false;

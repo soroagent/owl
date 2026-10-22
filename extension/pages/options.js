@@ -2,6 +2,7 @@
   'use strict';
 
   const S = globalThis.soroagent;
+  S.watchPageErrors('settings');
   const { ext, DEFAULT_SETTINGS, PROVIDER_PRESETS, CLOUD_PROVIDERS } = S;
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
@@ -136,7 +137,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
   function readForm() {
     rememberModel();
     keepPromptEdit();
-    const values = { ...saved, source: source(), hiddenSites, model: modelChoice.local, cloudModels: { ...modelChoice.cloud } };
+    const values = { ...saved, source: source(), openIn: document.querySelector('input[name="openIn"]:checked')?.value || 'sidepanel', hiddenSites, model: modelChoice.local, cloudModels: { ...modelChoice.cloud } };
     for (const id of TEXT_FIELDS) values[id] = $(id).value.trim();
     for (const id of NUMBER_FIELDS) {
       const n = Number($(id).value);
@@ -154,6 +155,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     for (const id of [...TEXT_FIELDS, ...NUMBER_FIELDS]) $(id).value = settings[id];
     for (const id of CHECK_FIELDS) $(id).checked = Boolean(settings[id]);
     document.querySelector(`input[name="source"][value="${['cloud', 'browser'].includes(settings.source) ? settings.source : 'local'}"]`).checked = true;
+    document.querySelector(`input[name="openIn"][value="${settings.openIn === 'page' || !(ext.sidePanel || ext.sidebarAction) ? 'page' : 'sidepanel'}"]`).checked = true;
     modelChoice = { local: settings.model || '', cloud: { ...(settings.cloudModels || {}) } };
     hiddenSites = [...(settings.hiddenSites || [])];
     renderSites();
@@ -319,6 +321,34 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     await ext.runtime.sendMessage({ type: 'sync:disconnect' });
     showSync();
   });
+  // Where soroagent opens; browsers without a side panel only have the floating panel.
+  if (!(ext.sidePanel || ext.sidebarAction)) $('openInGroup').hidden = true;
+  $('shortcuts').addEventListener('click', () => ext.tabs.create({ url: /Firefox\//.test(navigator.userAgent) ? 'about:addons' : 'chrome://extensions/shortcuts' }));
+
+  // Report a problem: the flight recorder as Markdown, copied and opened as a pre-filled GitHub issue.
+  async function loadReport() {
+    const res = await ext.runtime.sendMessage({ type: 'diag:report' }).catch((err) => ({ ok: false, error: err.message }));
+    if (res && res.ok) $('diagText').textContent = res.markdown;
+    return res;
+  }
+  $('diagPreview').addEventListener('toggle', () => $('diagPreview').open && loadReport());
+  $('diagCopy').addEventListener('click', async () => {
+    const res = await loadReport();
+    if (!res || !res.ok) {
+      $('diagMsg').textContent = `Couldn't build the report: ${(res && res.error) || 'unknown error'}`;
+      return;
+    }
+    let copied = true;
+    await navigator.clipboard.writeText(res.markdown).catch(() => (copied = false));
+    ext.tabs.create({ url: res.issueUrl });
+    $('diagMsg').textContent = `${copied ? 'Copied' : 'Opened'}: ${res.count} event${res.count === 1 ? '' : 's'}. Check the issue before you submit it.`;
+  });
+  $('diagClear').addEventListener('click', async () => {
+    await ext.runtime.sendMessage({ type: 'diag:clear' });
+    $('diagMsg').textContent = 'Log cleared.';
+    if ($('diagPreview').open) loadReport();
+  });
+
   showSyncFields();
   showSync();
   showMarkdown();

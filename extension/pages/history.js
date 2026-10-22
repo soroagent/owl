@@ -2,6 +2,7 @@
   'use strict';
 
   const S = globalThis.soroagent;
+  S.watchPageErrors('history');
   const { ext, groupTimeline, renderMarkdown, stripThinking, addSnippet } = S;
   const PREFIX = 'summary:';
   const $ = (id) => document.getElementById(id);

@@ -2,6 +2,7 @@
   'use strict';
 
   const S = globalThis.soroagent;
+  S.watchPageErrors('snippets');
   const { ext, listSnippets, deleteSnippets, importSnippets, isSnippetChange, groupTimeline, renderMarkdown, stripThinking } = S;
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, children = []) => {
