@@ -30,9 +30,16 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .brand img { width: 32px; height: 32px; border-radius: 8px; }
 .wordmark { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .wordmark span { color: var(--accent); }
-.quiet { color: var(--muted); text-decoration: none; font-size: 15px; padding: 10px 0; }
+.gh { color: var(--fg); width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.gh:hover { color: var(--accent); }
+.gh svg { width: 24px; height: 24px; fill: currentColor; }
+.icon { flex: none; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 section { padding-top: 120px; }
-section.hero { padding-top: 104px; }
+section.hero { padding-top: 96px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; font-weight: 500; text-decoration: none; }
+.badge .icon { stroke: currentColor; stroke-width: 2; }
+.tagline { margin-bottom: 40px; font-size: clamp(22px, 3.4vw, 28px); line-height: 1.35; letter-spacing: -0.015em; font-weight: 500; }
+.tagline span { color: var(--accent); }
 h1 { margin: 0 0 20px; font-size: clamp(40px, 7vw, 60px); line-height: 1.05; letter-spacing: -0.035em; }
 h2 { margin: 0 0 12px; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; }
 p { margin: 0; }
@@ -47,7 +54,8 @@ p { margin: 0; }
 .meta { margin-top: 16px; font-size: 14px; color: var(--muted); }
 dl { margin: 0; border-top: 1px solid var(--border); }
 dl div { display: flex; flex-wrap: wrap; gap: 4px 32px; padding: 22px 0; border-bottom: 1px solid var(--border); }
-dt { flex: 0 0 120px; font-weight: 600; }
+dt { flex: 0 0 150px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.private h2 { display: flex; align-items: center; gap: 12px; }
 dd { flex: 1 1 360px; margin: 0; color: var(--muted); }
 .private p { max-width: 560px; margin-bottom: 12px; }
 .more { font-weight: 600; text-decoration: none; }
@@ -61,30 +69,32 @@ footer a { color: var(--muted); }
 
 <header>
   <a class="brand" href="./"><img src="owl.png" alt=""><span class="wordmark">soro<span>agent</span></span></a>
-  <a class="quiet" href="https://github.com/soroagent/owl">GitHub</a>
+  <a class="gh" href="https://github.com/soroagent/owl" aria-label="soroagent on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
 </header>
 
 <main>
   <section class="hero">
+    <a class="badge" href="https://github.com/soroagent/owl"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>Open source · MIT license</a>
     <h1>Your browser is your knowledge base.</h1>
     <p class="lede">An owl beside every page that turns what you read into a library you can think with.</p>
     <div class="actions">
       <a class="btn primary" href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.26.1.zip">Download for Chrome</a>
       <a class="btn ghost" href="https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.26.1.zip">Firefox</a>
     </div>
-    <p class="meta">v2.26.1 · Free and open source · Also Edge, Brave, Arc · <a href="https://github.com/soroagent/owl#install">Install guide</a></p>
+    <p class="meta">v2.26.1 · Free · Also Edge, Brave, Arc ·<a href="https://github.com/soroagent/owl#install">Install guide</a></p>
   </section>
 
   <section aria-label="What it does">
+    <p class="tagline">Made for people who love to read and research. soroagent puts your browser in <span>pro mode</span>.</p>
     <dl>
-      <div><dt>Understand</dt><dd>Summaries shaped by the site: the accepted answer, a thread's consensus, an issue's status.</dd></div>
-      <div><dt>Archive</dt><dd>What you read, filed and tagged. Searchable by meaning, written to your Obsidian or Logseq folder.</dd></div>
-      <div><dt>Think</dt><dd>Ask questions across everything you've read. Every answer is cited to your own sources.</dd></div>
+      <div><dt><svg class="icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Understand</dt><dd>Summaries shaped by the site: the accepted answer, a thread's consensus, an issue's status.</dd></div>
+      <div><dt><svg class="icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>Archive</dt><dd>What you read, filed and tagged. Searchable by meaning, written to your Obsidian or Logseq folder.</dd></div>
+      <div><dt><svg class="icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>Think</dt><dd>Ask questions across everything you've read. Every answer is cited to your own sources.</dd></div>
     </dl>
   </section>
 
   <section class="private">
-    <h2>Private by design.</h2>
+    <h2><svg class="icon" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>Private by design.</h2>
     <p class="muted">Use a local model and nothing leaves your computer, or bring your own Claude, OpenAI or Gemini key. No accounts, no servers, no tracking.</p>
     <a class="more" href="privacy.html">Privacy policy →</a>
   </section>
