@@ -10,12 +10,12 @@
 :root {
   color-scheme: light dark;
   --page: #eef6f1; --bg: #ffffff; --fg: #111613; --muted: #5f6763; --border: #e3e7e5; --card-border: #dce9e1;
-  --accent: #047857; --accent-hover: #065f46; --on-accent: #ffffff;
+  --accent: #047857; --accent-hover: #065f46; --on-accent: #ffffff; --soft: #ecfdf5;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --page: #0f1412; --bg: #171b19; --fg: #eef2f0; --muted: #9aa39f; --border: #2e3330; --card-border: #26302b;
-    --accent: #34d399; --accent-hover: #6ee7b7; --on-accent: #052e1f;
+    --accent: #34d399; --accent-hover: #6ee7b7; --on-accent: #052e1f; --soft: #11291f;
   }
 }
 * { box-sizing: border-box; }
@@ -30,6 +30,9 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .brand img { width: 44px; height: 44px; border-radius: 11px; }
 .wordmark { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; }
 .wordmark span { color: var(--accent); }
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav-link { color: var(--fg); text-decoration: none; font-weight: 500; font-size: 15px; padding: 10px 12px; border-radius: 10px; }
+.nav-link:hover { color: var(--accent); }
 .gh { color: var(--fg); width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
 .gh:hover { color: var(--accent); }
 .gh svg { width: 24px; height: 24px; fill: currentColor; }
@@ -66,6 +69,39 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 .ficon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ficon.mark { fill: currentColor; stroke: none; }
 .motto { color: var(--accent); font-weight: 500; }
+.h-title { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; }
+.h-lede { margin: 0 0 24px; color: var(--muted); }
+.h-fig { margin: 0; }
+.h-demo { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--page); }
+.h-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.h-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.h-url { margin-left: 8px; padding: 3px 10px; border-radius: 6px; background: var(--page); color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.h-body { display: flex; flex-wrap: wrap; }
+.h-feed { flex: 1 1 220px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.h-post { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+.h-promo { opacity: .5; }
+.h-avatar { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--border); }
+.h-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.h-who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.h-tag { font-weight: 500; font-size: 11px; padding: 1px 6px; border: 1px dashed var(--muted); border-radius: 999px; }
+.h-line { height: 7px; border-radius: 4px; background: var(--border); }
+.h-panel { flex: 1.3 1 280px; min-width: 0; padding: 16px; background: var(--bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.5; }
+.h-panel p { margin: 0; }
+.h-panel ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.h-panel li { margin: 2px 0; }
+.h-handle { color: var(--accent); font-weight: 500; }
+.h-head { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.h-actions { display: flex; gap: 8px; }
+.h-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; font-size: 13px; }
+.h-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.h-more { align-self: flex-start; padding: 6px 12px; border-radius: 8px; background: var(--soft); color: var(--accent); font-weight: 600; font-size: 13px; }
+.h-cap { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.h-steps { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+.h-steps li { display: flex; gap: 12px; }
+.h-steps b { display: block; }
+.h-steps span:not(.h-num) { color: var(--muted); font-size: 15px; }
+.h-num { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--soft); color: var(--accent); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.h-title .icon { stroke: var(--accent); }
 </style>
 </head>
 <body>
@@ -73,7 +109,8 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
 
 <header>
   <a class="brand" href="./"><img src="owl.png" alt=""><span class="wordmark">soro<span>agent</span></span></a>
-  <a class="gh" href="https://github.com/soroagent/owl" aria-label="soroagent on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+  <nav class="nav" aria-label="Main"><a class="nav-link" href="#how">How it works</a>
+  <a class="gh" href="https://github.com/soroagent/owl" aria-label="soroagent on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a></nav>
 </header>
 
 <main>
@@ -95,6 +132,41 @@ footer a { color: var(--muted); display: inline-flex; align-items: center; gap: 
       <div><dt><svg class="icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>Think</dt><dd>Ask questions across everything you've read. Every answer is cited to your own sources.</dd></div>
     </dl>
   </section>
+
+<section id="how" class="h-section">
+<h2 class="h-title"><svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 19.1 2.1-2.1"></path><path d="m17 7 2.1-2.1"></path></svg>How it works</h2>
+<p class="h-lede">Open any page and click the owl. Here it is on an X feed.</p>
+<figure class="h-fig">
+<div class="h-demo">
+<div class="h-bar"><span class="h-dot"></span><span class="h-dot"></span><span class="h-dot"></span><span class="h-url">x.com/home</span></div>
+<div class="h-body">
+<div class="h-feed" aria-hidden="true">
+<div class="h-post"><span class="h-avatar"></span><div class="h-lines"><div class="h-who"><span>@example_ai</span></div><span class="h-line" style="width: 92%"></span><span class="h-line" style="width: 64%"></span></div></div>
+<div class="h-post h-promo"><span class="h-avatar"></span><div class="h-lines"><div class="h-who"><span>Promoted</span><span class="h-tag">Ad · left out</span></div><span class="h-line" style="width: 80%"></span><span class="h-line" style="width: 50%"></span></div></div>
+<div class="h-post"><span class="h-avatar"></span><div class="h-lines"><div class="h-who"><span>@example_dev</span></div><span class="h-line" style="width: 88%"></span><span class="h-line" style="width: 72%"></span></div></div>
+<div class="h-post"><span class="h-avatar"></span><div class="h-lines"><div class="h-who"><span>@example_news</span></div><span class="h-line" style="width: 76%"></span><span class="h-line" style="width: 58%"></span></div></div>
+</div>
+<div class="h-panel">
+<div class="h-head"><svg width="22" height="22" viewBox="0 0 128 128" aria-hidden="true"><path fill="#34D399" d="M42 40 L37 19 L54 31 Q64 28 74 31 L91 19 L86 40 Q95 50 95 66 Q99 82 93 94 Q85 107 64 107 Q43 107 35 94 Q29 82 33 66 Q33 50 42 40 Z"></path><ellipse fill="#7AE3BE" cx="64" cy="88" rx="17" ry="16"></ellipse><circle fill="#0A0A0C" cx="51" cy="55" r="14.5"></circle><circle fill="#0A0A0C" cx="77" cy="55" r="14.5"></circle><circle fill="#FFFFFF" cx="56" cy="50" r="4.6"></circle><circle fill="#FFFFFF" cx="82" cy="50" r="4.6"></circle><path fill="#FDE68A" d="M59.5 68 L68.5 68 L64 74.5 Z"></path></svg><span>soroagent</span></div>
+<div class="h-actions"><span class="h-btn h-on">Summarize</span><span class="h-btn">Save</span></div>
+<p><b>TL;DR:</b> People are trying a newly released open-source model and comparing it with paid ones.</p>
+<div><b>Main themes</b>
+<ul><li>First impressions and benchmarks <span class="h-handle">@example_ai</span></li><li>Running it on a laptop <span class="h-handle">@example_dev</span></li><li>What the licence allows</li></ul></div>
+<div><b>Notable posts</b>
+<ul><li><span class="h-handle">@example_dev</span> — had it running locally in ten minutes</li><li><span class="h-handle">@example_news</span> — a plain-English read of the licence</li></ul></div>
+<p><b>Sentiment:</b> mostly positive, some doubts about the benchmarks.</p>
+<span class="h-more">Read more</span>
+</div>
+</div>
+</div>
+<figcaption class="h-cap">Illustration with example accounts. On X, soroagent reads only the posts on screen and leaves promoted posts out.</figcaption>
+</figure>
+<ol class="h-steps">
+<li><span class="h-num">1</span><div><b>Click the owl</b><span>On any page, or press Alt+Shift+K.</span></div></li>
+<li><span class="h-num">2</span><div><b>Summarize or ask</b><span>Shaped by the site you're on.</span></div></li>
+<li><span class="h-num">3</span><div><b>Keep it</b><span>Saved to your library, ready to search and ask later.</span></div></li>
+</ol>
+</section>
 
   <section class="private">
     <h2><svg class="icon" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>Private by design.</h2>
