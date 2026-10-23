@@ -124,6 +124,19 @@ http://127.0.0.1/mozoauth2/2cc4144500e90330e1a3d0c39bbd9cc2e7ce6aeb
 Firefox uses the loopback form because Google rejects `*.extensions.allizom.org`. A test in
 `test/manifest.test.mjs` fails if either ID drifts.
 
+### Store rules (Chrome Web Store, Firefox Add-ons)
+See `STORE_SUBMISSION.md` for the reviewer notes and permission justifications; keep them true.
+- Vendored files stay byte-identical to their pinned releases: change pins in `scripts/vendor.mjs`
+  and run `npm run vendor`; `npm test` runs the offline check. Never edit files in `vendor/`.
+- No `eval`, `new Function`, string timers or remote scripts; `import()` only with literal packaged
+  paths. Use DOMParser + `replaceChildren` instead of `innerHTML` assignments (AMO's linter flags them).
+- Every permission must be used; manifest `description` ≤ 132 characters (tested).
+- The Firefox build leaves out `vendor/web-llm` (AMO can't parse a 6.8 MB file); `S.isFirefox` hides
+  the in-browser option there. Licenses in `vendor/` always ship.
+- Before a Firefox upload, `npx addons-linter dist/firefox` must show 0 errors.
+- New network destinations or data flows: update the privacy policy, `STORE_SUBMISSION.md` and the
+  Firefox `data_collection_permissions`.
+
 ### Privacy policy follows the code
 If a change alters what data leaves the browser, or when, update `privacy.html` in
 soroagent/soroagent.github.io and the answers in `extension/content/faq.js` in the same change.

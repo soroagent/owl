@@ -336,6 +336,9 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     });
   }
 
+  // In-browser AI: Chrome only (Gemini Nano is Chrome's; the Firefox build ships no WebLLM).
+  if (S.isFirefox) document.querySelector('input[name="source"][value="browser"]').closest('label').hidden = true;
+
   // Where soroagent opens; browsers without a side panel only have the floating panel.
   if (!(ext.sidePanel || ext.sidebarAction)) $('openInGroup').hidden = true;
   $('shortcuts').addEventListener('click', () => ext.tabs.create({ url: /Firefox\//.test(navigator.userAgent) ? 'about:addons' : 'chrome://extensions/shortcuts' }));

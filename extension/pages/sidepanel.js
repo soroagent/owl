@@ -14,6 +14,11 @@
     { ask: "Explain this page simply, as if I'm new to the topic.", label: 'Explain it simply' },
     { ask: 'What claims here need checking, and what might be missing?', label: 'What should I double-check?' },
   ];
+  // Markup goes in through DOMParser (inert: no scripts run) and is moved over as nodes.
+  function setHtml(node, html) {
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    node.replaceChildren(...doc.body.childNodes);
+  }
   const SEND = $('send').innerHTML;
   const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
 
@@ -65,7 +70,7 @@
     const paint = () => {
       frame = 0;
       node.classList.remove('pending');
-      node.innerHTML = S.renderMarkdown(S.stripThinking(text));
+      setHtml(node, S.renderMarkdown(S.stripThinking(text))); // renderMarkdown escapes the text first
       scrollEnd();
     };
     return {
@@ -173,7 +178,7 @@
     $('shot').disabled = !state.tabId;
     $('input').disabled = !ready || !readable;
     $('send').disabled = !state.busy && (!ready || !readable);
-    $('send').innerHTML = state.busy ? STOP : SEND;
+    setHtml($('send'), state.busy ? STOP : SEND);
     $('send').setAttribute('aria-label', state.busy ? 'Stop' : 'Send');
   }
 

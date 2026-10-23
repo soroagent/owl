@@ -123,8 +123,32 @@ test('fallback parser, PDF reader: vendored, loaded where they run, nothing fetc
   const js = manifest.content_scripts[0].js;
   assert.ok(js.indexOf('vendor/readability/Readability.js') >= 0 && js.indexOf('vendor/readability/Readability.js') < js.indexOf('content/extract.js'), 'Readability loads before the extractor');
   const reader = readFileSync(join(ext, 'background/pdfread.js'), 'utf8');
-  assert.match(reader, /getURL\('vendor\/pdfjs\/pdf\.min\.mjs'\)/);
+  assert.match(reader, /import\('\.\.\/vendor\/pdfjs\/pdf\.min\.mjs'\)/, 'a literal, packaged path');
   assert.match(reader, /isEvalSupported: false/);
   assert.match(readFileSync(join(ext, 'pages/offscreen.html'), 'utf8'), /pdfread\.js/);
   assert.ok(manifest.background.scripts.includes('background/pdfread.js'));
+});
+
+test('vendored libraries are byte-identical to their pinned official releases', async () => {
+  const { check, SHA256 } = await import('../scripts/vendor.mjs');
+  assert.deepEqual(check(), []);
+  for (const [file, hash] of Object.entries(SHA256)) assert.match(hash, /^[0-9a-f]{64}$/, `${file} has a pinned hash`);
+});
+
+test('store builds: third-party licenses ship; the Firefox build has no WebLLM (too large for AMO to parse)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(process.execPath, [join(root, 'scripts/build.mjs')], { stdio: 'ignore' });
+  for (const b of ['chrome', 'firefox']) {
+    for (const lic of ['vendor/readability/LICENSE.md', 'vendor/pdfjs/LICENSE']) assert.ok(existsSync(join(root, 'dist', b, lic)), `${b}: ${lic}`);
+  }
+  assert.ok(existsSync(join(root, 'dist/chrome/vendor/web-llm/index.js')));
+  assert.ok(existsSync(join(root, 'dist/chrome/vendor/web-llm/LICENSE')));
+  assert.ok(!existsSync(join(root, 'dist/firefox/vendor/web-llm')), 'no WebLLM in Firefox');
+  const ff = JSON.parse(readFileSync(join(root, 'dist/firefox/manifest.json'), 'utf8'));
+  assert.equal(ff.browser_specific_settings.gecko.strict_min_version, '140.0');
+  assert.ok(!ff.permissions.includes('activeTab'));
+  assert.ok(ff.description.length <= 132, 'Chrome Web Store limit');
+  const chrome = JSON.parse(readFileSync(join(root, 'dist/chrome/manifest.json'), 'utf8'));
+  assert.equal(chrome.browser_specific_settings, undefined);
+  assert.ok(chrome.description.length <= 132);
 });

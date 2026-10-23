@@ -1,0 +1,210 @@
+# Store submission: Chrome Web Store and Firefox Add-ons
+
+Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
+against version 2.31.1 on 2026-10-23.
+
+## Before you submit
+
+| | Item | Status |
+|---|---|---|
+| ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
+| ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
+| ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-23 |
+| ✅ | No unused permissions (`activeTab` removed); manifest description ≤ 132 characters | Tested |
+| ✅ | Third-party licenses ship in both builds | Tested |
+| ⚠️ | **Firefox data collection declaration** is `"none"`, which is not accurate for cloud AI, Research, sync and diagnostic reports | **Needs a decision**: see "Firefox: data collection" |
+| ⚠️ | **Google Drive sync in the Chrome Web Store build**: the store assigns a new extension ID, so its sign-in redirect must be added to the Google Cloud OAuth client | After the first upload: see "Chrome: extension ID and Google sign-in" |
+| ⚠️ | Google OAuth consent screen must be **published** (not "Testing") or only test users can connect Drive | Google Cloud console |
+| ℹ️ | Broad host access means Chrome's in-depth review (slower). Justification below | Expected |
+
+Packages: `npm run store` → `dist/soroagent-chrome-store-<version>.zip` (no `key`, for the Chrome Web
+Store). `npm run package` → `dist/soroagent-firefox-<version>.zip` for AMO.
+
+Re-run the Mozilla linter before each Firefox upload:
+
+```bash
+npx addons-linter dist/firefox
+```
+
+---
+
+## How soroagent works (for both reviewers)
+
+soroagent is an AI reading assistant. It summarizes and answers questions about the page you're on,
+saves what you read to a private library on your device, and lets you search and chat with that
+library. The AI is chosen by the user: a model server on their computer (Ollama, LM Studio…), an
+AI inside the browser (Chrome's Gemini Nano, or Qwen2.5-1.5B via WebLLM in Chrome), or the user's own
+API key for a cloud provider. There are no soroagent servers, accounts, analytics or ads.
+
+Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://soroagent.github.io/privacy.html
+
+---
+
+## Chrome Web Store
+
+### Single purpose
+
+> soroagent helps you understand and keep what you read on the web: it summarizes and answers
+> questions about the current page with an AI model the user chooses, and files what they read into
+> a private, searchable library on their device.
+
+### Permission justifications
+
+| Permission | Justification (paste) |
+|---|---|
+| `storage` | Stores the user's settings, saved notes and summary history locally. |
+| `unlimitedStorage` | The user's library (notes, page text, screenshots and search vectors) can grow beyond the default quota; it never leaves the device unless the user turns on sync. |
+| `contextMenus` | Right-click items: "Summarize this page", "Take a screenshot", and "Summarize this PDF with soroagent". |
+| `scripting` | When the user opens soroagent (or a right-click item) on a tab that was already open before soroagent was installed or updated, injects soroagent's own packaged content scripts into that tab so it works without a reload. |
+| `declarativeNetRequestWithHostAccess` | One session rule that sets the `Origin` header on soroagent's own background requests to the user's local model server (e.g. Ollama at 127.0.0.1), so the server accepts them. See "Local model servers" below. It never applies to web pages or tabs. |
+| `downloads` | Saves the automatic backup file and Markdown exports to the user's Downloads folder, and exports from the library page. |
+| `downloads.ui` | Keeps the download bar from opening for the periodic automatic backup (a background save the user turned on). |
+| `alarms` | Schedules the periodic backup and the optional sync. |
+| `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |
+| `offscreen` | A hidden document for two things a service worker can't do: create a blob URL for the backup file (BLOBS), and run pdf.js (which uses a Worker) and the optional in-browser AI (WebLLM) as ES modules (WORKERS). |
+| `sidePanel` | soroagent's main interface opens in the side panel, beside the page. |
+| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for the Research feature, PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
+
+### Remote code
+
+**Answer: "No, I am not using remote code."** Explanation, if asked:
+
+> All JavaScript and WebAssembly ship in the package, including three unmodified third-party
+> libraries in `vendor/` (WebLLM 0.2.86, pdf.js 6.4.299, Readability 0.6.0; sources and SHA-256 in
+> each `vendor/*/README.md`, reproducible with `npm run vendor`). The CSP allows only `'self'` and
+> `'wasm-unsafe-eval'`; WebAssembly is compiled only from files in the package (WebLLM's model
+> library `vendor/web-llm/*.wasm` and the tokenizer embedded in WebLLM). Downloaded at runtime, as
+> data only: the in-browser model's weights (Hugging Face, `mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC`,
+> only after the user clicks to set it up) and Chrome's own Gemini Nano (downloaded by Chrome).
+
+### Data usage (Privacy practices tab)
+
+- **Website content**: yes. Page text is sent to the AI provider the *user* configured when they use
+  soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
+  or in-browser AI by default). With a local or in-browser AI it never leaves the device.
+- **Web history**: saved notes include page addresses; stored locally; included in the user's
+  encrypted sync if they turn it on.
+- Not sold, not used for advertising or credit, not used for anything unrelated to the single purpose.
+  Certify the Limited Use statements.
+
+### Notes for reviewers (paste)
+
+> soroagent is an AI reading assistant that uses an AI model the user chooses. To test without an
+> account: install Ollama (https://ollama.com) and run `ollama pull qwen2.5:7b`; soroagent finds it
+> automatically on first run. Or, on a supported Chrome, choose "Use Chrome's built-in AI". Then open
+> any article, click the toolbar button (or press Alt+Shift+O) and use Summarize or ask a question.
+>
+> Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
+> edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest
+> *session* rule that sets the Origin header to the local server's own origin (for example
+> http://127.0.0.1:11434). The rule is limited to: requests initiated by this extension
+> (`initiatorDomains: [<extension id>]`), not from any tab (`tabIds: [-1]`), to that single
+> user-configured server URL (`urlFilter: |<server origin>/`), resource types xmlhttprequest/other.
+> It does not touch web pages, other sites or cookies, and it is removed when the browser closes.
+> The code is in background/background.js, ensureOriginRewrite().
+>
+> Third-party code (unmodified, in vendor/, with README, license and SHA-256): WebLLM 0.2.86
+> (@mlc-ai/web-llm, lib/index.js), pdf.js 6.4.299 (pdfjs-dist, build/pdf.min.mjs and
+> pdf.worker.min.mjs), Readability 0.6.0 (@mozilla/readability). WebLLM's built-in model list
+> mentions remote model-library URLs on raw.githubusercontent.com; soroagent overrides it so the
+> model library is loaded from the package (background/browserai.js, appConfig). pdf.js contains a
+> code path that wraps a cross-origin worker URL; soroagent's worker is a packaged file, so it is never
+> used (background/pdfread.js).
+
+### Chrome: extension ID and Google sign-in
+
+The unpacked build pins ID `jomghmmgdlajfonjihmagbhomimadpcg` with `keys/chrome-public-key.txt`; the
+store build has no `key`, so the Chrome Web Store assigns a new ID. Google Drive sync signs in through
+`https://<id>.chromiumapp.org/`, which must be an authorized redirect URI on the OAuth client. After
+the first upload (it can stay unpublished): add `https://<store id>.chromiumapp.org/` to the client
+in Google Cloud, then copy the item's public key from the Developer Dashboard into
+`keys/chrome-public-key.txt` (see `keys/README.md`) so unpacked builds and the store share one ID, and
+update the test in `test/manifest.test.mjs` and the IDs in `CLAUDE.md`.
+
+---
+
+## Firefox Add-ons (AMO)
+
+### Source code question
+
+**"Do you use code generators, minifiers, bundlers…?"** soroagent's own code: **no**. Every file in
+`background/`, `content/`, `pages/`, `shared/`, `sites/` and `prompts/` is the source as written; the
+build (`scripts/build.mjs`, no dependencies) only copies files and writes a per-browser
+`manifest.json`. The only minified files are official, unmodified third-party releases (below). If
+AMO still asks for source, upload the repository (or link https://github.com/soroagent/owl) with:
+
+```bash
+node --version   # 20 or newer; no npm install needed
+npm run build    # writes dist/firefox
+npm run vendor   # optional: downloads the vendored libraries again and verifies their SHA-256
+```
+
+### Notes to reviewer (paste)
+
+> soroagent is an AI reading assistant that uses an AI model the user chooses (no soroagent servers).
+> To test: install Ollama (https://ollama.com), run `ollama pull qwen2.5:7b`, and soroagent finds it
+> on first run. Open an article and click the toolbar button (opens the sidebar) or press Alt+Shift+O.
+>
+> Our code is not minified or bundled; scripts/build.mjs only copies files and writes the manifest.
+> Third-party libraries, unmodified (README, license and SHA-256 in each vendor/ folder; `npm run
+> vendor` downloads them from the npm registry, checks the tarball integrity and the SHA-256):
+> pdf.js 6.4.299 (pdfjs-dist: build/pdf.min.mjs, build/pdf.worker.min.mjs) and Readability 0.6.0
+> (@mozilla/readability: Readability.js). The linter warnings (innerHTML in Readability.js, dynamic
+> import in pdf.js) are inside these unmodified files. pdf.js is loaded with a literal packaged path
+> and isEvalSupported: false.
+>
+> Local model servers: Ollama rejects moz-extension:// origins by default. soroagent's background
+> page registers a blocking webRequest onBeforeSendHeaders listener that, only for requests made by
+> soroagent itself (tabId -1 and originUrl inside this extension) to the single user-configured model
+> server URL (default http://127.0.0.1:11434), sets the Origin header to that server's own origin. It
+> never changes requests from web pages or to any other host. Code: background/background.js, the
+> listener at the top and ensureOriginRewrite().
+>
+> The Firefox build does not include the in-browser model (WebLLM); that option is Chrome-only.
+
+### Firefox: data collection (decision needed)
+
+The manifest declares `"data_collection_permissions": { "required": ["none"] }`. Mozilla defines
+transmission as "any data collected, used, transferred, shared, or handled outside the add-on or the
+local browser", which includes sending data to a provider the user picked. soroagent transmits data
+only when the user chooses a feature that needs it:
+
+| Feature | Data | Category |
+|---|---|---|
+| A cloud AI (the user's own API key) | Page text, questions | `websiteContent` |
+| Research | The search query | `searchTerms` |
+| Sync (Google Drive, WebDAV, Gist) | The library, encrypted end to end | `websiteContent`, `browsingActivity` |
+| "Copy diagnostic report" (opens a GitHub issue) | Scrubbed error log | `technicalAndInteraction` |
+
+With Ollama or another local model, nothing is transmitted, so `"none"` is true for that setup but not
+for the add-on as a whole. Recommended: keep `required: ["none"]` and declare
+`optional: ["websiteContent", "searchTerms", "browsingActivity", "technicalAndInteraction"]`, then call
+`browser.permissions.request({ data_collection: [...] })` (from the click) when the user picks a
+cloud AI, first uses Research, turns on sync, or copies a diagnostic report, and don't transmit if
+it's declined. This is Firefox-only code (feature-detect with `permissions.getAll().data_collection`).
+Firefox 140+ is required for this, which is now `strict_min_version`.
+
+### Other Firefox notes
+
+- `strict_min_version` is 140 (data consent), Android 142.
+- Host permissions are shown at install in Firefox 127+; soroagent needs them for the reasons in the
+  Chrome table above.
+- The sidebar (`sidebar_action`) hosts the same page as Chrome's side panel.
+
+---
+
+## Things that commonly trigger rejections, and where soroagent stands
+
+| Risk | Status |
+|---|---|
+| Remote code / `eval` | None. Only packaged JS and WebAssembly (`'wasm-unsafe-eval'`). |
+| Modified or unverifiable third-party libraries | Unmodified, pinned, reproducible (`npm run vendor`), tested. |
+| Files too large for AMO's linter (`FILE_TOO_LARGE`) | WebLLM (6.8 MB) is left out of the Firefox build. |
+| Unused permissions | None (checked each one; `activeTab` removed). |
+| Header modification | One narrowly scoped rule, documented above. |
+| Obfuscation | None. |
+| Undisclosed data handling | Privacy policy and in-product text; Firefox declaration needs the update above. |
+| Description too long (Chrome, 132) | 132 characters; a test keeps it within the limit. |
+| Missing licenses for bundled code | Shipped in both builds. |
+| Broken features for reviewers (OAuth in Testing mode, store ID) | Publish the OAuth consent screen; add the store ID redirect. |

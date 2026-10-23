@@ -100,6 +100,7 @@
   // ---------------------------------------------------------------------------
 
   async function hasWebGPU() {
+    if (soroagent.isFirefox) return false; // the Firefox build ships no WebLLM
     try {
       return Boolean(root.navigator && root.navigator.gpu && (await root.navigator.gpu.requestAdapter()));
     } catch {
@@ -119,7 +120,8 @@
     const appConfig = () => ({
       model_list: [{ model: WEBLLM_WEIGHTS, model_id: WEBLLM_MODEL, model_lib: ext.runtime.getURL(WEBLLM_LIB), overrides: { context_window_size: 4096 } }],
     });
-    const load = async () => (module ||= await import(ext.runtime.getURL('vendor/web-llm/index.js')));
+    // A literal path (relative to this script), so reviewers and linters see exactly what loads.
+    const load = async () => (module ||= await import('../vendor/web-llm/index.js'));
 
     function start() {
       if (engine) return engine;

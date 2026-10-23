@@ -12,3 +12,6 @@ Reads the text of PDFs for the side panel and the "Summarize this PDF" menu item
 Only text is extracted (no rendering, no fonts, `isEvalSupported: false`). Scanned PDFs (images
 only) have no text to read. To update: replace both files from one pdfjs-dist release, update the
 table, and read a PDF from the side panel in Chrome and Firefox.
+
+Reproduce or verify: `npm run vendor` (downloads the pinned npm release, checks the tarball's
+integrity hash and the SHA-256 above) or `npm run vendor:check` (offline).

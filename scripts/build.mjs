@@ -125,11 +125,19 @@ for (const browser of store ? ['chrome'] : targets.length ? targets : BROWSERS) 
   const out = join(DIST, store ? 'chrome-store' : browser);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
-  // Ship only what the extension needs: no docs, samples or "_template" files, and our generated manifest.
+  // Ship only what the extension needs: no docs, samples or "_template" files, and our generated
+  // manifest. Third-party licenses always ship (LICENSE.md included). Firefox gets no WebLLM: AMO
+  // can't parse its 6.8 MB bundle (FILE_TOO_LARGE), and Firefox has no Gemini Nano and WebGPU only
+  // on some systems, so the in-browser model is Chrome-only.
+  const isLicense = (src) => /[\\/]vendor[\\/].*[\\/]LICENSE[^\\/]*$/.test(src);
   cpSync(SRC, out, {
     recursive: true,
     filter: (src) =>
-      src !== join(SRC, 'manifest.json') && !/(^|[\\/])_[^\\/]*$/.test(src) && !src.endsWith('.md') && !/[\\/]samples([\\/]|$)/.test(src),
+      src !== join(SRC, 'manifest.json') &&
+      !/(^|[\\/])_[^\\/]*$/.test(src) &&
+      (!src.endsWith('.md') || isLicense(src)) &&
+      !/[\\/]samples([\\/]|$)/.test(src) &&
+      !(browser === 'firefox' && /[\\/]vendor[\\/]web-llm([\\/]|$)/.test(src)),
   });
   writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifestFor(browser), null, 2) + '\n');
   console.log(`Built ${relative(ROOT, out)}`);

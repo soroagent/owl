@@ -2,14 +2,13 @@
   "manifest_version": 3,
   "name": "soroagent",
   "short_name": "soroagent",
-  "version": "2.31.0",
-  "description": "AI assistant for any web page, powered by your local LLM (Ollama, LM Studio…) or your own API key (Claude, OpenAI, Gemini…). Summarize, ask and save.",
+  "version": "2.31.1",
+  "description": "Summarize, ask about and save any web page or PDF into a private library, using AI on your computer, in the browser or your own key.",
   "permissions": [
     "storage",
     "unlimitedStorage",
     "contextMenus",
     "scripting",
-    "activeTab",
     "declarativeNetRequestWithHostAccess",
     "downloads",
     "downloads.ui",
@@ -115,12 +114,15 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "sorotrack@arjunmarri.github.io",
-      "strict_min_version": "128.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
           "none"
         ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "web_accessible_resources": [

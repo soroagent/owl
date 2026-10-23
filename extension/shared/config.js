@@ -8,6 +8,8 @@
   // Check `runtime.id` because a page element with id="browser" also shows up as window.browser.
   const ext =
     root.browser && root.browser.runtime && root.browser.runtime.id ? root.browser : root.chrome;
+  // Firefox (runtime.getBrowserInfo is Firefox-only). Its build has no in-browser model (WebLLM).
+  const isFirefox = Boolean(root.browser && root.browser.runtime && root.browser.runtime.getBrowserInfo);
 
   const DEFAULT_SETTINGS = Object.freeze({
     source: 'local', // 'local' (a model server such as Ollama) | 'cloud' (your API key) | 'browser' (runs inside the browser)
@@ -296,6 +298,7 @@
 
   Object.assign(soroagent, {
     watchPageErrors,
+    isFirefox,
     safeUrl,
     ext,
     feedbackUrl,

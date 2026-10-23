@@ -70,7 +70,7 @@
     let lib = null;
     const load = async () => {
       if (lib) return lib;
-      lib = await import(ext.runtime.getURL('vendor/pdfjs/pdf.min.mjs'));
+      lib = await import('../vendor/pdfjs/pdf.min.mjs'); // relative to this script: a literal, packaged path
       lib.GlobalWorkerOptions.workerSrc = ext.runtime.getURL('vendor/pdfjs/pdf.worker.min.mjs');
       return lib;
     };
