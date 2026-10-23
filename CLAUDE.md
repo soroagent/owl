@@ -195,6 +195,12 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   and asks the background (`pdf:read`) to fetch and parse it with pdf.js. Summary, questions, chat
   and Save are built in the side panel with the default prompts. The context menu item on PDF links
   opens the side panel and passes the URL through `storage.session` (`pdfRequest`).
+- **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
+  to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
+  treats a short "the text doesn't contain…" reply as a request (the question becomes the query).
+  While streaming, `S.mayBeWebRequest` holds back a reply that could still become the marker. Then
+  `web:sources` (background; `gatherSources`, 4 results, budget shared via `pageCharLimit`) and the
+  `webAnswer` prompt give a cited answer plus a sources card, in both panels. Off: a button instead.
 - **Summarize / Ask:** `assistant.js` reads the page via the site profile's `extract()` (Stack
   Overflow answers, Reddit/HN comment trees, GitHub issue state, X threads…) or `extract.js`, builds
   messages with `S.buildMessages(action, vars, sitePrompts())`, and streams through the `llm` port.

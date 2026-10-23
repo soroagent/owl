@@ -17,7 +17,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -263,6 +263,32 @@
     return out.slice(0, 4);
   }
 
+  // A question the page can't answer: the model replies [[search: query]] (see the ask prompts).
+  const SEARCH_MARK = /^\s*\[\[\s*search\s*:\s*([^\]\n]{2,160}?)\s*\]\]/i;
+  // Small models sometimes say so in words instead.
+  const NOT_FOUND = /\b(does not|doesn't|do not|don't|did not|didn't|cannot|can't|isn't|is not|aren't|are not|no)\b[^.]{0,60}\b(contain|mention|include|provide|cover|say|state|information|details|data|specif|answer)/i;
+  const ABOUT_PAGE = /\b(page|text|article|content|post|posts|document|thread|provided|given|above)\b/i;
+
+  /**
+   * Pure: the web search a reply asks for, or ''. replied: the model's whole reply; question: what
+   * the user asked (the query when the model said "not on the page" in words). Returns { query, explicit }.
+   */
+  function parseWebRequest(replied, question = '') {
+    const text = String(replied || '').trim();
+    const m = text.match(SEARCH_MARK);
+    if (m) return { query: m[1].replace(/^["']|["']$/g, '').trim(), explicit: true };
+    if (text.length < 320 && NOT_FOUND.test(text) && ABOUT_PAGE.test(text) && question.trim()) {
+      return { query: String(question).trim().replace(/\?+$/, '').slice(0, 160), explicit: false };
+    }
+    return { query: '', explicit: false };
+  }
+
+  /** Pure: whether the start of a streaming reply could still turn out to be [[search: …]] (hold it back). */
+  const mayBeWebRequest = (prefix) => {
+    const p = String(prefix || '').trimStart();
+    return p.length < 9 ? '[[search:'.startsWith(p.toLowerCase().replace(/\s+/g, '')) || p === '' : /^\[\[\s*search/i.test(p);
+  };
+
   // Markers the page leaves in background-job prompts for text only known while the job runs
   // (the finished summary, the web sources, the search query).
   const JOB_PLACEHOLDERS = Object.freeze({ summary: '@@SOROAGENT_SUMMARY@@', sources: '@@SOROAGENT_SOURCES@@', query: '@@SOROAGENT_QUERY@@' });
@@ -285,5 +311,7 @@
     parseTopics,
     pageKind,
     parseQuestions,
+    parseWebRequest,
+    mayBeWebRequest,
   });
 })(globalThis);

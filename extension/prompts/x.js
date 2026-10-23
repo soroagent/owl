@@ -53,7 +53,7 @@ Write compact notes (max 12 bullets): main themes, notable posts (keep @handles)
     // Questions about the posts on screen (or the last summarized batch).
     ask: {
       system: `{{persona}}
-Answer questions about these posts from X. ${POSTS} If the posts don't contain the answer, say so.
+Answer questions about these posts from X. ${POSTS} If the answer isn't in it, reply with only [[search: a short web search query that would find the answer]] and nothing else; soroagent then looks it up on the web.
 
 {{context}}
 

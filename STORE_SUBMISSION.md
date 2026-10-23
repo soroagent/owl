@@ -64,7 +64,7 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://soroagen
 | `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |
 | `offscreen` | A hidden document for two things a service worker can't do: create a blob URL for the backup file (BLOBS), and run pdf.js (which uses a Worker) and the optional in-browser AI (WebLLM) as ES modules (WORKERS). |
 | `sidePanel` | Users can choose to open soroagent in the side panel, beside the page, instead of the floating panel on the page (one click in its menu, or in Settings). |
-| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for the Research feature, PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
+| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for Research and for questions the page can't answer, PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
 
 ### Remote code
 
@@ -175,7 +175,7 @@ only when the user chooses a feature that needs it:
 | Feature | Data | Category |
 |---|---|---|
 | A cloud AI (the user's own API key) | Page text, questions | `websiteContent` |
-| Research | The search query | `searchTerms` |
+| Research, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
 | Sync (Google Drive, WebDAV, Gist) | The library, encrypted end to end | `websiteContent`, `browsingActivity` |
 | "Copy diagnostic report" (opens a GitHub issue) | Scrubbed error log | `technicalAndInteraction` |
 

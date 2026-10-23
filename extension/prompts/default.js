@@ -37,10 +37,25 @@ Write compact notes (max 12 bullets) on the key points, notable items (keep name
     // Questions typed in the panel. The system prompt carries the page; the user turn is the question.
     ask: {
       system: `{{persona}}
-Answer questions about the page below. If the page does not contain the answer, say so and answer from general knowledge only if the user asks you to.
+Answer questions about the page below, using the page. If the answer isn't in it, reply with only [[search: a short web search query that would find the answer]] and nothing else; soroagent then looks it up on the web.
 
 {{page}}`,
       user: `{{question}}`,
+    },
+
+    // A question the page couldn't answer, answered from web search results ({{content}} = numbered
+    // sources). Reply: Markdown with [n] citations.
+    webAnswer: {
+      system: `{{persona}}
+You answer a question from web search results. Use only the sources and cite them inline as [n]. Start with the direct answer (the figure, date or name, with its period or "as of" date), then add one or two sentences of context. If sources disagree or some are older, say which is the most recent. If the sources don't answer the question, say so plainly.`,
+      user: `Question: {{question}}
+
+(The user was reading: {{title}})
+
+Web search results:
+<sources>
+{{content}}
+</sources>`,
     },
 
     // Save button: title, summary and tags for the saved text. Reply: JSON (keep this shape).

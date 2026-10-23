@@ -480,6 +480,19 @@
       if (!res.text) diag.record({ area: 'extractor', code: 'pdf-no-text', message: 'The PDF has no text layer (scanned?)', detail: { where: 'pdf:read' } });
       return res;
     },
+    // A question the page couldn't answer: web search results for it, read and numbered for the
+    // webAnswer prompt. Same search engines and local-network blocking as Research.
+    'web:sources': async (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id) return { ok: false };
+      const query = String(msg.query || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+      if (!query) throw new Error('Nothing to search for.');
+      const settings = await getSettings();
+      const sources = await S.gatherSources(query, { count: 4, engine: settings.researchEngine, searxUrl: settings.searxUrl });
+      // Fit small models too: share the page-text budget across the sources.
+      const each = Math.max(600, Math.floor(Math.min(10000, S.pageCharLimit(settings)) / sources.length));
+      const read = sources.map((s) => ({ title: s.title, url: s.url, text: String(s.text || s.snippet || '').slice(0, each) }));
+      return { ok: true, engine: sources.engine, sources: read.map(({ title, url }) => ({ title, url })), formatted: S.formatSources(read) };
+    },
     // Switch how soroagent appears (owl | sidepanel | quiet), from either panel or Settings.
     'appearance:set': async (msg, sender) => {
       if (!sender || sender.id !== ext.runtime.id || !S.APPEARANCES[msg.mode]) return { ok: false };

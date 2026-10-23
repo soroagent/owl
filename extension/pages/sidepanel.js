@@ -491,16 +491,56 @@
         return;
       }
       const reply = addAssistant();
+      // Held back while it could still be [[search: …]] (the page doesn't have the answer).
+      let held = '';
+      let released = false;
+      const gate = { push: (tok) => (released ? reply.push(tok) : ((held += tok), !S.mayBeWebRequest(held) && ((released = true), reply.push(held)))), status: reply.status };
+      let text;
       try {
-        const text = await streamChat(res.messages, reply, signal);
-        reply.finish(text);
-        t.history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
-        t.history = t.history.slice(-12);
+        text = await streamChat(res.messages, gate, signal);
       } catch (err) {
         reply.finish();
         throw err;
       }
+      const web = S.parseWebRequest(S.stripThinking(text), question);
+      if (web.query && web.explicit) reply.node.remove();
+      else reply.finish(text);
+      if (!web.query) {
+        t.history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
+        t.history = t.history.slice(-12);
+        return;
+      }
+      const settings = await S.getSettings();
+      if (settings.webFallback === false) {
+        append(card({
+          title: 'That isn’t on this page.',
+          body: 'Look it up on the web? soroagent searches, reads the top results and answers with sources.',
+          actions: [{ label: `Search the web for “${web.query}”`, onClick: (e, node) => (node.remove(), run((s) => webAnswer(question, web.query, s))) }],
+        }));
+        return;
+      }
+      await webAnswer(question, web.query, signal);
     });
+  }
+
+  // A question the page couldn't answer: web search results, then a cited answer from them.
+  async function webAnswer(question, query, signal) {
+    const reply = addAssistant(`Not on this page. Searching the web for “${query}”…`);
+    const res = await ext.runtime.sendMessage({ type: 'web:sources', query }).catch((err) => ({ ok: false, error: err.message }));
+    if (!res || res.ok === false) {
+      reply.node.remove();
+      throw Object.assign(new Error((res && res.error) || 'Couldn’t search the web.'), { hint: 'Check your connection, or pick another search engine in Settings → Research.' });
+    }
+    reply.status(`Reading ${res.sources.length} web sources…`);
+    const pdf = currentPdf();
+    const page = { title: (pdf && pdf.title) || (state.snap && state.snap.title) || '', url: state.url, text: res.formatted };
+    const text = await streamChat(S.buildMessages('webAnswer', S.pageVars(page, { question }), {}), reply, signal);
+    reply.finish(text);
+    const list = el('ol', {}, res.sources.map((src) => el('li', {}, [el('a', { href: S.safeUrl(src.url), target: '_blank', rel: 'noopener noreferrer', textContent: src.title || src.url })])));
+    append(el('div', { className: 'card' }, [el('b', { textContent: `From the web · searched “${query}”` }), list]));
+    const t = thread();
+    t.history.push({ role: 'user', content: question }, { role: 'assistant', content: `${text}\n\n(Answered from a web search for “${query}”.)` });
+    t.history = t.history.slice(-12);
   }
 
   // ---------------------------------------------------------------------------

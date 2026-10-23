@@ -94,3 +94,30 @@ test('the questions prompt gets the page and what kind of page it is', () => {
   assert.match(user, /"questions"/);
   assert.doesNotMatch(user, /\{\{/);
 });
+
+test('questions the page cannot answer become a web search (marker or plain words), others do not', () => {
+  const q = "what is GoDaddy's revenue?";
+  assert.deepEqual(S.parseWebRequest('[[search: GoDaddy annual revenue 2025]]', q), { query: 'GoDaddy annual revenue 2025', explicit: true });
+  assert.deepEqual(S.parseWebRequest(' [[ Search : "GoDaddy revenue" ]] and more', q), { query: 'GoDaddy revenue', explicit: true });
+  assert.deepEqual(S.parseWebRequest("The provided text does not contain information regarding GoDaddy's revenue.", q), { query: "what is GoDaddy's revenue", explicit: false });
+  assert.deepEqual(S.parseWebRequest("The article doesn't mention GoDaddy's revenue.", q).explicit, false);
+  assert.equal(S.parseWebRequest('GoDaddy reported revenue of $4.6 billion for 2025 [1].', q).query, '');
+  assert.equal(S.parseWebRequest('No, the author does not recommend it, because the page says it is slow.'.repeat(6), q).query, '', 'long answers are answers');
+  assert.equal(S.parseWebRequest("The text doesn't say.", '').query, '', 'needs a question to search for');
+  // Streaming: hold back only what could still become the marker.
+  for (const p of ['', '[', '[[', '[[sea', '[[search', '[[search: GoDa']) assert.equal(S.mayBeWebRequest(p), true, JSON.stringify(p));
+  for (const p of ['The', 'GoDaddy', '[link]', '1.']) assert.equal(S.mayBeWebRequest(p), false, JSON.stringify(p));
+});
+
+test('every ask prompt asks for [[search: …]] when the answer is not there; webAnswer cites sources', () => {
+  for (const site of ['default', 'x', 'reddit']) {
+    const msgs = S.buildMessages('ask', S.pageVars({ title: 't', url: 'u', text: 'body' }, { question: 'q' }), S.promptsFor(site, {}, 'page'));
+    assert.match(msgs[0].content, /\[\[search: a short web search query/, site);
+  }
+  const msgs = S.buildMessages('webAnswer', S.pageVars({ title: 'Reading page', url: 'u', text: '[1] GoDaddy IR\nURL: https://x\nRevenue $4.6B' }, { question: "what is GoDaddy's revenue?" }), {});
+  const user = msgs.find((m) => m.role === 'user').content;
+  assert.match(msgs[0].content, /cite them inline as \[n\]/);
+  assert.match(user, /Question: what is GoDaddy's revenue\?/);
+  assert.match(user, /<sources>\n\[1\] GoDaddy IR/);
+  assert.doesNotMatch(user, /\{\{/);
+});

@@ -1871,8 +1871,71 @@
       const vars = S.pageVars(state.pageContext.page, { context: pageInfo().context || '', question });
       const [system] = S.buildMessages('ask', vars, sitePrompts());
       if (related.using && related.notes.length) system.content += notesForChat();
-      await streamReply([system, ...state.history, { role: 'user', content: question }], question, signal);
+      await streamAnswer([system, ...state.history, { role: 'user', content: question }], question, signal);
     });
+  }
+
+  // An answer about the page. When the page doesn't have it, the model asks for a web search
+  // ([[search: …]], held back while streaming so it never shows) or says so in words; soroagent then
+  // looks it up (Settings → "Search the web when the page doesn't have the answer"), or offers to.
+  async function streamAnswer(messages, question, signal) {
+    const reply = addAssistantMessage('Thinking…');
+    let held = '';
+    let released = false;
+    const onToken = (token) => {
+      if (released) return reply.push(token);
+      held += token;
+      if (!S.mayBeWebRequest(held)) {
+        released = true;
+        reply.push(held);
+      }
+    };
+    let text;
+    try {
+      text = await runChat({ messages, signal, onToken, onThinking: reply.thinking });
+    } catch (err) {
+      reply.finish();
+      if (!reply.node.textContent.trim() || reply.node.textContent === '(no response)') reply.node.remove();
+      throw err;
+    }
+    const web = S.parseWebRequest(S.stripThinking(text), question);
+    if (web.query && web.explicit) reply.node.remove();
+    else reply.finish(text);
+    if (!web.query) {
+      state.history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
+      state.history = state.history.slice(-12);
+      return text;
+    }
+    if (state.settings.webFallback === false) {
+      const node = card({
+        icon: 'research',
+        title: 'That isn’t on this page.',
+        body: 'Look it up on the web? soroagent searches, reads the top results and answers with sources.',
+        actions: [{ label: `Search the web for “${web.query}”`, onClick: () => (node.remove(), runTask((s) => webAnswer(question, web.query, s))) }],
+      });
+      append(node);
+      return text;
+    }
+    return webAnswer(question, web.query, signal);
+  }
+
+  // Searches the web for a question the page couldn't answer and answers from the top results, cited.
+  async function webAnswer(question, query, signal) {
+    const reply = addAssistantMessage(`Not on this page. Searching the web for “${query}”…`);
+    const res = await sendMessage({ type: 'web:sources', query });
+    if (!res || res.ok === false) {
+      reply.node.remove();
+      report('error', 'web-search', (res && res.error) || 'No result', { where: 'webAnswer' });
+      throw Object.assign(new Error((res && res.error) || 'Couldn’t search the web.'), { hint: 'Check your connection, or pick another search engine in Settings → Research.' });
+    }
+    reply.status(`Reading ${res.sources.length} web sources…`);
+    const messages = S.buildMessages('webAnswer', S.pageVars({ title: document.title, url: location.href, text: res.formatted }, { question }), sitePrompts());
+    const text = await runChat({ messages, signal, onToken: reply.push, onThinking: reply.thinking });
+    reply.finish(text);
+    append(sourcesCard(query, res.sources, 'From the web'));
+    state.history.push({ role: 'user', content: question }, { role: 'assistant', content: `${text}\n\n(Answered from a web search for “${query}”.)` });
+    state.history = state.history.slice(-12);
+    return text;
   }
 
   // ---------------------------------------------------------------------------

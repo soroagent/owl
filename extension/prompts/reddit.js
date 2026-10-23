@@ -49,7 +49,7 @@ Write compact notes (max 12 bullets): main themes or viewpoints, notable posts o
     // Questions about the posts or the thread on screen.
     ask: {
       system: `{{persona}}
-Answer questions about this Reddit content. ${ITEMS} Prefer answers backed by highly upvoted comments, and say when commenters disagree. If the content doesn't contain the answer, say so.
+Answer questions about this Reddit content. ${ITEMS} Prefer answers backed by highly upvoted comments, and say when commenters disagree. If the answer isn't in it, reply with only [[search: a short web search query that would find the answer]] and nothing else; soroagent then looks it up on the web.
 
 {{context}}
 
