@@ -145,6 +145,14 @@ If a change alters what data leaves the browser, or when, update `PRIVACY.md` (a
 date) and the answers in `extension/content/faq.js` in the same change.
 Features that send page text without the user clicking something need a Settings switch.
 
+### No console noise for routine failures
+Chrome lists every `console.warn`/`console.error` from the extension on its Errors page, where users
+(and store reviewers) see it. Routine failures, such as the AI being unreachable, a shortcut on a
+`chrome://` page, or a site reader finding nothing, go to the flight recorder: `report()` in
+`assistant.js`, `quietly(where)` in `background.js`, `diag:record` elsewhere. Keep `console.warn`
+for genuine faults (storage upgrade, key migration, network rule). Background preparing backs off
+for 10 minutes per tab after a connection-type failure.
+
 ### Diagnostics stay scrubbed
 Anything that may reach a report goes through `diag.record()` (background) or the `diag:record`
 message (pages, content scripts), and `sanitizeEvent`/`scrubDiagnostic` in `flight.js` run on it in

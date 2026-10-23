@@ -654,8 +654,7 @@
         const page = state.site.extract(document, location);
         if (page && page.text && page.text.length > 120) full = { title: page.title || document.title, text: page.text };
       } catch (err) {
-        console.warn('[soroagent] Site extraction failed, reading the page with the fallback parser:', err);
-        report('extractor', 'threw', err.message, { where: 'extract' });
+        report('extractor', 'threw', err.message, { where: 'extract' }); // then the fallback parser reads it
       }
       // Profiles return null on pages they don't cover (a channel page, a search): that's not a failure.
       const type = pageInfo().type;
@@ -1344,10 +1343,15 @@
     return { page, context: pageInfo().context || '', count: '', ids: new Set(), label: 'Summarize this page', kind: 'page' };
   }
 
+  // Failures that mean the AI isn't reachable or set up (not a problem with this page).
+  const PREPARE_BACKOFF_CODES = new Set(['unreachable', 'forbidden', 'unauthorized', 'no_key', 'no_model', 'bad_url', 'browser_not_ready', 'browser_unavailable', 'rate_limited']);
+  let prepareBackoffUntil = 0;
+
   /** Summarizes the page, then writes questions from the summary. explicit: the reader asked (refresh). */
   async function preparePage({ explicit = false } = {}) {
     const url = location.href;
     if (!state.settings.onboarded) return; // no AI set up yet
+    if (!explicit && Date.now() < prepareBackoffUntil) return; // the AI wasn't reachable a moment ago
     if (!explicit && (!S.autoOn(state.settings, 'preparePages') || (prep.url === url && prep.status !== 'idle'))) return;
     if (!preparable()) return;
     await ensureSite(Boolean(explicit));
@@ -1376,7 +1380,11 @@
     } catch (err) {
       if (run !== prep.run) return;
       prep.status = prep.summary ? 'done' : 'error';
-      console.warn('[soroagent] Preparing this page failed:', err.message || err);
+      // Background work: no console noise (Chrome lists every warning on the extension's Errors
+      // page). It goes to the diagnostic log, and when the AI can't be reached at all this tab
+      // stops trying for a while instead of failing on every page.
+      if (!explicit && PREPARE_BACKOFF_CODES.has(err.code)) prepareBackoffUntil = Date.now() + 10 * 60 * 1000;
+      report('llm', 'prepare-failed', err.message || String(err), { where: 'prepare', status: err.code || '' });
     }
     if (location.href !== url) return;
     updateRefresh();
@@ -2044,7 +2052,7 @@
     try {
       state.site.applyOptions(siteOptions());
     } catch (err) {
-      console.warn('[soroagent] Site options failed:', err);
+      report('extractor', 'options-failed', err.message, { where: 'applyOptions' });
     }
   }
 

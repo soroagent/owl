@@ -129,7 +129,8 @@
     const scrollable = measureDepth();
     if (hasBeenRead({ ...reading, scrollable }, Number(settings.captureMinSeconds) || 45)) {
       reading.done = true;
-      capture().catch((err) => console.warn('[soroagent] Capture failed:', err));
+      // Quietly: it's background work; problems go to the diagnostic log, not the console.
+      capture().catch((err) => ext.runtime.sendMessage({ type: 'diag:record', event: { area: 'error', code: 'capture-failed', message: err.message, detail: { where: 'capture' } } }).catch(() => {}));
     }
   }
 

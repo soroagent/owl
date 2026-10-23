@@ -11,6 +11,10 @@
   globalThis.addEventListener('error', (e) => diag.record({ area: 'error', code: 'uncaught', message: e.message, detail: { where: 'background' } }));
   globalThis.addEventListener('unhandledrejection', (e) => diag.record({ area: 'error', code: 'unhandled', message: (e.reason && e.reason.message) || String(e.reason), detail: { where: 'background' } }));
 
+  // Routine failures (the AI unreachable, a shortcut pressed on a browser page) go to the diagnostic
+  // log, not the console: Chrome lists every console warning on the extension's Errors page.
+  const quietly = (where) => (err) => diag.record({ area: 'error', code: (err && err.code) || 'failed', message: (err && err.message) || String(err), detail: { where } });
+
   // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
   globalThis.soroagent.browserAI = globalThis.soroagent.createBrowserAI({ ext });
 
@@ -547,7 +551,7 @@
         const { connection, api } = await resolveChat();
         const meta = S.parseSnippetMeta(await chat({ connection, api, messages, json: true }), note.title);
         await S.updateSnippet(note.id, { title: meta.title || note.title, summary: meta.summary || note.summary, tags: S.canonicalTags(meta.tags, vocabulary), labeled: true });
-      }).catch((err) => console.warn('[soroagent] Could not label a captured page:', err));
+      }).catch(quietly('label saved page'));
       return { ok: true };
     },
     'md:status': async (msg, sender) => {
@@ -603,7 +607,7 @@
     // "Switch to the side panel" from the floating panel: open it right away, inside the click's
     // message (browsers only open a side panel in response to a user action), then save the mode.
     if (msg && msg.type === 'appearance:set' && msg.mode === 'sidepanel' && sender.tab && hasSidePanel) {
-      Promise.resolve(openSidePanel(sender.tab)).catch((err) => console.warn('[soroagent] Could not open the side panel:', err.message));
+      Promise.resolve(openSidePanel(sender.tab)).catch(quietly('open side panel'));
     }
     const handler = msg && handlers[msg.type];
     if (!handler) return false;
@@ -697,7 +701,7 @@
   ext.contextMenus.onClicked.addListener((info, tab) => {
     if (PDF_MENU_ITEMS.some((m) => m.id === info.menuItemId)) {
       // Open the side panel inside the click (browsers require it), then hand it the PDF.
-      if (tab) openSidePanel(tab).catch((err) => console.warn('[soroagent]', err));
+      if (tab) openSidePanel(tab).catch(quietly('open side panel'));
       ext.storage.session.set({ pdfRequest: { url: info.linkUrl || info.pageUrl || (tab && tab.url) || '', tabId: tab && tab.id, at: Date.now() } }).catch(() => {});
       return;
     }
@@ -709,7 +713,7 @@
     const item = MENU_ITEMS.find((m) => m.id === info.menuItemId);
     if (!item || !tab || tab.id === undefined) return;
     sendToTab(tab.id, { type: 'assistant:run', action: item.action, selectionText: info.selectionText || '' }).catch(
-      (err) => console.warn('[soroagent] Could not reach the page:', err)
+      quietly('context menu')
     );
   });
 
@@ -743,7 +747,7 @@
   }
 
   ext.action.onClicked.addListener((tab) => {
-    if (openIn === 'sidepanel') openSidePanel(tab).catch((err) => console.warn('[soroagent]', err));
+    if (openIn === 'sidepanel') openSidePanel(tab).catch(quietly('toolbar button'));
     else togglePagePanel(tab);
   });
 
@@ -751,11 +755,11 @@
     if (command === 'open-soroagent') {
       if (openIn === 'sidepanel') {
         const open = tab ? openSidePanel(tab) : ext.windows.getLastFocused().then((w) => ext.sidePanel.open({ windowId: w.id }));
-        Promise.resolve(open).catch((err) => console.warn('[soroagent]', err));
+        Promise.resolve(open).catch(quietly('shortcut'));
       } else if (tab) togglePagePanel(tab);
-      else sendToActiveTab({ type: 'assistant:toggle' }).catch((err) => console.warn('[soroagent]', err));
+      else sendToActiveTab({ type: 'assistant:toggle' }).catch(quietly('shortcut'));
     } else if (command === 'toggle-assistant') {
-      sendToActiveTab({ type: 'assistant:toggle' }).catch((err) => console.warn('[soroagent]', err));
+      sendToActiveTab({ type: 'assistant:toggle' }).catch(quietly('shortcut'));
     }
   });
 
