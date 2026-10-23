@@ -42,8 +42,9 @@
     panelWidth: 400, // panel size in px, set by dragging its edges
     panelHeight: 600,
     allowThinking: false,
-    showLauncher: false, // the floating owl on every page: opt-in (soroagent opens from the toolbar or Alt+Shift+O)
-    openIn: 'sidepanel', // 'sidepanel' (the browser's side panel / Firefox sidebar) | 'page' (floating panel on the page)
+    // How soroagent appears (see APPEARANCES): the floating owl by default.
+    showLauncher: true, // the owl button in the corner of every page
+    openIn: 'page', // where the toolbar button and Alt+Shift+O open it: 'page' (floating panel) | 'sidepanel'
     // Automatic AI work, 'auto' | true | false. 'auto' = on with an AI on this computer or in the
     // browser, off with a cloud key (every page would be sent to it and billed). See autoOn().
     preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
@@ -209,6 +210,20 @@
   const pageCharLimit = (settings) =>
     Math.min(Number(settings.maxPageChars) || 12000, settings.source === 'browser' ? (BROWSER_ENGINES[settings.browserEngine] || BROWSER_ENGINES.nano).maxPageChars : Infinity);
 
+  /**
+   * How soroagent appears, as three modes over two settings:
+   * owl (default): the owl button on every page; the panel opens on the page.
+   * sidepanel: opens in the browser's side panel (Firefox: sidebar), beside the page; no owl on pages.
+   * quiet: no owl on pages; the toolbar button or Alt+Shift+O opens the floating panel.
+   */
+  const APPEARANCES = Object.freeze({
+    owl: { openIn: 'page', showLauncher: true },
+    sidepanel: { openIn: 'sidepanel', showLauncher: false },
+    quiet: { openIn: 'page', showLauncher: false },
+  });
+  /** Pure: the mode a settings object is in. */
+  const appearanceOf = (settings) => (settings.openIn === 'sidepanel' ? 'sidepanel' : settings.showLauncher === false ? 'quiet' : 'owl');
+
   /** Pure: whether an 'auto' | true | false setting is on: 'auto' means on unless the AI is a cloud API. */
   const autoOn = (settings, key) => settings[key] === true || ((settings[key] === 'auto' || settings[key] === undefined) && settings.source !== 'cloud');
 
@@ -311,6 +326,8 @@
     BROWSER_ENGINES,
     pageCharLimit,
     autoOn,
+    APPEARANCES,
+    appearanceOf,
     ollamaOriginsFix,
     syncOfferDue,
     modelPatch,

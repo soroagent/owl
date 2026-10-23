@@ -106,7 +106,7 @@ test('the in-browser AI ships its engine (no remote code) and may run WebAssembl
   assert.match(offscreen, /browserai\.js/);
 });
 
-test('soroagent opens with Alt+Shift+O from the side panel or toolbar, and the floating owl is opt-in', () => {
+test('Alt+Shift+O opens soroagent (floating panel or side panel); browser shortcuts stay free', () => {
   assert.equal(manifest.commands['open-soroagent'].suggested_key.default, 'Alt+Shift+O');
   assert.equal(manifest.commands['open-soroagent'].suggested_key.mac, 'Alt+Shift+O');
   const keys = Object.values(manifest.commands).flatMap((c) => Object.values(c.suggested_key || {}));

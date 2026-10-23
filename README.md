@@ -11,7 +11,7 @@ An AI companion for every web page that turns what you read into a personal libr
 
 ## Why soroagent
 
-soroagent opens beside every page, in your browser's side panel, and does three things:
+soroagent sits beside every page as a small owl (or in your browser's side panel, if you prefer) and does three things:
 
 - **Understands the page.** Summaries and answers shaped by the site you're on: the accepted solution on Stack Overflow, the consensus in a Reddit or Hacker News thread, the status of a GitHub issue. This will improve productivity.
 - **Archives what you read.** Every summary (and, if you like, every page you actually read) is filed into a personal library with a title, summary and consistent tags. It's searchable by meaning, and you can write it to your Obsidian or Logseq folder.
@@ -22,7 +22,7 @@ soroagent opens beside every page, in your browser's side panel, and does three 
 ## Features
 
 ### Understand any page
-- **Opens beside the page.** Click soroagent in the toolbar or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac). It opens in the browser's side panel (Firefox: the sidebar), where no website's styles can touch it, and it stays open as you switch tabs and pages, with a conversation per tab. Prefer it on the page? Choose the floating panel in Settings, and turn on the owl button in the corner of every page if you like.
+- **Your choice of where it lives.** By default a small owl sits in the corner of every page; click it (or the toolbar button, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, <kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac) and the panel opens on the page. One click in its ⋯ menu, **Switch to the side panel**, moves soroagent into the browser's side panel (Firefox: the sidebar): beside the page, out of reach of any website's styles, open as you switch tabs, with a conversation per tab. **Switch to the floating owl** in the side panel's menu brings it back. Settings → On the page also has **Quiet** mode: no owl on pages, open it from the toolbar or the shortcut.
 - **Works out of the box.** The first-run setup looks for an AI on your computer and uses it without asking: Ollama if it's running, or Chrome's built-in AI (Gemini Nano). If neither is there, one click sets up Chrome's built-in AI or a small model that runs in the browser on your graphics chip (Qwen2.5-1.5B, a one-time 880 MB download). Or paste a Claude, OpenAI or Gemini key. If Ollama is running but blocks browser extensions, you get the one command that fixes it, ready to copy.
 - **Ready before you ask.** When the side panel is open on a page, or after you've been reading it for 15 seconds, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. The questions are there when you look, and Summarize is instant. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. On by default with an AI on your computer or in the browser; with a cloud key it's off (every page would be sent and billed), and **Suggest questions for this page** does it on request.
 - **Long pages, whole.** Instead of cutting a long article after its introduction, soroagent condenses it to fit your model: its headings, the start and end of each section, and the paragraphs most relevant to the whole, in reading order, with "[…]" where it skipped. This matters most for the small in-browser models.
@@ -92,7 +92,7 @@ Answers come in two parts, **From your sources** (every claim cited [S1], [S2]�
 ### Make it yours
 - **Prompts in settings.** Rewrite the system prompt for all websites or any one site, and click **Optimize with AI** to have your model improve it.
 - **Any model.** An AI inside the browser (Chrome's built-in Gemini Nano, or Qwen2.5-1.5B on your graphics chip), a model server on your computer (Ollama, LM Studio, llama.cpp, Jan, any OpenAI-compatible server), or your own key for Anthropic Claude, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek or xAI. soroagent recommends the best of your installed local models.
-- **Side panel or floating panel.** The side panel is the default. The floating panel opens over the page (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> always opens it), and the optional owl button places itself where it doesn't cover the page's own buttons, can be dragged to either side (remembered per site), and follows your browser's light or dark theme. Drag the panel's edges to resize it.
+- **Floating owl, side panel or quiet.** The owl places itself where it doesn't cover the page's own buttons, can be dragged to either side (remembered per site), can be hidden on any site, and follows your browser's light or dark theme. Drag the panel's edges to resize it. <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> always opens the floating panel.
 
 ## Private by design
 
@@ -109,12 +109,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.31.1**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.32.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.31.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.31.1.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.31.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.31.1.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.32.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.32.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.32.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.32.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -152,7 +152,7 @@ This creates `dist/chrome` and `dist/firefox`.
 
 | Where | How |
 |---|---|
-| Any page | Click soroagent in the toolbar (pin it from the puzzle-piece menu). The side panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
+| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
 | Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> opens Ask your library on the snippets page. We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Take a screenshot* |
 | Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Summary history**, **Saved snippets**, **Ask your library**, **Send feedback** and **Settings**. |

@@ -79,17 +79,19 @@ selection, page, deliverable, read, screenshot), `summary:<id>` (summary history
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
 `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
-Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): `openIn` (`sidepanel` | `page`),
-`showLauncher` (the floating owl, off by default; existing installs keep their saved value),
+Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): how soroagent appears is three
+modes over two settings, `S.APPEARANCES` / `S.appearanceOf()`: owl (default: `openIn: 'page'`,
+`showLauncher: true`), sidepanel (`openIn: 'sidepanel'`, no owl), quiet (`openIn: 'page'`, no owl).
+Switch with the `appearance:set` message (both panels' ⋯ menus, Settings → On the page),
 `source` (`local` | `cloud` | `browser`), `browserEngine` (`nano` | `webllm`), `preparePages` and
 `pageQuestions` (`'auto'` | true | false; read them with `S.autoOn()`: 'auto' is on unless the AI is
 a cloud API),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
-`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 5). When a feature is
+`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 6). When a feature is
 removed or a default changes, add a migration (v3: wishlist → readlater; v4: readlater → page and
-stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`).
+stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl).
 
 ## Rules
 
@@ -159,8 +161,8 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## How the main features work
 
-- **Opening:** the toolbar button and `open-soroagent` (Alt+Shift+O, also ⌥⇧O on Mac) open the side
-  panel (Chrome: `sidePanel.setPanelBehavior` + `sidePanel.open` in the command; Firefox:
+- **Opening:** the owl (owl mode) opens the floating panel. The toolbar button and
+  `open-soroagent` (Alt+Shift+O, also ⌥⇧O on Mac) open the side panel (Chrome: `sidePanel.setPanelBehavior` + `sidePanel.open` in the command; Firefox:
   `sidebarAction.toggle`) or, with `openIn: 'page'`, the floating panel. `toggle-assistant`
   (Alt+Shift+K) always toggles the floating panel. The choice is cached in memory in the background
   because browsers only open a side panel inside the click or key press. Cmd/Ctrl+Shift+O (Firefox
@@ -276,8 +278,10 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   is one click, not automatic, so nobody's data plan is used without consent.
 - The Ollama fix allows `chrome-extension://*,moz-extension://*`, not `*`, which would let every
   website use the person's Ollama.
-- The side panel is the default UI and the floating owl is opt-in: no site CSS conflicts, and it
-  persists across navigations. The floating panel stays for people who prefer it.
+- The floating owl is the default (2026-10-23, the owner's call); the side panel is one click away
+  in its ⋯ menu ("Switch to the side panel": the background opens it inside that click's message,
+  since browsers only open side panels on a user action), and back from the side panel's menu.
+  2.30–2.31 had the side panel as the default; migration v6 restored the owl for everyone.
 - Automatic AI work runs only when the side panel is open or after 15 s of reading, and only by
   default with local/in-browser AI (cloud keys would pay for every page). Cloud users get a
   "Suggest questions for this page" link instead.

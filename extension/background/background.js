@@ -480,6 +480,14 @@
       if (!res.text) diag.record({ area: 'extractor', code: 'pdf-no-text', message: 'The PDF has no text layer (scanned?)', detail: { where: 'pdf:read' } });
       return res;
     },
+    // Switch how soroagent appears (owl | sidepanel | quiet), from either panel or Settings.
+    'appearance:set': async (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id || !S.APPEARANCES[msg.mode]) return { ok: false };
+      if (msg.mode === 'sidepanel' && !hasSidePanel) return { ok: false, error: 'This browser has no side panel.' };
+      await S.saveSettings(S.APPEARANCES[msg.mode]);
+      // Firefox only opens its sidebar from the click itself (the toolbar button or the shortcut).
+      return { ok: true, openFromToolbar: msg.mode === 'sidepanel' && Boolean(ext.sidebarAction) };
+    },
     'open:sync-setup': () => ext.tabs.create({ url: ext.runtime.getURL('pages/onboard.html?sync') }),
     // Pages report the browser's light/dark theme (the worker itself can't see it).
     theme: (msg) => setThemeIcon(Boolean(msg.dark)),
@@ -578,6 +586,11 @@
   };
 
   ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // "Switch to the side panel" from the floating panel: open it right away, inside the click's
+    // message (browsers only open a side panel in response to a user action), then save the mode.
+    if (msg && msg.type === 'appearance:set' && msg.mode === 'sidepanel' && sender.tab && hasSidePanel) {
+      Promise.resolve(openSidePanel(sender.tab)).catch((err) => console.warn('[soroagent] Could not open the side panel:', err.message));
+    }
     const handler = msg && handlers[msg.type];
     if (!handler) return false;
     Promise.resolve()

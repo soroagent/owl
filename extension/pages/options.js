@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
   const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
   const autoTouched = new Set();
@@ -140,7 +140,8 @@ Rewrite it to get better results on this website. Keep the intent and every rule
   function readForm() {
     rememberModel();
     keepPromptEdit();
-    const values = { ...saved, source: source(), openIn: document.querySelector('input[name="openIn"]:checked')?.value || 'sidepanel', hiddenSites, model: modelChoice.local, cloudModels: { ...modelChoice.cloud } };
+    const appearance = document.querySelector('input[name="appearance"]:checked')?.value || 'owl';
+    const values = { ...saved, source: source(), ...S.APPEARANCES[appearance], hiddenSites, model: modelChoice.local, cloudModels: { ...modelChoice.cloud } };
     for (const id of TEXT_FIELDS) values[id] = $(id).value.trim();
     for (const id of NUMBER_FIELDS) {
       const n = Number($(id).value);
@@ -162,7 +163,8 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     autoTouched.clear();
     for (const id of AUTO_FIELDS) $(id).checked = S.autoOn(settings, id);
     document.querySelector(`input[name="source"][value="${['cloud', 'browser'].includes(settings.source) ? settings.source : 'local'}"]`).checked = true;
-    document.querySelector(`input[name="openIn"][value="${settings.openIn === 'page' || !(ext.sidePanel || ext.sidebarAction) ? 'page' : 'sidepanel'}"]`).checked = true;
+    const mode = S.appearanceOf(settings);
+    document.querySelector(`input[name="appearance"][value="${mode === 'sidepanel' && !(ext.sidePanel || ext.sidebarAction) ? 'owl' : mode}"]`).checked = true;
     modelChoice = { local: settings.model || '', cloud: { ...(settings.cloudModels || {}) } };
     hiddenSites = [...(settings.hiddenSites || [])];
     renderSites();
@@ -340,7 +342,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
   if (S.isFirefox) document.querySelector('input[name="source"][value="browser"]').closest('label').hidden = true;
 
   // Where soroagent opens; browsers without a side panel only have the floating panel.
-  if (!(ext.sidePanel || ext.sidebarAction)) $('openInGroup').hidden = true;
+  if (!(ext.sidePanel || ext.sidebarAction)) $('appearanceSidepanel').hidden = true;
   $('shortcuts').addEventListener('click', () => ext.tabs.create({ url: /Firefox\//.test(navigator.userAgent) ? 'about:addons' : 'chrome://extensions/shortcuts' }));
 
   // Report a problem: the flight recorder as Markdown, copied and opened as a pre-filled GitHub issue.

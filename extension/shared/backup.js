@@ -6,7 +6,7 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 5;
+  const SCHEMA_VERSION = 6;
   const FORMAT = 'soroagent-backup';
   // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced).
   const RETIRED_PREFIXES = ['stats:', 'xstats:'];
@@ -56,6 +56,9 @@
       return { settings: { ...s, ...(s.preparePages === true ? { preparePages: 'auto' } : {}), ...(s.pageQuestions === true ? { pageQuestions: 'auto' } : {}) } };
     },
   };
+
+  // v6: the floating owl is the default again (2.30–2.31 made the side panel the default).
+  MIGRATIONS[6] = (all) => (all.settings ? { settings: { ...all.settings, openIn: 'page', showLauncher: true } } : {});
 
   /** Pure: keys of retired features to delete. */
   const planRemovals = (all) => Object.keys(all).filter((k) => RETIRED_PREFIXES.some((p) => k.startsWith(p)));

@@ -30,6 +30,7 @@
     .source { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
     .source:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
     .source input { margin-top: 3px; accent-color: var(--accent); }
+    .source .default-pill { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 8px; margin-left: 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
     .source small { display: block; color: var(--fg-muted); font-size: 12.5px; margin-top: 2px; }
     .key-row { display: flex; gap: 8px; }
     .key-row input { flex: 1; }
@@ -162,7 +163,7 @@
         </label>
         <label class="field"><span>Max page text (characters)</span>
           <input type="number" id="maxPageChars" min="2000" max="200000" step="1000">
-          <small>Longer pages are cut off at this length.</small>
+          <small>Longer pages are condensed to this length: headings, the start and end of each section, and the most relevant paragraphs.</small>
         </label>
       </div>
       <label class="check"><input type="checkbox" id="allowThinking">
@@ -172,18 +173,18 @@
 
     <section>
       <h2>On the page</h2>
-      <p>Open soroagent from the toolbar button or with <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac). <button class="btn small" type="button" id="shortcuts">Change shortcuts</button></p>
-      <div class="sources" role="radiogroup" aria-label="Where soroagent opens" id="openInGroup">
-        <label class="source"><input type="radio" name="openIn" value="sidepanel">
-          <span><b>Side panel</b><small>Beside the page, so no website can change how it looks. Stays open as you switch tabs and pages.</small></span>
+      <p>How soroagent appears. You can also switch from the ⋯ menu in the panel. The toolbar button and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac) open it in every mode. <button class="btn small" type="button" id="shortcuts">Change shortcuts</button></p>
+      <div class="sources" role="radiogroup" aria-label="How soroagent appears" id="appearanceGroup">
+        <label class="source"><input type="radio" name="appearance" value="owl">
+          <span><b>Floating owl <em class="default-pill">Default</em></b><small>A small owl in the corner of every page; click it and the panel opens on the page, next to what you're reading.</small></span>
         </label>
-        <label class="source"><input type="radio" name="openIn" value="page">
-          <span><b>Floating panel on the page</b><small>Opens over the page, next to where you're reading. <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> always opens it.</small></span>
+        <label class="source" id="appearanceSidepanel"><input type="radio" name="appearance" value="sidepanel">
+          <span><b>Side panel</b><small>Opens beside the page instead of on it, so no website can change how it looks, and stays open as you switch tabs. No owl on pages.</small></span>
+        </label>
+        <label class="source"><input type="radio" name="appearance" value="quiet">
+          <span><b>Quiet</b><small>No owl on pages. The toolbar button or the shortcut opens the floating panel when you want it.</small></span>
         </label>
       </div>
-      <label class="check"><input type="checkbox" id="showLauncher">
-        <span>Show the owl button on every page<small>A small owl in the corner of each website that opens the floating panel. Off by default.</small></span>
-      </label>
       <label class="check"><input type="checkbox" id="preparePages">
         <span>Prepare a summary and questions automatically<small>When the side panel is open on a page, or after you've been reading it for 15 seconds, your AI summarizes it in the background and works out the questions you're likely to have, so they're ready when you look and Summarize is instant. Never on mail, chat, banking, sign-in or checkout pages. On by default with an AI on your computer or in the browser; off by default with a cloud API, where it would send and bill every page you read.</small></span>
       </label>

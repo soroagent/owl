@@ -550,7 +550,10 @@
     if (!cmd) return;
     $('menu').hidden = true;
     const c = cmd.dataset.cmd;
-    if (c === 'page') toTab({ type: 'assistant:sp-open' }).catch(() => {});
+    if (c === 'owl') {
+      // Back to the owl on every page: open the floating panel here and close the side panel.
+      ext.runtime.sendMessage({ type: 'appearance:set', mode: 'owl' }).then(() => toTab({ type: 'assistant:sp-open' })).catch(() => {}).finally(() => window.close());
+    } else if (c === 'page') toTab({ type: 'assistant:sp-open' }).catch(() => {});
     else if (c === 'settings') ext.runtime.openOptionsPage();
     else ext.runtime.sendMessage({ type: `open:${c}` }).catch(() => {});
   });

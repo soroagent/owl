@@ -83,10 +83,24 @@ test('v5: automatic AI work that was on (the old default) becomes "auto"; off st
   assert.equal(on.settings.pageQuestions, 'auto');
   assert.equal(on.settings.model, 'm');
   const off = S.planMigrations({ meta: { schemaVersion: 4 }, settings: { preparePages: false, pageQuestions: false } });
-  assert.equal(off.settings, undefined);
+  assert.equal(off.settings.preparePages, false);
+  assert.equal(off.settings.pageQuestions, false);
   assert.equal(S.autoOn({ preparePages: 'auto', source: 'cloud' }, 'preparePages'), false);
   assert.equal(S.autoOn({ preparePages: 'auto', source: 'local' }, 'preparePages'), true);
   assert.equal(S.autoOn({ preparePages: 'auto', source: 'browser' }, 'preparePages'), true);
   assert.equal(S.autoOn({ preparePages: true, source: 'cloud' }, 'preparePages'), true, 'turned on by hand');
   assert.equal(S.autoOn({ source: 'local' }, 'preparePages'), true);
+});
+
+test('v6: the floating owl is the default again; the three modes map to two settings', () => {
+  const up = S.planMigrations({ meta: { schemaVersion: 5 }, settings: { openIn: 'sidepanel', showLauncher: false, model: 'm' } });
+  assert.equal(up.settings.openIn, 'page');
+  assert.equal(up.settings.showLauncher, true);
+  assert.equal(up.settings.model, 'm');
+  assert.deepEqual(S.planMigrations({ meta: { schemaVersion: 5 } }), { meta: { schemaVersion: S.SCHEMA_VERSION } });
+  assert.equal(S.DEFAULT_SETTINGS.openIn, 'page');
+  assert.equal(S.DEFAULT_SETTINGS.showLauncher, true);
+  assert.equal(S.appearanceOf(S.DEFAULT_SETTINGS), 'owl');
+  for (const mode of ['owl', 'sidepanel', 'quiet']) assert.equal(S.appearanceOf(S.APPEARANCES[mode]), mode);
+  assert.equal(S.appearanceOf({ openIn: 'sidepanel', showLauncher: true }), 'sidepanel');
 });

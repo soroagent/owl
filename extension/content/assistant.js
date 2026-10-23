@@ -83,6 +83,7 @@
           <button type="button" role="menuitem" data-cmd="history">Summary history</button>
           <button type="button" role="menuitem" data-cmd="notes">Ask your library</button>
           <button type="button" role="menuitem" data-cmd="snippets">Saved snippets</button>
+          <button type="button" role="menuitem" data-cmd="to-sidepanel">Switch to the side panel</button>
           <button type="button" role="menuitem" data-cmd="clear">Clear conversation</button>
           <button type="button" role="menuitem" data-cmd="reset-position" hidden>Reset button position</button>
           <button type="button" role="menuitem" data-cmd="hide-site">Hide button on this site</button>
@@ -2028,6 +2029,15 @@
     else if (cmd === 'notes') sendMessage({ type: 'open:notes' });
     else if (cmd === 'feedback') window.open(S.feedbackUrl('menu'), '_blank', 'noopener');
     else if (cmd === 'settings') sendMessage({ type: 'open:options' });
+    else if (cmd === 'to-sidepanel') {
+      // The side panel opens beside the page (the background opens it within this click); the owl
+      // and this panel step aside. Switch back from the side panel's menu or in Settings.
+      const res = await sendMessage({ type: 'appearance:set', mode: 'sidepanel' }).catch((err) => ({ ok: false, error: err.message }));
+      if (res && res.ok && res.openFromToolbar) {
+        append(card({ kind: 'ok', icon: 'check', title: 'Switched to the sidebar.', body: 'Click soroagent in the toolbar, or press Alt+Shift+O, to open it there. Switch back from its ⋯ menu.' }));
+      } else if (res && res.ok) closePanel();
+      else append(card({ kind: 'error', icon: 'alert', title: 'Couldn’t switch to the side panel.', body: (res && res.error) || 'Try Settings → On the page.' }));
+    }
     else if (cmd === 'clear') {
       state.history = [];
       state.pageContext = null;
