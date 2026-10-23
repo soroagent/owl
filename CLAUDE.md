@@ -184,6 +184,12 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   YouTube's reads the transcript panel (opening and closing it only when `interactive`, i.e. a
   Summarize or question; YouTube's caption URLs need a player token and `get_transcript` rejects
   other callers, both tested 2026-10-23).
+- **X Articles** (long-form posts): on a `/status/` page, `longform()` in `sites/x.js` finds an
+  article by structure (X's article container, rich-text blocks, or plain headings/paragraphs; size
+  and block count via `looksLikeArticle`). The page is then read as a page (`items()` is null,
+  `pageInfo()` says article, general prompts instead of X's thread prompts). The post's own text is
+  only a t.co link, so reading it as posts found nothing. Logged-out markup tested on a real
+  article; the logged-in layout on a stand-in (Claude in Chrome wasn't connected to check it).
 - **PDFs:** the side panel detects a PDF tab (URL, or the content script reporting
   `document.contentType === 'application/pdf'`, since Chrome injects it into the viewer's wrapper)
   and asks the background (`pdf:read`) to fetch and parse it with pdf.js. Summary, questions, chat

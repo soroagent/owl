@@ -195,3 +195,16 @@ test('YouTube transcripts become timestamped paragraphs of about 30 seconds, aft
   assert.match(text, /TRANSCRIPT \(\[m:ss\] = time in the video\):\n\n\[0:01\] Hi/);
   assert.match(yt.pageInfo({ pathname: '/watch', search: '?v=x' }).context, /transcript/);
 });
+
+test('X Articles are recognized by their size and structure, not mistaken for posts or reply lists', () => {
+  const { looksLikeArticle } = S.siteHelpers.x;
+  assert.equal(looksLikeArticle({ textLength: 5600, blocks: 40, postTextLength: 23 }), true, 'logged out: headings and paragraphs');
+  assert.equal(looksLikeArticle({ textLength: 3000, blocks: 0 }), true, 'logged in: rich-text blocks without p/h2');
+  assert.equal(looksLikeArticle({ textLength: 900, blocks: 12 }), false, 'too short to be an article');
+  assert.equal(looksLikeArticle({ textLength: 1800, blocks: 2 }), false, 'a long post, not an article');
+  assert.equal(looksLikeArticle({ textLength: 3000, blocks: 10, postTextLength: 2400 }), false, 'the text is the post itself');
+  const x = S.siteFor({ hostname: 'x.com', pathname: '/GoogleCloudTech/status/2113443701938884710', search: '' });
+  assert.equal(x.id, 'x');
+  assert.deepEqual(x.extractTypes, ['article']);
+  assert.equal(typeof x.longform, 'function');
+});

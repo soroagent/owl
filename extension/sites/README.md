@@ -30,6 +30,9 @@ soroagent works on any page, but a **site profile** makes it smarter on a specif
 | `applyOptions(values)` | | Called with `{ optionId: boolean }` when the page loads and whenever a toggle changes. |
 | `items` | | Treat the page as a list of items. See below. |
 | `extract(document, location)` | | Return `{ title, text }`: the page's structure as text for the model (for example a question with its answers ranked, the accepted one marked). Used by Summarize, Ask and passive capture instead of the generic page text. Return `null` to fall back. See [`stackoverflow.js`](stackoverflow.js), [`hackernews.js`](hackernews.js), [`github.js`](github.js), [`youtube.js`](youtube.js) and [`wikipedia.js`](wikipedia.js). |
+| `extractTypes` | | Page types (from `pageInfo().type`) your `extract()` covers. When it returns nothing on one of these, soroagent reads the page with Readability instead and notes it in the diagnostic log. Without it, every type except `page` and `other` counts. |
+| `longform(document, location)` | | Return `true` when a page that's normally items is really one long article (an X Article). It's then read as a page, with the general article prompts. Called often; keep it cheap. See [`x.js`](x.js). |
+| `ensure(document, location, { interactive })` | | Async: load extra content `extract()` should include (YouTube's transcript). `interactive` is true when the reader asked for something, so you may open the site's own panels; restore the page afterwards. See [`youtube.js`](youtube.js). |
 
 ### Prompts
 

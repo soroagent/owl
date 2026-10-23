@@ -266,14 +266,19 @@
   }
 
   const siteOptions = () => S.siteOptionValues(state.site, state.settings);
-  const pageInfo = () => (state.site.pageInfo ? state.site.pageInfo(location) : { type: 'page', label: '', context: '' });
-  const items = () => state.site.items || null;
+  // A long-form article on a site that's otherwise read as posts (an X Article): read it as a page.
+  const longform = () => Boolean(state.site.longform && state.site.longform(document, location));
+  const pageInfo = () => {
+    if (longform()) return { type: 'article', label: `${state.site.name} · Article`, context: `This is a long-form article published on ${state.site.name}.` };
+    return state.site.pageInfo ? state.site.pageInfo(location) : { type: 'page', label: '', context: '' };
+  };
+  const items = () => (longform() ? null : state.site.items || null); // articles are read as pages
   // Prompt texts: prompts/default.js, then prompts/<site id>.js and its page-type overrides.
   // Site profile prompts (X, Reddit), else a prompt set for this host (YouTube, GitHub…), with the
   // system prompt from settings when the user wrote one.
   const promptSetId = () => (state.site.id && state.site.id !== 'default' ? state.site.id : S.promptSetForHost(location.hostname));
   const sitePrompts = () => {
-    const id = promptSetId();
+    const id = longform() ? 'default' : promptSetId(); // the site's prompts are about posts, not articles
     const persona = S.customPersona(state.settings, id);
     return S.promptsFor(id, { ...(state.site.prompts || {}), ...(persona ? { persona } : {}) }, pageInfo().type);
   };
@@ -651,7 +656,9 @@
         report('extractor', 'threw', err.message, { where: 'extract' });
       }
       // Profiles return null on pages they don't cover (a channel page, a search): that's not a failure.
-      if (!full && pageInfo().type !== 'page' && pageInfo().type !== 'other') {
+      const type = pageInfo().type;
+      const covered = state.site.extractTypes ? state.site.extractTypes.includes(type) : type !== 'page' && type !== 'other';
+      if (!full && covered) {
         const fallback = S.readFallback(document);
         full = { title: document.title, text: fallback.text };
         report('extractor', 'empty', `The site profile found no content; read the page with ${fallback.parser} instead`, { phase: fallback.parser });

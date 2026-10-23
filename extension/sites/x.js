@@ -147,6 +147,65 @@
     return posts;
   }
 
+  // ---------------------------------------------------------------------------
+  // X Articles (long-form): a /status/ page whose post is an article. The post's own text is only a
+  // link, so reading it as a thread finds nothing; it's read as an article instead. X renders it as
+  // plain headings and paragraphs when logged out, and inside the post with its rich-text editor
+  // markup when logged in, so it's found by structure, not one selector.
+  // ---------------------------------------------------------------------------
+
+  const LONGFORM = '[data-testid*="article" i]:not([data-testid="tweet"]), [class*="longform" i], .DraftEditor-root, main article:not([data-testid="tweet"])';
+
+  /** Pure: whether a candidate's text looks like an article rather than a post or a reply list. */
+  function looksLikeArticle({ textLength, blocks, postTextLength = 0 }) {
+    return textLength >= 1200 && (blocks >= 4 || textLength >= 2500) && postTextLength < textLength / 3;
+  }
+
+  /** The element holding an X Article on this page, or null. */
+  function longformRoot(doc, location) {
+    if (pageInfo(location).type !== 'thread') return null;
+    const firstPostText = ((doc.querySelector('article[data-testid="tweet"] [data-testid="tweetText"]') || {}).innerText || '').length;
+    const pick = (candidates, postTextLength = 0) => {
+      let best = null;
+      let bestLength = 0;
+      for (const el of candidates) {
+        const textLength = (el.innerText || '').length;
+        const blocks = el.querySelectorAll('h1, h2, h3, p, li, [data-block="true"]').length;
+        if (textLength > bestLength && looksLikeArticle({ textLength, blocks, postTextLength })) {
+          best = el;
+          bestLength = textLength;
+        }
+      }
+      return best;
+    };
+    // The article's own container first; the whole main post (with its header) only as a last resort.
+    const mainPost = doc.querySelector('article[data-testid="tweet"]');
+    return pick(doc.querySelectorAll(LONGFORM)) || (mainPost ? pick([mainPost], firstPostText) : null);
+  }
+
+  let longformCache = { url: '', at: 0, root: null };
+  /** Cheap enough to ask often: the answer is kept for a moment per address. */
+  function isLongform(doc, location) {
+    if (longformCache.url !== location.href || Date.now() - longformCache.at > 1500) longformCache = { url: location.href, at: Date.now(), root: longformRoot(doc, location) };
+    return Boolean(longformCache.root && longformCache.root.isConnected);
+  }
+
+  /** The article as text: headings kept when the markup has them, else the rendered lines. */
+  function extract(doc, location) {
+    const root = longformRoot(doc, location);
+    if (!root) return null;
+    const handle = (location.pathname.match(/^\/([^/]+)\/status\//) || [])[1] || '';
+    const titleEl = root.querySelector('h1, [data-testid*="title" i]') || doc.querySelector('main h1');
+    const title = titleEl ? titleEl.innerText.trim() : doc.title.replace(/ \/ X$/, '');
+    const rendered = (root.innerText || '').replace(/\n{2,}/g, '\n').split('\n').map((l) => l.trim()).filter(Boolean).join('\n\n');
+    // Real headings and paragraphs (logged out) keep their structure; rich-text blocks (logged in)
+    // have none, so their rendered lines are the paragraphs.
+    const hasBlocks = root.querySelectorAll('h1, h2, h3, p, li').length >= 4;
+    const structured = hasBlocks && soroagent.htmlToText ? soroagent.htmlToText(root.innerHTML) : '';
+    const body = structured.length >= rendered.length * 0.7 ? structured : rendered;
+    return { title, text: `X ARTICLE${handle ? ` by @${handle}` : ''}${title ? `: ${title}` : ''}\n\n${body}` };
+  }
+
   /** Gathers more posts by scrolling (bounded; see collectByScrolling in registry.js). */
   const collect = (args) => soroagent.collectByScrolling({ ...args, visible: visiblePosts });
 
@@ -203,6 +262,9 @@
     id: 'x',
     name: 'X',
     matches: (location) => /(^|\.)(x|twitter)\.com$/i.test(location.hostname),
+    extract,
+    extractTypes: ['article'], // extract() reads X Articles only; posts are read through items
+    longform: isLongform,
     options: [
       { id: 'verifiedOnly', label: 'Verified only', title: 'Show and analyze only posts from verified accounts', default: false },
     ],
@@ -222,5 +284,5 @@
     },
   });
 
-  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), x: { pageInfo, parseCount, compact, formatPosts } };
+  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), x: { pageInfo, parseCount, compact, formatPosts, looksLikeArticle } };
 })(globalThis);
