@@ -12,6 +12,7 @@ against version 2.31.1 on 2026-10-23.
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
 | ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-23 |
 | ✅ | No unused permissions (`activeTab` removed); manifest description ≤ 132 characters | Tested |
+| ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Added 2026-10-23 |
 | ✅ | Third-party licenses ship in both builds | Tested |
 | ⚠️ | **Firefox data collection declaration** is `"none"`, which is not accurate for cloud AI, Research, sync and diagnostic reports | **Needs a decision**: see "Firefox: data collection" |
 | ⚠️ | **Google Drive sync in the Chrome Web Store build**: the store assigns a new extension ID, so its sign-in redirect must be added to the Google Cloud OAuth client | After the first upload: see "Chrome: extension ID and Google sign-in" |
@@ -37,7 +38,7 @@ library. The AI is chosen by the user: a model server on their computer (Ollama,
 AI inside the browser (Chrome's Gemini Nano, or Qwen2.5-1.5B via WebLLM in Chrome), or the user's own
 API key for a cloud provider. There are no soroagent servers, accounts, analytics or ads.
 
-Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://soroagent.github.io/privacy.html
+Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.com/soroagent/owl/blob/main/PRIVACY.md
 
 ---
 

@@ -106,7 +106,7 @@ Answers come in two parts, **From your sources** (every claim cited [S1], [S2]â€
 - **Opt-in only:** passive capture, sync and the Markdown folder are off until you turn them on, and only go where you point them.
 - **No tracking:** there are no soroagent accounts, servers, trackers or analytics.
 
-Read the full [privacy policy](https://soroagent.github.io/privacy.html).
+Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 

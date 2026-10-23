@@ -23,7 +23,8 @@ library with citations, researches topics on the web, and syncs the library acro
 | What | Where |
 |---|---|
 | Extension code (this repo) | github.com/soroagent/owl |
-| Website and privacy policy | github.com/soroagent/soroagent.github.io, served at https://soroagent.github.io/ |
+| Privacy policy | `PRIVACY.md` in this repo (https://github.com/soroagent/owl/blob/main/PRIVACY.md); the store listings link to it |
+| Website | soroagent.com |
 | Old repo (no longer updated) | github.com/arjunmarri/soroagent |
 
 ## Layout
@@ -140,8 +141,8 @@ See `STORE_SUBMISSION.md` for the reviewer notes and permission justifications; 
   Firefox `data_collection_permissions`.
 
 ### Privacy policy follows the code
-If a change alters what data leaves the browser, or when, update `privacy.html` in
-soroagent/soroagent.github.io and the answers in `extension/content/faq.js` in the same change.
+If a change alters what data leaves the browser, or when, update `PRIVACY.md` (and its effective
+date) and the answers in `extension/content/faq.js` in the same change.
 Features that send page text without the user clicking something need a Settings switch.
 
 ### Diagnostics stay scrubbed
