@@ -17,7 +17,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'taskPlan', 'taskReport', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -291,7 +291,16 @@
 
   // Markers the page leaves in background-job prompts for text only known while the job runs
   // (the finished summary, the web sources, the search query).
-  const JOB_PLACEHOLDERS = Object.freeze({ summary: '@@SOROAGENT_SUMMARY@@', sources: '@@SOROAGENT_SOURCES@@', query: '@@SOROAGENT_QUERY@@' });
+  const JOB_PLACEHOLDERS = Object.freeze({
+    summary: '@@SOROAGENT_SUMMARY@@',
+    sources: '@@SOROAGENT_SOURCES@@',
+    query: '@@SOROAGENT_QUERY@@',
+    // Tasks: the page the background read, and what to report from it.
+    pageTitle: '@@SOROAGENT_PAGE_TITLE@@',
+    pageUrl: '@@SOROAGENT_PAGE_URL@@',
+    pageText: '@@SOROAGENT_PAGE_TEXT@@',
+    goal: '@@SOROAGENT_GOAL@@',
+  });
 
   Object.assign(soroagent, {
     JOB_PLACEHOLDERS,

@@ -46,6 +46,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 
   The panel's site bar shows the mode (for example *Q&A · Accepted-solution mode*). LinkedIn, Amazon and major news sites have tuned prompts too. Sites change their markup: when a profile's selectors find nothing, soroagent reads the page with Mozilla's Readability instead (the Firefox Reader View parser), so you still get a summary, and the diagnostic report notes it.
 - **Feeds** on X and Reddit: Summarize reads the posts that have loaded (on X, every post that appeared while you scrolled), and **Read more** loads the next batch. Promoted posts are left out.
+- **Tasks** check another site for you without leaving the page you're on. Click **Task** (or type `task:` in the chat) and say what you want: *latest news from rediff.com*, *top stories on news.ycombinator.com*, *what's trending on github.com/trending*. soroagent works out which page to open, reads it in the background (or in a background tab it closes again, for sites that need JavaScript), and reports here with links to each item. The result lands in your summary history and library.
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
 ### Your personal library
@@ -110,12 +111,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.33.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.34.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.33.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.33.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.33.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.33.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.34.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.34.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.34.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.34.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

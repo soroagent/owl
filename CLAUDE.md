@@ -196,6 +196,14 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   and asks the background (`pdf:read`) to fetch and parse it with pdf.js. Summary, questions, chat
   and Save are built in the side panel with the default prompts. The context menu item on PDF links
   opens the side panel and passes the URL through `storage.session` (`pdfRequest`).
+- **Tasks** (Task chip, or `task:` / `/task` in either composer): a job of kind `task`.
+  `prepareTask` in `jobs.js`: the `taskPlan` prompt (JSON url/search/goal) → `S.taskTarget` (a site
+  the user named wins; a typed path is kept; typed addresses may be private, model ones must be
+  public) → web search if no URL → `S.readSite` (fetch without cookies, `htmlToText` + `pickLinks`)
+  → if under 800 chars, `readTab` in background.js (inactive tab, content script answers
+  `assistant:task-read`, tab closed) → condensed text + "LINKS ON THE PAGE" into the `taskReport`
+  prompt via the page placeholders in `JOB_PLACEHOLDERS`. Saved under the site it read
+  (`targetUrl`). Recent tasks in `storage.local.recentTasks`.
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).

@@ -65,7 +65,7 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 | `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |
 | `offscreen` | A hidden document for two things a service worker can't do: create a blob URL for the backup file (BLOBS), and run pdf.js (which uses a Worker) and the optional in-browser AI (WebLLM) as ES modules (WORKERS). |
 | `sidePanel` | Users can choose to open soroagent in the side panel, beside the page, instead of the floating panel on the page (one click in its menu, or in Settings). |
-| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for Research and for questions the page can't answer, PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
+| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for Research and for questions the page can't answer, the site a user's Task names ("latest news from rediff.com"), PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
 
 ### Remote code
 

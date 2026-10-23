@@ -34,6 +34,7 @@
     check: svg('<path d="M20 6 9 17l-5-5"/>'),
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
     refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+    task: svg('<path d="M10 6h10M10 12h10M10 18h10"/><path d="m3.5 6 1.5 1.5L7.5 5"/><path d="m3.5 12 1.5 1.5 2.5-2.5"/><path d="m3.5 18 1.5 1.5 2.5-2.5"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -95,6 +96,7 @@
       <div class="actions">
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
         <button class="chip" type="button" data-action="save" title="Save this page to your library">${ICONS.save}<span>Save</span></button>
+        <button class="chip" type="button" data-action="task" title="Task: have soroagent check a website for you, like the latest news on rediff.com">${ICONS.task}<span>Task</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
       <div class="related" hidden></div>
@@ -673,7 +675,7 @@
     const busy = Boolean(state.busy);
     const ready = state.status === 'ready';
     // Only Summarize needs the model; the other buttons always work.
-    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = chip.dataset.action === 'summarize' && (busy || !ready);
+    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'task'].includes(chip.dataset.action) && (busy || !ready);
     els.input.disabled = !ready;
     els.send.disabled = !busy && !ready;
     els.send.classList.toggle('stop', busy);
@@ -940,6 +942,7 @@
       if (record.sources && record.sources.length) append(sourcesCard(record.query, record.sources, 'Sources'));
       return;
     }
+    if (record.kind === 'task' && record.sources && record.sources.length) append(sourcesCard('', record.sources, 'Read for this task'));
     state.next = { ...(state.next || {}), record };
     renderNextSteps();
   }
@@ -1049,6 +1052,76 @@
       .catch((err) => {
         status.textContent = `Couldn't suggest topics (${err.message}). Research everything, or type your own:`;
       });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tasks: "latest news from rediff.com". The background works out which page to open, reads it
+  // (in a background tab if it needs JavaScript) and reports here, on the page you're on. It runs
+  // as a job, so it finishes even if you leave, and the result is saved like a summary.
+  // ---------------------------------------------------------------------------
+
+  const TASK_EXAMPLES = ['Latest news from rediff.com', 'Top stories on news.ycombinator.com', "What's trending on github.com/trending"];
+
+  async function recentTasks() {
+    try {
+      return (await ext.storage.local.get('recentTasks')).recentTasks || [];
+    } catch {
+      return [];
+    }
+  }
+  async function rememberTask(task) {
+    const list = [task, ...(await recentTasks()).filter((t) => t.toLowerCase() !== task.toLowerCase())].slice(0, 6);
+    ext.storage.local.set({ recentTasks: list }).catch(() => {});
+  }
+
+  /** The specification of a task job; the background fills in the page it reads. */
+  function taskSpec(task) {
+    const P = S.JOB_PLACEHOLDERS;
+    const today = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return {
+      label: `Task: ${task}`.slice(0, 140),
+      kind: 'task',
+      task,
+      planMessages: S.buildMessages('taskPlan', S.pageVars({ title: '', url: '', text: '' }, { question: task, context: `Today is ${today}.` }), {}),
+      final: S.buildMessages('taskReport', S.pageVars({ title: P.pageTitle, url: P.pageUrl, text: P.pageText }, { question: task, context: P.goal }), {}),
+      saveMessages: S.buildMessages('save', S.pageVars({ title: `Task: ${task}`, url: '', text: P.summary }), {}),
+    };
+  }
+
+  function runWebTask(task) {
+    const text = String(task || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    rememberTask(text);
+    return runTask(async (signal) => {
+      addUserMessage(`Task: ${text}`);
+      await runSummaryJob(taskSpec(text), { signal, reply: addAssistantMessage('Working out where to look…') });
+    });
+  }
+
+  async function chooseTask() {
+    els.thread.querySelectorAll('.task-card').forEach((n) => n.remove());
+    const node = card({ kind: 'topic-card task-card', icon: 'task', title: 'What should soroagent check for you?' });
+    const input = el('input', { type: 'text', placeholder: 'e.g. Latest news from rediff.com', maxLength: 300 });
+    input.setAttribute('aria-label', 'Task');
+    const go = el('button', { type: 'button', className: 'primary', textContent: 'Run' });
+    const start = (task) => {
+      node.remove();
+      runWebTask(task);
+    };
+    go.addEventListener('click', () => input.value.trim() && start(input.value));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.isComposing && input.value.trim()) start(input.value);
+    });
+    const recent = await recentTasks();
+    const chips = el('div', { className: 'topics' });
+    for (const task of [...recent, ...TASK_EXAMPLES.filter((x) => !recent.some((r) => r.toLowerCase() === x.toLowerCase()))].slice(0, 6)) {
+      const b = el('button', { type: 'button', className: 'topic', textContent: task });
+      b.addEventListener('click', () => start(task));
+      chips.append(b);
+    }
+    node.append(el('p', { className: 'topics-status', textContent: `It opens the site in the background and reports back here.${recent.length ? ' Recent and example tasks:' : ' For example:'}` }), chips, el('div', { className: 'topic-own' }, [input, go]));
+    append(node);
+    input.focus();
   }
 
   // Research: search the web (for `query`, or a query the model picks), read the top sources,
@@ -2039,6 +2112,7 @@
     else if (action === 'screenshot') takeScreenshot();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
+    else if (action === 'task') chooseTask();
   });
 
   // Suggested questions on the empty screen.
@@ -2068,7 +2142,9 @@
     if (!question) return;
     els.input.value = '';
     els.input.style.height = '';
-    ask(question);
+    const task = question.match(/^(?:\/task|task:)\s*(.+)$/is);
+    if (task) runWebTask(task[1]);
+    else ask(question);
   });
 
   els.input.addEventListener('keydown', (e) => {
@@ -2132,6 +2208,14 @@
 
   ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || typeof msg.type !== 'string' || !msg.type.startsWith('assistant:')) return false;
+    // Tasks: the background opened this page in a background tab to read it (sites that need JavaScript).
+    if (msg.type === 'assistant:task-read') {
+      if (sender.id !== ext.runtime.id || sender.tab) return false;
+      const page = sitePage(60000);
+      const anchors = [...document.querySelectorAll('main a[href], article a[href], body a[href]')].slice(0, 600).map((a) => ({ href: a.href, text: a.innerText || a.textContent }));
+      sendResponse({ ok: true, title: page.title || document.title, url: location.href, text: page.text, links: S.pickLinks(anchors, location.href) });
+      return false;
+    }
     if (msg.type === 'assistant:toggle') {
       if (isOpen()) closePanel();
       else openPanel();

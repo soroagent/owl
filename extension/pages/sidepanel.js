@@ -174,6 +174,7 @@
     const readable = Boolean((state.snap && state.snap.readable) || (pdf && pdf.status === 'ready' && pdf.text));
     const ready = Boolean(state.ai && state.ai.ok);
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);
+    $('task').disabled = !ready || Boolean(state.busy);
     $('save').disabled = !state.snap && !(pdf && pdf.status === 'ready');
     $('shot').disabled = !state.tabId;
     $('input').disabled = !ready || !readable;
@@ -544,10 +545,67 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Tasks: "latest news from rediff.com", checked in the background and reported here
+  // (the same job as the floating panel's Task; see prepareTask in background/jobs.js)
+  // ---------------------------------------------------------------------------
+
+  const TASK_EXAMPLES = ['Latest news from rediff.com', 'Top stories on news.ycombinator.com', "What's trending on github.com/trending"];
+  const recentTasks = async () => ((await ext.storage.local.get('recentTasks')).recentTasks || []);
+
+  function runWebTask(task) {
+    const text = String(task || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    recentTasks().then((list) => ext.storage.local.set({ recentTasks: [text, ...list.filter((t) => t.toLowerCase() !== text.toLowerCase())].slice(0, 6) })).catch(() => {});
+    return run(async (signal) => {
+      const P = S.JOB_PLACEHOLDERS;
+      const today = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const spec = {
+        label: `Task: ${text}`.slice(0, 140),
+        kind: 'task',
+        task: text,
+        url: state.url,
+        pageTitle: (state.snap && state.snap.title) || '',
+        site: '',
+        model: '',
+        planMessages: S.buildMessages('taskPlan', S.pageVars({ title: '', url: '', text: '' }, { question: text, context: `Today is ${today}.` }), {}),
+        final: S.buildMessages('taskReport', S.pageVars({ title: P.pageTitle, url: P.pageUrl, text: P.pageText }, { question: text, context: P.goal }), {}),
+        saveMessages: S.buildMessages('save', S.pageVars({ title: `Task: ${text}`, url: '', text: P.summary }), {}),
+      };
+      addUser(`Task: ${text}`);
+      const reply = addAssistant('Working out where to look…');
+      const record = await runJob(spec, reply, signal);
+      reply.finish(record.text);
+      thread().history.push({ role: 'user', content: `Task: ${text}` }, { role: 'assistant', content: record.text });
+      const read = (record.sources || []).map((src) => el('li', {}, [el('a', { href: S.safeUrl(src.url), target: '_blank', rel: 'noopener noreferrer', textContent: src.title || src.url })]));
+      append(card({ kind: 'ok', title: 'Read for this task', actions: record.snippetId ? [{ label: 'Saved to snippets: open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] : [] })).append(el('ol', {}, read));
+    });
+  }
+
+  async function chooseTask() {
+    document.querySelectorAll('.task-card').forEach((n) => n.remove());
+    const node = card({ kind: 'task-card', title: 'What should soroagent check for you?', body: 'It opens the site in the background and reports back here.' });
+    const input = el('input', { type: 'text', placeholder: 'e.g. Latest news from rediff.com', maxLength: 300 });
+    const go = el('button', { type: 'button', className: 'btn', textContent: 'Run' });
+    const start = (task) => (node.remove(), runWebTask(task));
+    go.addEventListener('click', () => input.value.trim() && start(input.value));
+    input.addEventListener('keydown', (e) => e.key === 'Enter' && !e.isComposing && input.value.trim() && start(input.value));
+    const recent = await recentTasks();
+    const chips = el('div', { className: 'task-chips' }, [...recent, ...TASK_EXAMPLES.filter((x) => !recent.some((r) => r.toLowerCase() === x.toLowerCase()))].slice(0, 6).map((task) => {
+      const b = el('button', { type: 'button', textContent: task });
+      b.addEventListener('click', () => start(task));
+      return b;
+    }));
+    node.append(chips, el('div', { className: 'task-row' }, [input, go]));
+    append(node);
+    input.focus();
+  }
+
+  // ---------------------------------------------------------------------------
   // Controls
   // ---------------------------------------------------------------------------
 
   $('summarize').addEventListener('click', () => summarize());
+  $('task').addEventListener('click', chooseTask);
   $('save').addEventListener('click', async () => {
     const pdf = currentPdf();
     const res = pdf ? await savePdf(pdf).catch((err) => ({ ok: false, error: err.message })) : await toTab({ type: 'assistant:sp-save' }).catch((err) => ({ ok: false, error: err.message }));
@@ -607,7 +665,9 @@
     if (!q) return;
     $('input').value = '';
     $('input').style.height = '';
-    ask(q);
+    const task = q.match(/^(?:\/task|task:)\s*(.+)$/is);
+    if (task) runWebTask(task[1]);
+    else ask(q);
   });
   $('input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {

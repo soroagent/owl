@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 23, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.33 and later.
+Arc and Firefox, version 2.34 and later.
 
 ## The short version
 
@@ -64,6 +64,7 @@ soroagent sends data over the network only in these cases, and only to the desti
 | Your library is indexed for search | The text of your notes | The embedding model you use: a local Ollama model, or your OpenAI, Gemini or Mistral key. |
 | You click **Research** | Your research topic | A web search engine (DuckDuckGo, Brave Search or Bing, or a SearXNG server you set), then the top result pages are opened and read, as if you had visited them. Addresses on your computer or local network are never fetched. |
 | You ask something **the page doesn't answer** | A short search query for your question | The same search engine, then the top result pages are read, as for Research. On by default; turn it off in Settings → On the page to get a button instead. |
+| You run a **Task** ("latest news from rediff.com") | Your task (to the AI you chose, to plan it); a request for the page it needs; if no site is named, a web search for it | The AI you chose, as above; the site the task is about, read without your cookies; the search engine, as for Research. If the site only shows its content with JavaScript, soroagent opens it in a background tab, which loads like any tab you open (with your cookies for that site), reads it and closes it. The page's text and links then go to your AI to write the report. |
 | You open a **PDF** in the side panel, or choose "Summarize this PDF with soroagent" | A request for the PDF file | The site the PDF is on, as your browser would make to show it. It is read on your computer. |
 | First-run setup | A request to `127.0.0.1:11434` to see whether Ollama is running | Your own computer only. |
 | You choose an AI that runs **in the browser** | Nothing of yours | The model is downloaded once: Chrome's built-in AI by Chrome itself, from Google; the in-browser model (Qwen2.5-1.5B, about 880 MB) from Hugging Face (`huggingface.co/mlc-ai`). The in-browser model is not offered in Firefox. |

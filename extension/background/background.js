@@ -205,6 +205,7 @@
   const jobs = createJobRunner({
     ext,
     errorPayload: (err) => (recordLlmError(err, null, 'summary job'), errorPayload(err)),
+    readTab,
     getSettings,
     runChat: async ({ messages, model, signal, onToken, onThinking, json }) => {
       const { connection, api } = await resolveChat(model);
@@ -620,6 +621,31 @@
   // ---------------------------------------------------------------------------
   // Talking to the assistant in a tab
   // ---------------------------------------------------------------------------
+
+  // Tasks: a page that only shows its content with JavaScript is read in a background tab (not
+  // focused), by soroagent's content script there, then the tab is closed.
+  async function readTab(url, signal) {
+    const tab = await ext.tabs.create({ url, active: false });
+    try {
+      await new Promise((resolve) => {
+        const finish = () => {
+          ext.tabs.onUpdated.removeListener(listener);
+          clearTimeout(timer);
+          resolve();
+        };
+        const listener = (id, info) => id === tab.id && info.status === 'complete' && finish();
+        const timer = setTimeout(finish, 20000);
+        ext.tabs.onUpdated.addListener(listener);
+        if (signal) signal.addEventListener('abort', finish, { once: true });
+      });
+      if (signal && signal.aborted) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
+      await new Promise((r) => setTimeout(r, 2500)); // let the page's scripts render
+      const res = await sendToTab(tab.id, { type: 'assistant:task-read' });
+      return res && res.ok ? res : null;
+    } finally {
+      ext.tabs.remove(tab.id).catch(() => {});
+    }
+  }
 
   async function sendToTab(tabId, message) {
     try {
