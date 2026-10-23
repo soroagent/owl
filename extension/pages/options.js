@@ -7,7 +7,10 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'preparePages', 'pageQuestions', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'showLauncher', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
+  const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
+  const autoTouched = new Set();
 
   let saved = { ...DEFAULT_SETTINGS }; // last saved settings, for fields this page doesn't show
   let hiddenSites = [];
@@ -144,6 +147,8 @@ Rewrite it to get better results on this website. Keep the intent and every rule
       values[id] = Number.isFinite(n) && $(id).value !== '' ? n : DEFAULT_SETTINGS[id];
     }
     for (const id of CHECK_FIELDS) values[id] = $(id).checked;
+    // Keep 'auto' unless the box was changed by hand.
+    for (const id of AUTO_FIELDS) values[id] = !autoTouched.has(id) && (saved[id] === 'auto' || saved[id] === undefined) ? 'auto' : $(id).checked;
     values.baseUrl = values.baseUrl || DEFAULT_SETTINGS.baseUrl;
     values.customPrompts = { ...customPrompts };
     values.captureExclude = $('captureExclude').value.split(/[\n,]+/).map((x) => x.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(Boolean).slice(0, 200);
@@ -154,6 +159,8 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     saved = settings;
     for (const id of [...TEXT_FIELDS, ...NUMBER_FIELDS]) $(id).value = settings[id];
     for (const id of CHECK_FIELDS) $(id).checked = Boolean(settings[id]);
+    autoTouched.clear();
+    for (const id of AUTO_FIELDS) $(id).checked = S.autoOn(settings, id);
     document.querySelector(`input[name="source"][value="${['cloud', 'browser'].includes(settings.source) ? settings.source : 'local'}"]`).checked = true;
     document.querySelector(`input[name="openIn"][value="${settings.openIn === 'page' || !(ext.sidePanel || ext.sidebarAction) ? 'page' : 'sidepanel'}"]`).checked = true;
     modelChoice = { local: settings.model || '', cloud: { ...(settings.cloudModels || {}) } };
@@ -321,6 +328,14 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     await ext.runtime.sendMessage({ type: 'sync:disconnect' });
     showSync();
   });
+  // Automatic AI work follows the AI choice while it's on 'auto'.
+  for (const id of AUTO_FIELDS) $(id).addEventListener('change', () => autoTouched.add(id));
+  for (const radio of document.querySelectorAll('input[name="source"]')) {
+    radio.addEventListener('change', () => {
+      for (const id of AUTO_FIELDS) if (!autoTouched.has(id) && (saved[id] === 'auto' || saved[id] === undefined)) $(id).checked = S.autoOn({ [id]: 'auto', source: source() }, id);
+    });
+  }
+
   // Where soroagent opens; browsers without a side panel only have the floating panel.
   if (!(ext.sidePanel || ext.sidebarAction)) $('openInGroup').hidden = true;
   $('shortcuts').addEventListener('click', () => ext.tabs.create({ url: /Firefox\//.test(navigator.userAgent) ? 'about:addons' : 'chrome://extensions/shortcuts' }));

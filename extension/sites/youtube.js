@@ -1,6 +1,11 @@
 // Site profile for YouTube. A video page is read as its title, channel, description, chapters
-// (from the timestamps in the description) and the comments that have loaded, with their likes.
-// Its prompts (chapters) are in prompts/youtube.js.
+// (from the timestamps in the description), the comments that have loaded, with their likes, and
+// the timed transcript when there is one. Its prompts (chapters) are in prompts/youtube.js.
+//
+// Transcripts: YouTube's caption URLs (captionTracks) now need a token only its player has, and its
+// transcript API rejects other callers, so soroagent reads the transcript panel YouTube shows under
+// the description. When you ask (Summarize, a question), ensure() opens that panel, reads it and
+// closes it again; automatic preparing only uses a panel that's already open.
 (function (root) {
   'use strict';
 
@@ -16,7 +21,7 @@
       return {
         type: 'video',
         label: 'YouTube · Chapters & comments',
-        context: 'This is a YouTube video page: title, channel, description, chapters and the comments that have loaded. The video itself (what is said in it) is not included unless the description covers it.',
+        context: 'This is a YouTube video page: title, channel, description, chapters, the comments that have loaded and, when there is one, the timed transcript of what is said. Without a transcript, what is said in the video is not included unless the description covers it.',
       };
     }
     return { type: 'page', label: 'YouTube', context: '' };
@@ -48,13 +53,35 @@
     return { description, views: details ? `${details[2]} views` : '', date: details ? details[1].trim() : '' };
   }
 
-  /** Pure: video → text. video: { title, channel, views, date, description, chapters, comments: [{ author, likes, text }] } */
-  function formatVideo({ title, channel, views, date, description, chapters, comments }) {
+  /**
+   * Pure: transcript lines → paragraphs of about 30 seconds, each starting with its timestamp, so
+   * long transcripts condense well (paragraph by paragraph) and answers can cite times.
+   * segments: [{ time: '1:02', text }]
+   */
+  function formatTranscript(segments, { seconds = 30 } = {}) {
+    const toSec = (t) => String(t).split(':').reduce((acc, n) => acc * 60 + Number(n), 0);
+    const paragraphs = [];
+    let current = null;
+    for (const s of segments || []) {
+      const text = String(s.text || '').replace(/\s+/g, ' ').trim();
+      if (!text || !/^\d{1,2}(:\d{2}){1,2}$/.test(String(s.time || ''))) continue;
+      if (!current || toSec(s.time) - current.start >= seconds) {
+        current = { start: toSec(s.time), time: s.time, parts: [] };
+        paragraphs.push(current);
+      }
+      current.parts.push(text);
+    }
+    return paragraphs.map((p) => `[${p.time}] ${p.parts.join(' ')}`).join('\n\n');
+  }
+
+  /** Pure: video → text. video: { title, channel, views, date, description, chapters, comments: [{ author, likes, text }], transcript } */
+  function formatVideo({ title, channel, views, date, description, chapters, comments, transcript = '' }) {
     return [
       `VIDEO: ${title}`,
       [channel && `Channel: ${channel}`, views, date].filter(Boolean).join(' · '),
       chapters.length ? `CHAPTERS:\n${chapters.map((c) => `${c.time} ${c.title}`).join('\n')}` : 'CHAPTERS: none listed',
       description ? `DESCRIPTION:\n${description}` : '',
+      transcript ? `TRANSCRIPT ([m:ss] = time in the video):\n\n${transcript}` : '',
       comments.length ? `TOP COMMENTS (${comments.length} loaded):\n${comments.map((c) => `• ${c.author || 'someone'}${c.likes ? ` (${c.likes} likes)` : ''}: ${c.text}`).join('\n')}` : 'COMMENTS: none loaded yet (scroll down to load them).',
     ].filter(Boolean).join('\n\n');
   }
@@ -64,6 +91,61 @@
   // ---------------------------------------------------------------------------
 
   const text = (el) => ((el && el.textContent) || '').replace(/[ \t]+/g, ' ').trim();
+  const videoId = (location) => new URLSearchParams(location.search).get('v') || (location.pathname.match(/^\/shorts\/([\w-]+)/) || [])[1] || '';
+  const transcripts = new Map(); // video id -> formatted transcript ('' = the video has none)
+
+  // The transcript lines YouTube's panel shows (current and older markup).
+  function readTranscriptPanel(doc) {
+    const segments = [];
+    for (const seg of doc.querySelectorAll('transcript-segment-view-model, ytd-transcript-segment-renderer')) {
+      const time = text(seg.querySelector('[class*="Timestamp"]:not([class*="A11y"]), .segment-timestamp'));
+      const line = text(seg.querySelector('[role="text"], .segment-text, yt-formatted-string'));
+      if (time && line) segments.push({ time, text: line });
+    }
+    return segments;
+  }
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /**
+   * Makes the transcript available to extract(). interactive: may open YouTube's transcript panel
+   * (after a click on Summarize or a question); otherwise only reads a panel that's already open.
+   * Resolves with true when a transcript is known for this video.
+   */
+  async function ensure(doc, location, { interactive = false } = {}) {
+    const id = videoId(location);
+    if (!id || pageInfo(location).type !== 'video') return false;
+    if (transcripts.has(id)) return Boolean(transcripts.get(id));
+    let segments = readTranscriptPanel(doc);
+    let opened = false;
+    if (!segments.length && interactive) {
+      const expand = doc.querySelector('ytd-watch-metadata #expand, ytd-text-inline-expander #expand');
+      if (expand) expand.click();
+      await wait(400);
+      const button = doc.querySelector('ytd-video-description-transcript-section-renderer button, button[aria-label="Show transcript"]');
+      if (!button) {
+        transcripts.set(id, '');
+        return false;
+      }
+      button.click();
+      opened = true;
+      for (let i = 0; i < 25 && !segments.length; i++) {
+        await wait(300);
+        segments = readTranscriptPanel(doc);
+      }
+    }
+    if (opened) {
+      // Put the page back as it was: close the panel and the expanded description.
+      const panel = doc.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
+      const close = panel && panel.querySelector('#visibility-button button, button[aria-label*="Close"]');
+      if (close) close.click();
+      const collapse = doc.querySelector('ytd-watch-metadata #collapse, ytd-text-inline-expander #collapse');
+      if (collapse) collapse.click();
+    }
+    if (!segments.length && !interactive) return false; // maybe later, when asked
+    transcripts.set(id, formatTranscript(segments));
+    return segments.length > 0;
+  }
 
   function extract(doc, location) {
     if (pageInfo(location).type !== 'video') return null;
@@ -88,10 +170,11 @@
         description,
         chapters: parseChapters(description),
         comments,
+        transcript: transcripts.get(videoId(location)) || '',
       }),
     };
   }
 
-  soroagent.registerSite({ id: 'youtube', name: 'YouTube', matches: (location) => /(^|\.)youtube\.com$/i.test(location.hostname), pageInfo, extract });
-  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), youtube: { pageInfo, parseChapters, cleanDescription, formatVideo } };
+  soroagent.registerSite({ id: 'youtube', name: 'YouTube', matches: (location) => /(^|\.)youtube\.com$/i.test(location.hostname), pageInfo, extract, ensure });
+  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), youtube: { pageInfo, parseChapters, cleanDescription, formatVideo, formatTranscript, readTranscriptPanel } };
 })(globalThis);

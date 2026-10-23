@@ -6,7 +6,7 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 5;
   const FORMAT = 'soroagent-backup';
   // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced).
   const RETIRED_PREFIXES = ['stats:', 'xstats:'];
@@ -47,6 +47,13 @@
         }
       }
       return updates;
+    },
+    // v5: automatic AI work becomes 'auto' (off with a cloud key). Installs that had it on, the old
+    // default, get 'auto'; anyone who turned it off keeps it off.
+    5: (all) => {
+      const s = all.settings;
+      if (!s || (s.preparePages !== true && s.pageQuestions !== true)) return {};
+      return { settings: { ...s, ...(s.preparePages === true ? { preparePages: 'auto' } : {}), ...(s.pageQuestions === true ? { pageQuestions: 'auto' } : {}) } };
     },
   };
 

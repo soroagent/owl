@@ -636,20 +636,29 @@
   const getPage = (limit = maxChars()) => S.extractPage(document, { maxChars: limit });
   // Site profiles with extract() read the page's structure (Stack Overflow answers with the
   // accepted one marked, Hacker News comment trees, GitHub issue state…); others get its text.
+  // When a site profile's selectors find nothing (sites change their markup), Readability reads the
+  // page instead (S.readFallback), and the flight recorder notes it. Long pages are condensed to the
+  // limit so the text still covers the whole document (S.condenseText), not just its start.
   function sitePage(limit = maxChars()) {
+    let full = null;
     if (state.site.extract) {
       try {
         const page = state.site.extract(document, location);
-        if (page && page.text && page.text.length > 120) {
-          return { title: page.title || document.title, url: location.href, text: page.text.slice(0, limit), truncated: page.text.length > limit };
-        }
-        report('extractor', 'empty', 'The site profile found no content; read the page as plain text instead');
+        if (page && page.text && page.text.length > 120) full = { title: page.title || document.title, text: page.text };
       } catch (err) {
-        console.warn('[soroagent] Site extraction failed, reading the page as text:', err);
+        console.warn('[soroagent] Site extraction failed, reading the page with the fallback parser:', err);
         report('extractor', 'threw', err.message, { where: 'extract' });
       }
+      // Profiles return null on pages they don't cover (a channel page, a search): that's not a failure.
+      if (!full && pageInfo().type !== 'page' && pageInfo().type !== 'other') {
+        const fallback = S.readFallback(document);
+        full = { title: document.title, text: fallback.text };
+        report('extractor', 'empty', `The site profile found no content; read the page with ${fallback.parser} instead`, { phase: fallback.parser });
+      }
     }
-    return getPage(limit);
+    if (!full) full = { title: document.title, text: S.readPage(document) };
+    const condensed = S.condenseText(full.text, limit, { title: full.title });
+    return { title: full.title, url: location.href, text: condensed.text, condensed: condensed.condensed };
   }
 
   function updateControls() {
@@ -711,12 +720,30 @@
   // Summarize
   // ---------------------------------------------------------------------------
 
-  function summarize({ fresh = false } = {}) {
+  // Site profiles with ensure() load extra content first (YouTube's transcript). interactive: the
+  // reader asked for something, so the profile may open the site's own panels to read them.
+  async function ensureSite(interactive) {
+    if (!state.site.ensure) return;
+    try {
+      const found = await state.site.ensure(document, location, { interactive });
+      if (interactive && !found && pageInfo().type === 'video') report('extractor', 'no-transcript', 'No transcript could be read for this video', { where: 'ensure' });
+    } catch (err) {
+      report('extractor', 'threw', err.message, { where: 'ensure' });
+    }
+  }
+
+  async function summarize({ fresh = false } = {}) {
+    await ensureSite(true);
     // Prepared on visit: shown at once. On X, new posts since then → prepare again with all of them.
     if (!fresh && isX() && prep.url === location.href && prep.status === 'done' && newPostCount() > 0) return refreshPrepared();
     if (!fresh && preparedReady()) return usePrepared();
     const site = items();
-    if (site && site.isFeed && site.isFeed(pageInfo())) return summarizeFeed({ fresh });
+    if (site && site.isFeed && site.isFeed(pageInfo())) {
+      if (site.visible(document, siteOptions()).length) return summarizeFeed({ fresh });
+      // The feed's selectors found nothing: summarize the page as text rather than give up.
+      report('extractor', 'no-items', `No ${site.noun || 'items'} found by the site profile; summarized the page as text`, { where: 'summarize' });
+      return summarizePage({ fresh });
+    }
     if (site) {
       const posts = site.visible(document, siteOptions());
       if (posts.length) return summarizeVisibleItems(posts, { fresh });
@@ -1103,19 +1130,23 @@
     els.suggestHead.querySelector('.suggest-more').hidden = true;
   }
 
-  function renderQuestions(list, label = '') {
+  // offer: automatic questions are off (cloud AI): show a link that writes them on request.
+  function renderQuestions(list, label = '', { offer = false } = {}) {
     els.suggest.replaceChildren(...list.map((q) => el('button', { type: 'button', textContent: q.label || q })));
     els.suggest.querySelectorAll('button').forEach((b, i) => (b.dataset.ask = list[i].ask || list[i]));
-    els.suggestHead.hidden = !label;
+    els.suggestHead.hidden = !label && !offer;
     els.suggestHead.querySelector('.suggest-label').textContent = label;
-    els.suggestHead.querySelector('.suggest-more').hidden = label !== 'Suggested for this page';
+    const more = els.suggestHead.querySelector('.suggest-more');
+    more.hidden = label !== 'Suggested for this page' && !offer;
+    more.textContent = offer ? 'Suggest questions for this page' : 'New questions';
   }
 
   async function suggestQuestions(force = false) {
     const url = location.href;
-    if (!state.settings.pageQuestions) return renderQuestions(STANDARD_QUESTIONS);
+    const prepareOn = S.autoOn(state.settings, 'preparePages');
+    if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(STANDARD_QUESTIONS, '', { offer: state.status === 'ready' });
     // Prepared on visit (from the page's summary): ready, being written, or started now.
-    if (!force && state.settings.preparePages && preparable()) {
+    if (!force && prepareOn && preparable()) {
       if (prep.url === url && prep.status === 'done' && prep.questions.length >= 2) return renderQuestions(prep.questions, 'Suggested for this page');
       if (prep.url === url && prep.status === 'working') return showQuestionPlaceholders(isX() ? 'Reading the posts for questions…' : 'Reading the page for questions…');
       if (prep.url !== url || prep.status === 'idle') {
@@ -1158,22 +1189,23 @@
   // ---------------------------------------------------------------------------
   // Prepared on visit: a summary of the page and the questions that follow from it
   // ---------------------------------------------------------------------------
-  // A few seconds after a page comes to the front, the model summarizes it in the background and,
-  // from that summary, writes the questions the reader is likely to have. Opening the owl shows the
-  // questions at once, and Summarize shows the summary at once (then saves it like any other).
-  // Nothing is saved unless the reader acts. Never on sensitive pages (mail, banking, sign-in,
-  // checkout…, the same rules as passive capture), on pages with little text, or when Settings →
-  // On the page → "Prepare a summary and questions" is off.
+  // When the side panel is open on a page, or after 15 seconds of active reading, the model
+  // summarizes the page in the background and, from that summary, writes the questions the reader
+  // is likely to have. Opening soroagent shows the questions at once, and Summarize shows the summary
+  // at once (then saves it like any other). Nothing is saved unless the reader acts. On by default
+  // with an AI on this computer or in the browser, off with a cloud key (S.autoOn). Never on
+  // sensitive pages (mail, banking, sign-in, checkout…, the same rules as passive capture) or pages
+  // with little text.
   // X keeps loading posts as you scroll: a watcher collects every post that appears on the URL,
   // and the refresh button (showing how many are new) prepares again with all of them.
-  const PREPARE_DELAY = 4000;
-  const prep = { url: '', status: 'idle', summary: '', questions: [], ids: new Set(), label: '', print: '', kind: 'page', run: 0, timer: 0 };
+  const prep = { url: '', status: 'idle', summary: '', questions: [], ids: new Set(), label: '', print: '', kind: 'page', run: 0 };
   const xPosts = new Map(); // X: posts seen on this URL (id -> post), in the order they appeared
   let xPostsUrl = '';
 
   const isX = () => state.site.id === 'x' && Boolean(items());
 
   function preparable() {
+    if (isPdfDocument()) return false; // the browser's PDF viewer: the side panel reads the file itself
     if (!S.capture || !S.capture.captureAllowed) return true;
     const hasPassword = Boolean(document.querySelector('input[type="password"]'));
     return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity }, state.settings.captureExclude || []).ok;
@@ -1207,7 +1239,15 @@
         list.unshift(all[i]);
         size += length;
       }
-      if (!list.length) return null;
+      if (!list.length) {
+        // No posts matched (X may have changed its markup): read the page as text instead.
+        if (!document.querySelector('main [data-testid="primaryColumn"], main section')) return null;
+        const fallback = S.readFallback(document);
+        if (fallback.text.length < 300) return null;
+        report('extractor', 'no-items', `No posts matched on X; read the page with ${fallback.parser} instead`, { where: 'prepare', selector: 'article[data-testid="tweet"]', phase: fallback.parser });
+        const condensed = S.condenseText(fallback.text, maxChars(), { title: document.title });
+        return { page: { title: document.title, url: location.href, text: condensed.text, condensed: condensed.condensed }, context: 'The posts on this page could not be read one by one, so this is the page text.', count: '', ids: new Set(), label: 'Summarize this page', kind: 'page' };
+      }
       const noun = site.noun || 'posts';
       return {
         page: { title: document.title, url: location.href, text: site.format(list) },
@@ -1227,8 +1267,9 @@
   async function preparePage({ explicit = false } = {}) {
     const url = location.href;
     if (!state.settings.onboarded) return; // no AI set up yet
-    if (!explicit && (!state.settings.preparePages || (prep.url === url && prep.status !== 'idle'))) return;
+    if (!explicit && (!S.autoOn(state.settings, 'preparePages') || (prep.url === url && prep.status !== 'idle'))) return;
     if (!preparable()) return;
+    await ensureSite(Boolean(explicit));
     const content = preparedContent();
     if (!content) {
       // X: the timeline loaded but none of its posts matched (X may have changed its markup).
@@ -1262,28 +1303,26 @@
     if (isOpen()) suggestQuestions();
   }
 
-  // Starts preparing a few seconds after the page is in front (not for tabs opened in the background).
+  // Forgets what was prepared for the previous URL (single-page sites change it without reloading).
   function schedulePrepare() {
-    clearTimeout(prep.timer);
-    prep.timer = 0;
     if (prep.url && prep.url !== location.href) {
       prep.run++; // a reply for the old URL is ignored
       Object.assign(prep, { url: '', status: 'idle', summary: '', questions: [], ids: new Set() });
       updateRefresh();
     }
-    if (!state.settings.preparePages || document.visibilityState !== 'visible' || prep.url === location.href) return;
-    prep.timer = setTimeout(() => {
-      prep.timer = 0;
-      preparePage();
-    }, PREPARE_DELAY);
   }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') schedulePrepare();
-    else {
-      clearTimeout(prep.timer);
-      prep.timer = 0;
-    }
-  });
+
+  // Preparing starts when the side panel is open on this page (it asks for a snapshot), or after
+  // 15 seconds of active reading: the tab in front and the window focused. Skimming past a page,
+  // or tabs opened in the background, cost nothing.
+  const DWELL_MS = 15000;
+  const dwell = { url: '', ms: 0 };
+  setInterval(() => {
+    if (dwell.url !== location.href) Object.assign(dwell, { url: location.href, ms: 0 });
+    if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+    dwell.ms += 1000;
+    if (dwell.ms >= DWELL_MS && prep.url !== location.href && S.autoOn(state.settings, 'preparePages')) preparePage();
+  }, 1000);
 
   function preparedReady() {
     if (prep.url !== location.href || prep.status !== 'done' || !prep.summary) return false;
@@ -1321,7 +1360,10 @@
   // one place (this file), whichever UI is used.
   // ---------------------------------------------------------------------------
 
+  const isPdfDocument = () => document.contentType === 'application/pdf';
+
   function snapshot() {
+    if (isPdfDocument()) return { ok: true, pdf: true, url: location.href, title: document.title };
     const page = isX() ? null : sitePage(2000);
     const info = pageInfo();
     return {
@@ -1330,7 +1372,7 @@
       title: document.title,
       site: { id: state.site.id, name: state.site.name || '', label: info.label || '', noun: items() ? items().noun || 'items' : '' },
       readable: isX() ? xPosts.size > 0 || Boolean(document.querySelector('article')) : Boolean(page && page.text && page.text.length > 200),
-      prepare: { on: Boolean(state.settings.preparePages), allowed: preparable() },
+      prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
     };
@@ -1400,8 +1442,7 @@
         if (!isX()) return;
         collectXPosts();
         updateRefresh();
-        // The timeline may load after the first try: prepare once posts are there.
-        if (prep.url !== location.href && !prep.timer && xPosts.size) schedulePrepare();
+
       }, 800);
     });
     xObserver.observe(document.body, { childList: true, subtree: true });
@@ -1813,6 +1854,7 @@
 
   function askPage(question, { echo = true } = {}) {
     return runTask(async (signal) => {
+      await ensureSite(true);
       if (!state.pageContext || state.pageContext.url !== location.href) {
         state.pageContext = { url: location.href, page: currentContext() };
         state.history = [];
@@ -2023,13 +2065,18 @@
       if (sender.id !== ext.runtime.id) return false;
       (async () => {
         if (msg.type === 'assistant:sp-snapshot') {
-          if (state.settings.preparePages && prep.url !== location.href && preparable()) preparePage();
+          // The side panel is open on this page: prepare now (when automatic preparing is on).
+          if (S.autoOn(state.settings, 'preparePages') && prep.url !== location.href && preparable()) preparePage();
           return snapshot();
         }
-        if (msg.type === 'assistant:sp-summary') return { ok: true, spec: summarySpec({ fresh: Boolean(msg.fresh) }) };
+        if (msg.type === 'assistant:sp-summary') {
+          await ensureSite(true);
+          return { ok: true, spec: summarySpec({ fresh: Boolean(msg.fresh) }) };
+        }
         if (msg.type === 'assistant:sp-ask') {
           const topic = S.ownTopic(String(msg.question || ''));
           if (topic && !msg.aboutPage) return { ok: true, topic, host: location.hostname.replace(/^www\./, '') };
+          await ensureSite(true);
           return { ok: true, messages: askMessages(String(msg.question || ''), msg.history || []) };
         }
         if (msg.type === 'assistant:sp-save') return { ok: true, ...(await savePageData({ label: true })) };

@@ -98,7 +98,7 @@
       ['AI', ai],
       ['Model', scrub(model || 'recommended', 60)],
       ['Thinking allowed', on(settings.allowThinking)],
-      ['Prepare on visit / page questions', `${on(settings.preparePages)} / ${on(settings.pageQuestions)}`],
+      ['Prepare automatically / page questions', `${settings.preparePages === 'auto' || settings.preparePages === undefined ? 'auto' : on(settings.preparePages)} / ${settings.pageQuestions === 'auto' || settings.pageQuestions === undefined ? 'auto' : on(settings.pageQuestions)}`],
       ['Passive capture', settings.autoCapture === 'on' ? 'on' : 'off'],
       ['Search by meaning', on(settings.semanticSearch !== false)],
       ['Sync / Markdown folder', `${on(syncOn)} / ${on(markdownOn)}`],

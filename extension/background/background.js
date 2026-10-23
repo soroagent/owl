@@ -454,6 +454,32 @@
       await diag.clear();
       return { ok: true };
     },
+    // PDFs (the side panel, the right-click menu): read with pdf.js where ES modules run.
+    'pdf:probe': async (msg, sender) => {
+      requireExtensionPage(sender);
+      const url = String(msg.url || '');
+      if (!/^https?:/.test(url)) return { ok: true, pdf: false };
+      if (S.isPdf(url)) return { ok: true, pdf: true };
+      const res = await fetch(url, { method: 'HEAD', credentials: 'include' }).catch(() => null);
+      return { ok: true, pdf: Boolean(res && S.isPdf(url, res.headers.get('content-type') || '')) };
+    },
+    'pdf:read': async (msg, sender) => {
+      requireExtensionPage(sender);
+      const url = String(msg.url || '');
+      if (!/^https?:/.test(url)) throw new Error('soroagent can read PDFs from the web (http or https).');
+      let res;
+      if (pdfLocal) res = await pdfLocal.read(url).then((r) => ({ ok: true, ...r }), (err) => ({ ok: false, error: err.message }));
+      else {
+        await S.browserAI.ensureOffscreen();
+        res = await ext.runtime.sendMessage({ type: 'pdf:extract', url });
+      }
+      if (!res || !res.ok) {
+        diag.record({ area: 'extractor', code: 'pdf', message: (res && res.error) || 'No reply from the PDF reader', detail: { where: 'pdf:read' } });
+        throw new Error((res && res.error) || 'Couldn’t read this PDF.');
+      }
+      if (!res.text) diag.record({ area: 'extractor', code: 'pdf-no-text', message: 'The PDF has no text layer (scanned?)', detail: { where: 'pdf:read' } });
+      return res;
+    },
     'open:sync-setup': () => ext.tabs.create({ url: ext.runtime.getURL('pages/onboard.html?sync') }),
     // Pages report the browser's light/dark theme (the worker itself can't see it).
     theme: (msg) => setThemeIcon(Boolean(msg.dark)),
@@ -488,7 +514,7 @@
     // Saved and captured pages: the AI adds a title, summary and tags, reusing the
     // library's tags. One at a time, so a burst of reading doesn't flood the model.
     'capture:label': (msg, sender) => {
-      if (!sender.tab || fromExtensionPage(sender) || !Array.isArray(msg.messages)) return { ok: true };
+      if (!sender || sender.id !== ext.runtime.id || !Array.isArray(msg.messages)) return { ok: true };
       labelQueue = labelQueue.then(async () => {
         const key = `snippet:${msg.id}`;
         const note = (await ext.storage.local.get(key))[key];
@@ -590,6 +616,13 @@
     { id: 'soroagent-summarize', title: 'Summarize this page', contexts: ['page'], action: 'summarize' },
     { id: 'soroagent-screenshot', title: 'Take a screenshot', contexts: ['page', 'image', 'video'], action: 'screenshot' },
   ];
+  // PDFs open in the browser's viewer, where content scripts can't run: read them in the side panel.
+  const PDF_PATTERNS = ['*://*/*.pdf', '*://*/*.PDF', '*://*/*.pdf?*', '*://arxiv.org/pdf/*', '*://*.arxiv.org/pdf/*'];
+  const PDF_MENU_ITEMS = [
+    { id: 'soroagent-pdf-link', title: 'Summarize this PDF with soroagent', contexts: ['link'], targetUrlPatterns: PDF_PATTERNS },
+    { id: 'soroagent-pdf-page', title: 'Summarize this PDF with soroagent', contexts: ['page', 'frame'], documentUrlPatterns: PDF_PATTERNS },
+  ];
+  const pdfLocal = ext.offscreen ? null : S.createPdfReader(ext); // Firefox: pdf.js runs right here
 
   // Right-click on the toolbar owl.
   const ACTION_MENU_ITEMS = [
@@ -606,9 +639,16 @@
       ext.contextMenus.create({ id: item.id, title: item.title, contexts: item.contexts });
     }
     for (const item of ACTION_MENU_ITEMS) ext.contextMenus.create({ id: item.id, title: item.title, contexts: ['action'] });
+    if (hasSidePanel) for (const { id, title, contexts, targetUrlPatterns, documentUrlPatterns } of PDF_MENU_ITEMS) ext.contextMenus.create({ id, title, contexts, ...(targetUrlPatterns ? { targetUrlPatterns } : {}), ...(documentUrlPatterns ? { documentUrlPatterns } : {}) });
   }
 
   ext.contextMenus.onClicked.addListener((info, tab) => {
+    if (PDF_MENU_ITEMS.some((m) => m.id === info.menuItemId)) {
+      // Open the side panel inside the click (browsers require it), then hand it the PDF.
+      if (tab) openSidePanel(tab).catch((err) => console.warn('[soroagent]', err));
+      ext.storage.session.set({ pdfRequest: { url: info.linkUrl || info.pageUrl || (tab && tab.url) || '', tabId: tab && tab.id, at: Date.now() } }).catch(() => {});
+      return;
+    }
     const actionItem = ACTION_MENU_ITEMS.find((m) => m.id === info.menuItemId);
     if (actionItem) {
       actionItem.open();

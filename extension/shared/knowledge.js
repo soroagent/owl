@@ -138,5 +138,72 @@
     return blocks.join('\n\n');
   }
 
-  Object.assign(soroagent, { SEARCHABLE_KINDS: SEARCHABLE, tokenize, buildIndex, searchNotes, relatedNotes, formatNotes });
+  /**
+   * Pure: a long text cut to `limit` characters so that it still represents the whole document,
+   * instead of only its beginning. Paragraphs (blank-line separated blocks) are kept by priority:
+   * headings, the first and last paragraphs, the first then the last paragraph of each section,
+   * then the paragraphs that best match the document's own main terms (BM25 against its headings,
+   * title and most frequent words). Kept paragraphs stay in reading order; "[…]" marks each gap.
+   * Very long paragraphs are shortened at a sentence. Returns { text, condensed }.
+   */
+  function condenseText(text, limit, { title = '', maxBlock = 700 } = {}) {
+    const source = String(text || '');
+    if (source.length <= limit) return { text: source, condensed: false };
+    const blocks = source.split(/\n{2,}/).map((t) => t.trim()).filter(Boolean);
+    const heading = (t) => /^#{1,6}\s/.test(t);
+    const shorten = (t, max) => {
+      if (t.length <= max) return t;
+      const cut = t.slice(0, max);
+      const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '), cut.lastIndexOf('\n'));
+      return `${end > max * 0.5 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, '')} …`;
+    };
+    const order = [];
+    const add = (i) => i >= 0 && i < blocks.length && !order.includes(i) && order.push(i);
+    // 1. Structure: headings, the opening and the ending.
+    blocks.forEach((b, i) => heading(b) && add(i));
+    add(blocks.findIndex((b) => !heading(b)));
+    for (let i = blocks.length - 1; i >= 0; i--) if (!heading(blocks[i])) { add(i); break; }
+    // 2. Each section's first paragraph, then each section's last.
+    const sections = [];
+    let current = [];
+    blocks.forEach((b, i) => {
+      if (heading(b)) {
+        if (current.length) sections.push(current);
+        current = [];
+      } else current.push(i);
+    });
+    if (current.length) sections.push(current);
+    sections.forEach((s) => add(s[0]));
+    sections.forEach((s) => add(s[s.length - 1]));
+    // 3. The rest by relevance to the document's main terms.
+    const counts = new Map();
+    for (const t of tokenize(source)) counts.set(t, (counts.get(t) || 0) + 1);
+    const main = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([t]) => t);
+    const query = [title, title, ...blocks.filter(heading), main.join(' ')].join(' ');
+    const notes = blocks.map((b, i) => ({ id: i, title: '', summary: '', text: b, kind: 'page' }));
+    const scored = searchNotes(buildIndex(notes), query, { limit: blocks.length }).map((h) => h.note.id);
+    scored.forEach(add);
+    blocks.forEach((b, i) => add(i));
+    // Fill the budget in priority order; then print in reading order with gap marks.
+    const kept = new Map();
+    let used = 0;
+    for (const i of order) {
+      const piece = heading(blocks[i]) ? shorten(blocks[i], 160) : shorten(blocks[i], maxBlock);
+      const cost = piece.length + 6; // the paragraph break and a possible "[…]"
+      if (used + cost > limit) continue;
+      kept.set(i, piece);
+      used += cost;
+    }
+    const out = [];
+    let last = -1;
+    for (const i of [...kept.keys()].sort((a, b) => a - b)) {
+      if (i !== last + 1) out.push('[…]');
+      out.push(kept.get(i));
+      last = i;
+    }
+    if (last !== blocks.length - 1) out.push('[…]');
+    return { text: out.join('\n\n').slice(0, limit), condensed: true };
+  }
+
+  Object.assign(soroagent, { condenseText, SEARCHABLE_KINDS: SEARCHABLE, tokenize, buildIndex, searchNotes, relatedNotes, formatNotes });
 })(globalThis);

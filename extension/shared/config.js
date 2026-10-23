@@ -42,8 +42,10 @@
     allowThinking: false,
     showLauncher: false, // the floating owl on every page: opt-in (soroagent opens from the toolbar or Alt+Shift+O)
     openIn: 'sidepanel', // 'sidepanel' (the browser's side panel / Firefox sidebar) | 'page' (floating panel on the page)
-    preparePages: true, // summarize each page in the background on visit and prepare questions from it
-    pageQuestions: true,
+    // Automatic AI work, 'auto' | true | false. 'auto' = on with an AI on this computer or in the
+    // browser, off with a cloud key (every page would be sent to it and billed). See autoOn().
+    preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
+    pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens
     launcherPosition: 'auto', // 'auto' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     launcherPlacements: {}, // hostname -> { side: 'left' | 'right', y: 0..1 } after the user drags the button
@@ -205,6 +207,9 @@
   const pageCharLimit = (settings) =>
     Math.min(Number(settings.maxPageChars) || 12000, settings.source === 'browser' ? (BROWSER_ENGINES[settings.browserEngine] || BROWSER_ENGINES.nano).maxPageChars : Infinity);
 
+  /** Pure: whether an 'auto' | true | false setting is on: 'auto' means on unless the AI is a cloud API. */
+  const autoOn = (settings, key) => settings[key] === true || ((settings[key] === 'auto' || settings[key] === undefined) && settings.source !== 'cloud');
+
   /**
    * Pure: the one command that lets Ollama accept requests from browser extensions, for this
    * computer. Only extension origins are allowed ("*" would let every website use your Ollama).
@@ -302,6 +307,7 @@
     resolveConnection,
     BROWSER_ENGINES,
     pageCharLimit,
+    autoOn,
     ollamaOriginsFix,
     syncOfferDue,
     modelPatch,

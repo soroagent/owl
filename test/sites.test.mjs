@@ -177,3 +177,21 @@ test('YouTube: the description stops before the side panels and keeps the video 
   assert.equal(r.views, '1,829,167,090 views');
   assert.equal(r.date, '24 Oct 2009');
 });
+
+test('YouTube transcripts become timestamped paragraphs of about 30 seconds, after the description', () => {
+  const yt = S.siteHelpers.youtube;
+  const segments = [
+    { time: '0:01', text: 'Hello and welcome.' },
+    { time: '0:12', text: 'Today we look at reefs.' },
+    { time: '0:31', text: 'First, what bleaching is.' },
+    { time: '1:05', text: 'Then   recovery.' },
+    { time: 'nope', text: 'skipped' },
+    { time: '1:20', text: '' },
+  ];
+  assert.equal(yt.formatTranscript(segments), '[0:01] Hello and welcome. Today we look at reefs.\n\n[0:31] First, what bleaching is.\n\n[1:05] Then recovery.');
+  assert.equal(yt.formatTranscript([{ time: '1:02:03', text: 'late' }]), '[1:02:03] late');
+  const text = yt.formatVideo({ title: 'T', channel: 'C', views: '', date: '', description: 'D', chapters: [], comments: [], transcript: '[0:01] Hi' });
+  assert.ok(text.indexOf('DESCRIPTION') < text.indexOf('TRANSCRIPT'));
+  assert.match(text, /TRANSCRIPT \(\[m:ss\] = time in the video\):\n\n\[0:01\] Hi/);
+  assert.match(yt.pageInfo({ pathname: '/watch', search: '?v=x' }).context, /transcript/);
+});

@@ -117,3 +117,14 @@ test('soroagent opens with Alt+Shift+O from the side panel or toolbar, and the f
   assert.equal(manifest.side_panel.default_path, 'pages/sidepanel.html');
   assert.ok(existsSync(join(ext, manifest.side_panel.default_path)));
 });
+
+test('fallback parser, PDF reader: vendored, loaded where they run, nothing fetched as code', () => {
+  for (const f of ['vendor/readability/Readability.js', 'vendor/readability/LICENSE.md', 'vendor/pdfjs/pdf.min.mjs', 'vendor/pdfjs/pdf.worker.min.mjs', 'vendor/pdfjs/LICENSE']) assert.ok(existsSync(join(ext, f)), f);
+  const js = manifest.content_scripts[0].js;
+  assert.ok(js.indexOf('vendor/readability/Readability.js') >= 0 && js.indexOf('vendor/readability/Readability.js') < js.indexOf('content/extract.js'), 'Readability loads before the extractor');
+  const reader = readFileSync(join(ext, 'background/pdfread.js'), 'utf8');
+  assert.match(reader, /getURL\('vendor\/pdfjs\/pdf\.min\.mjs'\)/);
+  assert.match(reader, /isEvalSupported: false/);
+  assert.match(readFileSync(join(ext, 'pages/offscreen.html'), 'utf8'), /pdfread\.js/);
+  assert.ok(manifest.background.scripts.includes('background/pdfread.js'));
+});

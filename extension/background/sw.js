@@ -1,2 +1,2 @@
 // Chrome service worker entry point. Firefox loads the same files via "background.scripts".
-importScripts('../shared/config.js', 'flight.js', '../shared/markdown.js', '../shared/prompts.js', '../shared/snippets.js', '../shared/knowledge.js', '../shared/backup.js', 'autobackup.js', 'sync.js', 'mdexport.js', 'llm.js', 'browserai.js', 'recommend.js', 'secrets.js', 'research.js', 'library.js', 'jobs.js', 'background.js');
+importScripts('../shared/config.js', 'flight.js', '../shared/markdown.js', '../shared/prompts.js', '../shared/snippets.js', '../shared/knowledge.js', '../shared/backup.js', 'autobackup.js', 'sync.js', 'mdexport.js', 'llm.js', 'browserai.js', 'pdfread.js', 'recommend.js', 'secrets.js', 'research.js', 'library.js', 'jobs.js', 'background.js');

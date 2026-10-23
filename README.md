@@ -24,7 +24,10 @@ soroagent opens beside every page, in your browser's side panel, and does three 
 ### Understand any page
 - **Opens beside the page.** Click soroagent in the toolbar or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac). It opens in the browser's side panel (Firefox: the sidebar), where no website's styles can touch it, and it stays open as you switch tabs and pages, with a conversation per tab. Prefer it on the page? Choose the floating panel in Settings, and turn on the owl button in the corner of every page if you like.
 - **Works out of the box.** The first-run setup looks for an AI on your computer and uses it without asking: Ollama if it's running, or Chrome's built-in AI (Gemini Nano). If neither is there, one click sets up Chrome's built-in AI or a small model that runs in the browser on your graphics chip (Qwen2.5-1.5B, a one-time 880 MB download). Or paste a Claude, OpenAI or Gemini key. If Ollama is running but blocks browser extensions, you get the one command that fixes it, ready to copy.
-- **Ready before you ask.** A few seconds after you open a page, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. Open the owl and the questions are there; click Summarize and the summary appears at once. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. Turn it off in Settings → On the page.
+- **Ready before you ask.** When the side panel is open on a page, or after you've been reading it for 15 seconds, your model summarizes it in the background and works out the questions you're likely to have: how a product works and what it compares to, the background and the people in a news story, the consensus in a thread. The questions are there when you look, and Summarize is instant. Nothing is saved unless you act, and it never runs on mail, chat, banking, sign-in or checkout pages. On by default with an AI on your computer or in the browser; with a cloud key it's off (every page would be sent and billed), and **Suggest questions for this page** does it on request.
+- **Long pages, whole.** Instead of cutting a long article after its introduction, soroagent condenses it to fit your model: its headings, the start and end of each section, and the paragraphs most relevant to the whole, in reading order, with "[…]" where it skipped. This matters most for the small in-browser models.
+- **PDFs and papers.** Open a PDF (an arXiv paper, a report) and the side panel reads it with pdf.js: summary, questions, chat and Save, like any page. Or right-click a PDF link → **Summarize this PDF with soroagent**. Scanned PDFs (images only) have no text to read.
+- **YouTube transcripts.** When you summarize or ask about a video, soroagent reads its timed transcript (from YouTube's own transcript panel, which it opens and closes again), so answers cover what's said, with timestamps.
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
 - **Ask** anything about the page. Questions about soroagent itself ("where is my data stored?", "is this open source?") first ask whether you mean soroagent or the website, then get an accurate answer.
@@ -40,7 +43,7 @@ soroagent opens beside every page, in your browser's side panel, and does three 
   | Wikipedia | infobox facts, lead, outline | **Key facts**, with "citation needed" flagged |
   | X | posts with handles, verification and engagement | themes and notable posts, every @handle linked |
 
-  The panel's site bar shows the mode (for example *Q&A · Accepted-solution mode*). LinkedIn, Amazon and major news sites have tuned prompts too.
+  The panel's site bar shows the mode (for example *Q&A · Accepted-solution mode*). LinkedIn, Amazon and major news sites have tuned prompts too. Sites change their markup: when a profile's selectors find nothing, soroagent reads the page with Mozilla's Readability instead (the Firefox Reader View parser), so you still get a summary, and the diagnostic report notes it.
 - **Feeds** on X and Reddit: Summarize reads the posts that have loaded (on X, every post that appeared while you scrolled), and **Read more** loads the next batch. Promoted posts are left out.
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
@@ -97,7 +100,8 @@ Answers come in two parts, **From your sources** (every claim cited [S1], [S2]�
 - **API keys:** encrypted with a key that can't be exported, and sent only to their own provider.
 - **Your data:** your library, history and settings live in your browser, and search vectors stay on your device.
 - **Google Drive sync** asks only for soroagent's own app folder in your Drive (`drive.appdata`), never your files. The sign-in token stays in memory for the session.
-- **Prepared on visit:** to have the summary and questions ready, your AI reads each page a few seconds after you open it (never mail, chat, banking, sign-in or checkout pages). It's on by default; with a cloud AI that sends each page you visit to it, so turn it off in Settings → On the page if you prefer.
+- **Prepared automatically:** to have the summary and questions ready, your AI reads a page when the side panel is open on it or after 15 seconds of reading (never mail, chat, banking, sign-in or checkout pages). On by default only with an AI on your computer or in the browser; off by default with a cloud key. Change it in Settings → On the page.
+- **PDFs** are downloaded from where they are, as your browser would, and read on your computer.
 - **Opt-in only:** passive capture, sync and the Markdown folder are off until you turn them on, and only go where you point them.
 - **No tracking:** there are no soroagent accounts, servers, trackers or analytics.
 
@@ -105,12 +109,12 @@ Read the full [privacy policy](https://soroagent.github.io/privacy.html).
 
 ## Download
 
-Current version: **v2.30.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.31.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.30.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.30.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (128+) | [**soroagent-firefox-2.30.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.30.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.31.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.31.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (128+) | [**soroagent-firefox-2.31.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.31.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -181,6 +185,7 @@ Your data carries over to every update. The Chrome build has a fixed extension I
 - **In-browser AI:** Gemini Nano is Chrome's Prompt API. Qwen2.5-1.5B runs with [WebLLM](https://github.com/mlc-ai/web-llm) on WebGPU; its engine ships inside the extension (`extension/vendor/web-llm/`, Apache-2.0) because extensions can't run code from the web, and only the model weights download from Hugging Face. Small models get less page text (6,000 characters).
 - **Search:** notes are embedded once (again only when they change) and stored as 8-bit vectors. A search fuses the meaning and word rankings (reciprocal rank fusion).
 - **Sync:** the shared document is gzipped, encrypted with AES-GCM using a key derived from your passphrase (PBKDF2, 250,000 rounds), and merged per item with tombstones for deletions. The passphrase is never stored; the derived key is non-extractable.
+- **Reading pages:** site profile first, Readability when its selectors find nothing, then a generic reader; long text is condensed (`condenseText` in `shared/knowledge.js`) rather than cut. PDFs are read by pdf.js and YouTube transcripts from YouTube's transcript panel; both run only on request or when the side panel is open. pdf.js and Readability ship inside the extension (`extension/vendor/`, Apache-2.0).
 - **Side panel:** the page's content script still reads the page and builds the prompts, so the side panel and the floating panel give the same answers; the side panel runs the model and shows the result.
 - **Flight recorder:** the last 50 internal problems (errors, site readers that found nothing, model replies in an unexpected shape, storage upgrades) are kept in session storage, scrubbed of web addresses, host names, page text, emails, keys and file paths. **Settings → Troubleshooting → Copy diagnostic report** turns them into Markdown and opens a pre-filled GitHub issue for you to check and submit.
 - **Research** only reads public web pages: addresses on your computer or local network are never fetched. Only `http(s)` links are ever made clickable.
@@ -189,7 +194,7 @@ Your data carries over to every update. The Chrome build has a fixed extension I
 
 ```
 extension/
-  background/   background.js (routing, menus) · llm.js (model client, embeddings) · browserai.js (Gemini Nano, WebLLM) · flight.js (diagnostics)
+  background/   background.js (routing, menus) · llm.js (model client, embeddings) · browserai.js (Gemini Nano, WebLLM) · flight.js (diagnostics) · pdfread.js (PDFs)
                 jobs.js (summaries, auto-filing) · library.js (search) · mdexport.js (Markdown folder) · sync.js · research.js
                 autobackup.js · secrets.js (encrypted keys) · recommend.js (local model ranking) · sw.js (Chrome entry)
   content/      assistant.js (the panel) · launcher.js (the owl) · capture.js (passive capture) · extract.js · faq.js · styles.js
@@ -197,7 +202,7 @@ extension/
   prompts/      prompt texts per site, with a fine-tuning guide
   sites/        site profiles: X, Reddit, Stack Overflow, Hacker News, GitHub, YouTube, Wikipedia
   shared/       config · prompts · markdown · snippets · knowledge (BM25, related notes) · backup · ask · brand
-  vendor/       web-llm (the in-browser AI engine, vendored; see its README)
+  vendor/       web-llm (in-browser AI) · pdfjs (PDFs) · readability (fallback page parser), each with a README
 scripts/        build, release, icons, try-prompt
 test/           node:test unit tests
 ```
@@ -219,7 +224,8 @@ After editing, run `npm run build` and click **Reload** on the extension card.
 - **In-browser AI isn't offered:** Chrome's built-in AI needs a recent Chrome on a supported computer; the in-browser model needs WebGPU (recent Chrome or Edge). Firefox has neither yet on most systems, so use Ollama or a cloud key there.
 - **Search only "by words":** install an embedding model with `ollama pull nomic-embed-text`, or use an OpenAI, Gemini or Mistral key.
 - **Markdown folder says it needs permission:** browsers sometimes ask again after a restart. Click **Allow access again** in Settings, and choose "Allow on every visit" if offered.
-- **The side panel says it can't read the page:** browser pages (`chrome://`, extension stores, PDFs) can't run extensions. On a normal site, reload the tab once after installing or updating.
+- **The side panel says it can't read the page:** browser pages (`chrome://`, extension stores) can't run extensions. On a normal site, reload the tab once after installing or updating. PDFs are read by the side panel itself; local files (`file://`) aren't supported.
+- **A YouTube video has no transcript:** some videos have none (or YouTube doesn't show one); soroagent then uses the description, chapters and comments.
 - **Something else went wrong:** Settings → Troubleshooting → **Copy diagnostic report** opens a GitHub issue with a scrubbed report attached. Read it before you submit.
 - **Cloud API errors:**
   - *rejected the API key* means a wrong or expired key, or no billing set up

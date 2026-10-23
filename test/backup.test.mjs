@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { load } from './helpers.mjs';
 
-const S = await load('shared/backup.js');
+const S = await load('shared/config.js', 'shared/backup.js');
 
 test('storage upgrades add snippet kinds once and record the schema version', () => {
   const all = {
@@ -73,6 +73,20 @@ test('retired features keep your pages and drop their own data', () => {
   assert.equal(updates['snippet:w'].summary, '$19');
   assert.equal(updates['snippet:r'].kind, 'page');
   assert.equal(updates['snippet:r'].readAt, undefined);
-  assert.equal(updates.meta.schemaVersion, 4);
+  assert.equal(updates.meta.schemaVersion, S.SCHEMA_VERSION);
   assert.deepEqual(S.planRemovals(all).sort(), ['stats:2026-10-20', 'xstats:dev:2026-10-20']);
+});
+
+test('v5: automatic AI work that was on (the old default) becomes "auto"; off stays off', () => {
+  const on = S.planMigrations({ meta: { schemaVersion: 4 }, settings: { source: 'cloud', preparePages: true, pageQuestions: true, model: 'm' } });
+  assert.equal(on.settings.preparePages, 'auto');
+  assert.equal(on.settings.pageQuestions, 'auto');
+  assert.equal(on.settings.model, 'm');
+  const off = S.planMigrations({ meta: { schemaVersion: 4 }, settings: { preparePages: false, pageQuestions: false } });
+  assert.equal(off.settings, undefined);
+  assert.equal(S.autoOn({ preparePages: 'auto', source: 'cloud' }, 'preparePages'), false);
+  assert.equal(S.autoOn({ preparePages: 'auto', source: 'local' }, 'preparePages'), true);
+  assert.equal(S.autoOn({ preparePages: 'auto', source: 'browser' }, 'preparePages'), true);
+  assert.equal(S.autoOn({ preparePages: true, source: 'cloud' }, 'preparePages'), true, 'turned on by hand');
+  assert.equal(S.autoOn({ source: 'local' }, 'preparePages'), true);
 });

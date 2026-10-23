@@ -36,6 +36,7 @@ extension/
     llm.js           chat + model listing for Ollama, OpenAI-compatible and Anthropic; "browser" → browserai.js
     browserai.js     in-browser AI: Gemini Nano (Prompt API) and the WebLLM engine host + port client
     flight.js        flight recorder: scrubbed ring buffer (50) in storage.session + the Markdown report
+    pdfread.js       PDFs: pdf.js in the offscreen document (Chrome) / background page (Firefox)
     jobs.js          summaries/research run here, so they survive leaving the page
     library.js       library index: int8 embeddings ("vec:<id>") + BM25, fused with RRF
     research.js      web search (DuckDuckGo lite, Brave, Bing) + reading top results
@@ -56,7 +57,9 @@ extension/
   pages/             sidepanel (the default UI: Chrome side panel / Firefox sidebar), options (Settings),
                      onboard (first run; ?sync = sync setup), snippets, history,
                      libchat (Ask your library), offscreen (Chrome: backup blobs + the WebLLM engine)
-  vendor/web-llm/    WebLLM 0.2.86 + the Qwen2.5-1.5B model library, vendored (README has sources/hashes)
+  vendor/            vendored libraries, each with a README (source, version, SHA-256) and LICENSE:
+                     web-llm (WebLLM 0.2.86 + Qwen2.5-1.5B library), pdfjs (pdf.js 6.4.299),
+                     readability (Mozilla Readability 0.6.0, a content script)
 scripts/             build.mjs (manifests + zips, no deps), release.mjs, make-icons.mjs, try-prompt.mjs
 test/                node:test unit tests (no dependencies); test/helpers.mjs loads extension files
 downloads/           the released zips, one per browser, named with the version
@@ -64,8 +67,8 @@ keys/                chrome-public-key.txt pins the Chrome extension ID (see key
 ```
 
 All extension code is classic scripts that attach to `globalThis.soroagent` (aliased `S`). No
-bundler, no npm dependencies; the one third-party library, WebLLM, is vendored as a file in
-`extension/vendor/web-llm/` (see its README). Pure functions are exported on `soroagent` so tests can load them.
+bundler, no npm dependencies; third-party libraries (WebLLM, pdf.js, Readability) are vendored as
+files in `extension/vendor/` (see each README). Pure functions are exported on `soroagent` so tests can load them.
 
 ## Data
 
@@ -78,13 +81,15 @@ IndexedDB holds things storage can't: encrypted API keys, the sync key, the Mark
 
 Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): `openIn` (`sidepanel` | `page`),
 `showLauncher` (the floating owl, off by default; existing installs keep their saved value),
-`source` (`local` | `cloud` | `browser`), `browserEngine` (`nano` | `webllm`), `preparePages` (on), `pageQuestions` (on),
+`source` (`local` | `cloud` | `browser`), `browserEngine` (`nano` | `webllm`), `preparePages` and
+`pageQuestions` (`'auto'` | true | false; read them with `S.autoOn()`: 'auto' is on unless the AI is
+a cloud API),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
-`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 4). When a feature is
-removed, add a migration that converts or deletes its data (v3: wishlist → readlater; v4: readlater
-→ page and stats keys deleted).
+`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 5). When a feature is
+removed or a default changes, add a migration (v3: wishlist → readlater; v4: readlater → page and
+stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`).
 
 ## Rules
 
@@ -155,12 +160,27 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   website?" topic), `sp-save`, `sp-refresh`, `sp-open`. The content script sends
   `sidepanel:changed` when something shown there changes. It runs chats over the `llm` port and
   summaries as jobs, like the floating panel.
+- **Reading a page** (`sitePage()`): the site profile's `extract()`; if it finds nothing on a page
+  type it covers, `S.readFallback()` (Readability on a cloned document, then `readPage`) with a
+  flight-recorder event; on X, posts that don't match fall back the same way. The full text is then
+  condensed to the limit by `S.condenseText()` (headings, first/last paragraph overall and per
+  section, then BM25-relevant paragraphs, in order, "[…]" at gaps) and `pageVars` tells the model.
+  Profiles may have `ensure(doc, location, { interactive })` for content that needs loading:
+  YouTube's reads the transcript panel (opening and closing it only when `interactive`, i.e. a
+  Summarize or question; YouTube's caption URLs need a player token and `get_transcript` rejects
+  other callers, both tested 2026-10-23).
+- **PDFs:** the side panel detects a PDF tab (URL, or the content script reporting
+  `document.contentType === 'application/pdf'`, since Chrome injects it into the viewer's wrapper)
+  and asks the background (`pdf:read`) to fetch and parse it with pdf.js. Summary, questions, chat
+  and Save are built in the side panel with the default prompts. The context menu item on PDF links
+  opens the side panel and passes the URL through `storage.session` (`pdfRequest`).
 - **Summarize / Ask:** `assistant.js` reads the page via the site profile's `extract()` (Stack
   Overflow answers, Reddit/HN comment trees, GitHub issue state, X threads…) or `extract.js`, builds
   messages with `S.buildMessages(action, vars, sitePrompts())`, and streams through the `llm` port.
   Summaries run as background jobs (`jobs.js`).
-- **Prepared on visit** (`preparePages`, on by default): 4 s after a page is in front, `preparePage()`
-  in `assistant.js` summarizes it (`summarize` prompt) and then writes questions from that summary
+- **Prepared automatically** (`preparePages`, `S.autoOn`): when the side panel is open on the page
+  (its `sp-snapshot` request starts it) or after 15 s of active dwell (tab visible and focused,
+  counted every second), `preparePage()` in `assistant.js` summarizes it (`summarize` prompt) and then writes questions from that summary
   (`questions` prompt with `quick: true`: no extended thinking, short output; `llm.js`), using
   `S.pageKind` (JSON-LD, og:type, site profile, URL → product, news, thread, docs…). Opening the panel
   shows the questions; Summarize shows the prepared summary at once and saves it through a job with
@@ -222,6 +242,9 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 - Open the real side panel with `Extensions.triggerAction({ id, targetId })`, where `targetId` is
   the **tab** target (`Target.getTargets({ filter: [{ type: 'tab' }] })`), not the page target. Its
   page then shows up as a target with `sidepanel.html` in the URL.
+- Real arXiv PDF in the side panel: open `https://arxiv.org/pdf/1706.03762`, trigger the action on
+  that tab; dwell is measured by counting the background's requests to `11434/api/chat` with
+  `Network.enable` on the service worker and `Emulation.setFocusEmulationEnabled` on the page.
 - Chrome's storage returns objects with their keys sorted; never compare stored objects with
   `JSON.stringify` directly.
 
@@ -242,7 +265,10 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   website use the person's Ollama.
 - The side panel is the default UI and the floating owl is opt-in: no site CSS conflicts, and it
   persists across navigations. The floating panel stays for people who prefer it.
+- Automatic AI work runs only when the side panel is open or after 15 s of reading, and only by
+  default with local/in-browser AI (cloud keys would pay for every page). Cloud users get a
+  "Suggest questions for this page" link instead.
+- Long pages are condensed, not cut, so small models see the whole document's structure.
 - Shortcut is Alt+Shift+O, not Cmd+Shift+O/S as first asked: those are taken by the browsers.
-- Preparing a summary and questions on every visit is on by default (the owner asked for it). With
-  a cloud key it sends each visited page to the provider; the Settings switch and privacy policy
-  say so. Revisit if cloud users find it surprising.
+- (Superseded 2026-10-23) Preparing on every visit with cloud keys was on by default; it now
+  follows `S.autoOn` (off for cloud), with migration v5 turning the old `true` into `'auto'`.

@@ -40,6 +40,7 @@
     .home img { width: 44px; height: 44px; border-radius: 12px; }
     .home strong { color: var(--fg); font-size: 15px; }
     .suggest-head { display: flex; justify-content: space-between; width: 100%; max-width: 320px; margin-top: 10px; font-size: 11.5px; }
+    .suggest-head .link { border: none; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
     .suggest { display: grid; gap: 6px; width: 100%; max-width: 320px; }
     .suggest button { text-align: left; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
     .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
@@ -99,7 +100,7 @@
     <img src="../icons/icon-128.png" alt="">
     <strong>How can I help with this page?</strong>
     <span id="homeNote"></span>
-    <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span></div>
+    <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span><button class="link" type="button" id="suggestMore" hidden>Suggest questions for this page</button></div>
     <div class="suggest" id="suggest" role="group" aria-label="Suggested questions"></div>
   </div>
 </main>
@@ -109,7 +110,12 @@
 </form>
 <script src="../shared/config.js"></script>
 <script src="../shared/markdown.js"></script>
+<script src="../shared/prompts.js"></script>
+<script src="../prompts/default.js"></script>
+<script src="../shared/knowledge.js"></script>
+<script src="../shared/snippets.js"></script>
 <script src="../content/faq.js"></script>
+<script src="../background/pdfread.js"></script>
 <script src="sidepanel.js"></script>
 </body>
 </html>

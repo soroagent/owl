@@ -102,7 +102,9 @@
 
   /** Placeholder values for a page { title, url, text, truncated }, plus any extras. */
   function pageVars(page, extra = {}) {
-    const note = page.truncated ? '[Content was truncated to fit the model context.]' : '';
+    const note = page.condensed
+      ? '[This is a long page, condensed to fit: its headings, the start and end of each section, and its most relevant paragraphs. "[…]" marks skipped parts; don\'t guess what they say.]'
+      : page.truncated ? '[Content was truncated to fit the model context.]' : '';
     const content = page.text || '';
     return {
       title: page.title || '(untitled)',

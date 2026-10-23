@@ -57,6 +57,11 @@
 
   /** Returns { title, url, text, truncated } with the page's main readable text as light Markdown. */
   function extractPage(doc = document, { maxChars = 12000 } = {}) {
+    return { title: doc.title, url: doc.location ? doc.location.href : '', ...truncate(readPage(doc), maxChars) };
+  }
+
+  /** The page's main readable text as light Markdown, in full. */
+  function readPage(doc = document) {
     const container = pickContentRoot(doc);
     const parts = [];
     const taken = new Set();
@@ -75,9 +80,38 @@
     // Sites built from <div>s (social feeds, web apps) have few semantic blocks; use rendered text then.
     const fullText = squash(container.innerText);
     if (text.length < fullText.length * 0.4) text = fullText;
-
-    return { title: doc.title, url: doc.location ? doc.location.href : '', ...truncate(text, maxChars) };
+    return text;
   }
 
-  Object.assign(soroagent, { extractPage });
+  // Blocks of detached HTML (no layout, so no visibility checks) as light Markdown.
+  function htmlToText(html) {
+    const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    const parts = [];
+    for (const el of doc.body.querySelectorAll(BLOCKS)) {
+      if (el.parentElement && el.parentElement.closest(BLOCKS)) continue; // a block inside a block
+      const raw = el.tagName === 'PRE' ? el.textContent.trim() : squash(el.textContent);
+      if (raw && parts[parts.length - 1] !== raw) parts.push(formatBlock(el, raw));
+    }
+    return parts.join('\n\n') || squash(doc.body.textContent);
+  }
+
+  /**
+   * The generic fallback when a site profile's selectors find nothing (sites change their markup):
+   * Mozilla's Readability on a copy of the page (vendor/readability), else our own reader.
+   * Returns { text, parser: 'readability' | 'generic' }.
+   */
+  function readFallback(doc = document) {
+    if (typeof root.Readability === 'function') {
+      try {
+        const article = new root.Readability(doc.cloneNode(true), { charThreshold: 300 }).parse();
+        const text = article && htmlToText(article.content);
+        if (text && text.length > 300) return { text: `${article.title ? `# ${article.title}\n\n` : ''}${text}`, parser: 'readability' };
+      } catch {
+        // fall through to our own reader
+      }
+    }
+    return { text: readPage(doc), parser: 'generic' };
+  }
+
+  Object.assign(soroagent, { extractPage, readPage, readFallback, htmlToText });
 })(globalThis);
