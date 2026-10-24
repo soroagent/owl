@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.31.1 on 2026-10-23.
+against version 2.36.0 on 2026-10-24.
 
 ## Before you submit
 
@@ -10,7 +10,7 @@ against version 2.31.1 on 2026-10-23.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-23 |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-24 (v2.36.0) |
 | ✅ | No unused permissions (`activeTab` removed); manifest description ≤ 132 characters | Tested |
 | ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Added 2026-10-23 |
 | ✅ | Third-party licenses ship in both builds | Tested |
@@ -38,6 +38,19 @@ library. The AI is chosen by the user: a model server on their computer (Ollama,
 AI inside the browser (Chrome's Gemini Nano, or Qwen2.5-1.5B via WebLLM in Chrome), or the user's own
 API key for a cloud provider. There are no soroagent servers, accounts, analytics or ads.
 
+Features a reviewer may notice while testing (all serve that purpose, all started by the user or
+switchable in Settings → On the page):
+
+- **Suggested and follow-up questions.** The panel suggests questions for the page; after each
+  answer it asks the same AI for two follow-up questions, sending only the question and the answer.
+- **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
+  search engine chosen in Settings), reads the top results and answers with sources.
+- **Tasks** ("latest news from rediff.com"): soroagent fetches that site without cookies; if it only
+  renders with JavaScript, it opens it in an inactive background tab, reads it and closes the tab.
+- **High-resolution pictures.** When a page shows large photos, the owl gets a dot and the panel asks
+  whether to download them (all, chosen ones, not now, never on this site). Nothing is downloaded
+  until the user clicks; files go through the `downloads` API to `Downloads/soroagent/pictures/<site>/`.
+
 Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.com/soroagent/owl/blob/main/PRIVACY.md
 
 ---
@@ -47,8 +60,8 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 ### Single purpose
 
 > soroagent helps you understand and keep what you read on the web: it summarizes and answers
-> questions about the current page with an AI model the user chooses, and files what they read into
-> a private, searchable library on their device.
+> questions about the current page with an AI model the user chooses, and files what they read (and,
+> when they ask, the page's high-resolution pictures) into a private library on their device.
 
 ### Permission justifications
 
@@ -83,7 +96,11 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 
 - **Website content**: yes. Page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
-  or in-browser AI by default). With a local or in-browser AI it never leaves the device.
+  or in-browser AI by default). After an answer, the question and the answer go to the same AI to
+  suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
+  device.
+- **Pictures**: downloaded only when the user clicks, straight from the site that serves them into
+  the user's Downloads folder; soroagent keeps no record of them and sends nothing elsewhere.
 - **Web history**: saved notes include page addresses; stored locally; included in the user's
   encrypted sync if they turn it on.
 - Not sold, not used for advertising or credit, not used for anything unrelated to the single purpose.
@@ -96,6 +113,14 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 > automatically on first run. Or, on a supported Chrome, choose "Use Chrome's built-in AI". Then open
 > any article, click the owl in the page corner (or the toolbar button, or press Alt+Shift+O) and use
 > Summarize or ask a question. The panel's ⋯ menu has "Switch to the side panel".
+>
+> After each answer the panel shows two follow-up questions (a second, short request to the same AI
+> with the question and the answer). To see the picture download question, open a page with large
+> photos (for example a Wikimedia Commons file page): the owl shows an orange dot and the panel asks
+> "This page has N high-resolution pictures. Download them?". Nothing is downloaded until you click;
+> files are saved with chrome.downloads to Downloads/soroagent/pictures/<site>/. A Task ("latest
+> news from rediff.com", the Task chip) may open the site in an inactive background tab to read it,
+> then closes it.
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest
@@ -149,6 +174,13 @@ npm run vendor   # optional: downloads the vendored libraries again and verifies
 > on first run. Open an article and click the owl in the page corner (or press Alt+Shift+O). The
 > panel's ⋯ menu has "Switch to the side panel", which opens the same UI in Firefox's sidebar.
 >
+> After each answer the panel shows two follow-up questions (a second, short request to the same AI
+> with the question and the answer). On a page with large photos (for example a Wikimedia Commons
+> file page) the owl shows an orange dot and the panel asks whether to download them; nothing is
+> downloaded until you click, and files are saved with browser.downloads to
+> Downloads/soroagent/pictures/<site>/. A Task ("latest news from rediff.com") may open the site in
+> an inactive background tab to read it, then closes it.
+>
 > Our code is not minified or bundled; scripts/build.mjs only copies files and writes the manifest.
 > Third-party libraries, unmodified (README, license and SHA-256 in each vendor/ folder; `npm run
 > vendor` downloads them from the npm registry, checks the tarball integrity and the SHA-256):
@@ -175,10 +207,13 @@ only when the user chooses a feature that needs it:
 
 | Feature | Data | Category |
 |---|---|---|
-| A cloud AI (the user's own API key) | Page text, questions | `websiteContent` |
-| Research, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
+| A cloud AI (the user's own API key) | Page text, questions, answers (for follow-up questions) | `websiteContent` |
+| Research, Tasks without a named site, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
 | Sync (Google Drive, WebDAV, Gist) | The library, encrypted end to end | `websiteContent`, `browsingActivity` |
 | "Copy diagnostic report" (opens a GitHub issue) | Scrubbed error log | `technicalAndInteraction` |
+
+Downloading a page's pictures (on the user's click) and reading a Task's site are requests to those
+sites themselves, like the user opening them, not transmission to soroagent or a third party.
 
 With Ollama or another local model, nothing is transmitted, so `"none"` is true for that setup but not
 for the add-on as a whole. Recommended: keep `required: ["none"]` and declare
@@ -211,3 +246,5 @@ Firefox 140+ is required for this, which is now `strict_min_version`.
 | Description too long (Chrome, 132) | 132 characters; a test keeps it within the limit. |
 | Missing licenses for bundled code | Shipped in both builds. |
 | Broken features for reviewers (OAuth in Testing mode, store ID) | Publish the OAuth consent screen; add the store ID redirect. |
+| Single purpose (Chrome) | Extras (tasks, web answers, follow-ups, picture downloads) all serve reading and keeping pages; the single-purpose text names picture saving, and the reviewer notes explain each. |
+| Unexpected downloads or tabs | Pictures download only on a click in the panel, to a named folder; a Task's background tab is inactive and closed after reading. Both are in the reviewer notes and the privacy policy. |
