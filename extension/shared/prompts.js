@@ -267,13 +267,16 @@
   /**
    * Pure: the focus reply with its references made clickable: [n] → that post or item (urls[n-1]),
    * and [m:ss] / [h:mm:ss] → that moment of the video (videoUrl gets ?t=…s). A bullet that only
-   * repeats posts already listed is dropped.
+   * repeats posts already listed is dropped, and on a feed (urls given) so is one that cites none.
    */
   function linkFocusRefs(text, { urls = [], videoUrl = '' } = {}) {
-    // Small models sometimes list a post twice: keep the first bullet for each [n].
+    // Small models sometimes list a post twice (keep the first bullet for each [n]) or add a bullet
+    // that cites no post at all on a feed, where every real item has a number (drop it).
     const seen = new Set();
     const lines = String(text || '').split('\n').filter((line) => {
-      const refs = /^\s*[-*•]\s/.test(line) ? [...line.matchAll(/\[(\d{1,3})\](?!\()/g)].map((m) => m[1]) : [];
+      const bullet = /^\s*[-*•]\s/.test(line);
+      const refs = bullet ? [...line.matchAll(/\[(\d{1,3})\](?!\()/g)].map((m) => m[1]) : [];
+      if (bullet && urls.length && !videoUrl && !/\[\d{1,3}\]/.test(line)) return false;
       if (refs.length && refs.every((n) => seen.has(n))) return false;
       refs.forEach((n) => seen.add(n));
       return true;

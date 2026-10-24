@@ -153,4 +153,6 @@ test('Tech only: the focus prompt asks for the topic, and its references become 
   assert.equal(S.linkFocusRefs('at [12:34]', {}), 'at [12:34]', 'timestamps link only on a video');
   assert.equal(S.linkFocusRefs('[1]', { urls: ['javascript:alert(1)'] }), '[1]', 'only web links');
   assert.equal(S.linkFocusRefs('- **GPT** launch [1]\n- **Rust** [2]\n- Faster responses [1]\n- Text without refs', {}), '- **GPT** launch [1]\n- **Rust** [2]\n- Text without refs', 'a post listed twice keeps its first bullet');
+  assert.equal(S.linkFocusRefs('- **GPU** [1]\n- **AI funding** (no post)', { urls: ['https://x.com/a/status/1'] }), '- **GPU** [post 1](https://x.com/a/status/1)', 'on a feed, a bullet citing no post is dropped');
+  assert.equal(S.linkFocusRefs('- **Chip** at [1:00]', { videoUrl: '' }), '- **Chip** at [1:00]', 'pages without items keep every bullet');
 });
