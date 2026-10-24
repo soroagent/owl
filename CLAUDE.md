@@ -212,6 +212,16 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `assistant:task-read`, tab closed) → condensed text + "LINKS ON THE PAGE" into the `taskReport`
   prompt via the page placeholders in `JOB_PLACEHOLDERS`. Saved under the site it read
   (`targetUrl`). Recent tasks in `storage.local.recentTasks`.
+- **High-resolution pictures** (`offerPictures`, on; `pictureNeverSites`): `S.pagePictures()` in
+  `extract.js` reads `document.images` (the largest `srcset` / `<picture>` candidate each offers) and
+  `S.pickPictures()` keeps real photos: ≥1600×900 or ≥2 MP, shown at ≥160 px, http(s), no SVG, no
+  duplicates, largest first, at most 40. Rescanned 1.2 s after any large image loads (capture-phase
+  `load` listener). The owl gets an orange dot (`.launcher.pictures`); opening the panel puts the
+  question on the opening screen (or in the conversation), and the side panel shows it from the
+  snapshot (`pictures`) and answers through `assistant:sp-pictures` (list / download / later / never).
+  Downloads go through `pictures:download` in the background (`S.pictureFolder`, `S.safeFileName`,
+  `conflictAction: 'uniquify'`) to `Downloads/soroagent/pictures/<host>/`. Asked once per URL; never
+  on pages `preparable()` rejects (mail, banking, local pages…).
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).

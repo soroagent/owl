@@ -6,6 +6,7 @@
   <title>Settings · soroagent</title>
   <link rel="stylesheet" href="pages.css">
   <style>
+    button.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
     main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
     section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
@@ -187,6 +188,9 @@
       </div>
       <label class="check"><input type="checkbox" id="webFallback">
         <span>Search the web when the page doesn't have the answer<small>Ask something the page doesn't cover (say, a company's revenue) and soroagent searches the web, reads the top results and answers with sources, the way Research does. The search goes to the engine chosen under Research. When off, you get a button to do it.</small></span>
+      </label>
+      <label class="check"><input type="checkbox" id="offerPictures">
+        <span>Offer to download high-resolution pictures<small>When a page shows large, high-resolution pictures, the owl gets an orange dot and the panel asks whether to download them, all at once or the ones you pick. They go to Downloads/soroagent/pictures, in a folder for the site. Nothing is downloaded until you click. Sites where you chose "Never on this site" are skipped<span id="pictureNeverNote"></span>.</small></span>
       </label>
       <label class="check"><input type="checkbox" id="preparePages">
         <span>Prepare a summary and questions automatically<small>When the side panel is open on a page, or after you've been reading it for 15 seconds, your AI summarizes it in the background and works out the questions you're likely to have, so they're ready when you look and Summarize is instant. Never on mail, chat, banking, sign-in or checkout pages. On by default with an AI on your computer or in the browser; off by default with a cloud API, where it would send and bill every page you read.</small></span>

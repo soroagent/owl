@@ -50,6 +50,8 @@
     preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)
+    offerPictures: true, // ask in the panel whether to download a page's high-resolution pictures
+    pictureNeverSites: [], // hosts where "Never on this site" was chosen for that question
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens
     launcherPosition: 'auto', // 'auto' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     launcherPlacements: {}, // hostname -> { side: 'left' | 'right', y: 0..1 } after the user drags the button
@@ -251,6 +253,18 @@
    * Pure: whether to offer sync now. Offered once the library holds 5 items (something worth
    * keeping), never while sync is on; "Not now" waits for 15 more items, and after two it stops.
    */
+  /** Pure: a file name safe on every system (no path separators or reserved characters, no leading dot). */
+  function safeFileName(name, fallback = 'picture.jpg') {
+    const safe = String(name || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/^[\s.]+|[\s.]+$/g, '').replace(/\s+/g, ' ').slice(0, 120);
+    return safe || fallback;
+  }
+
+  /** Pure: where a site's pictures go, under Downloads: soroagent/pictures/<host>. */
+  function pictureFolder(host) {
+    const site = String(host || '').toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9.-]+/g, '-').replace(/^[.-]+|[.-]+$/g, '');
+    return `soroagent/pictures/${site || 'pages'}`;
+  }
+
   function syncOfferDue({ count, syncOn, offer = {} }) {
     if (syncOn || count < 5 || (offer.times || 0) >= 2) return false;
     return offer.snoozedAt === undefined || count >= offer.snoozedAt + 15;
@@ -331,6 +345,8 @@
     appearanceOf,
     ollamaOriginsFix,
     syncOfferDue,
+    safeFileName,
+    pictureFolder,
     modelPatch,
     getSettings,
     saveSettings,

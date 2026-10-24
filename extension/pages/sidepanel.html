@@ -67,6 +67,16 @@
     .task-row input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; }
     .task-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
     .task-chips button { padding: 4px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12px; cursor: pointer; }
+    #pictures { width: 100%; text-align: left; }
+    #pictures:empty { display: none; }
+    .card-actions button.primary { background: var(--brand); border-color: var(--brand); color: #04271b; }
+    .card-actions button:disabled { opacity: 0.5; cursor: default; }
+    .picture-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; margin: 8px 0; max-height: 320px; overflow: auto; }
+    .picture { position: relative; display: block; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; background: var(--surface); }
+    .picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .picture input { position: absolute; top: 5px; left: 5px; margin: 0; width: 15px; height: 15px; accent-color: var(--brand); }
+    .picture span { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 4px; font-size: 10px; color: #fff; background: rgba(0, 0, 0, 0.55); }
+    .picture:has(input:not(:checked)) img { opacity: 0.45; }
     .card-actions button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
     form { display: flex; align-items: flex-end; gap: 6px; padding: 8px 10px 10px; border-top: 1px solid var(--border); }
     textarea { flex: 1; min-height: 36px; max-height: 140px; resize: none; padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--fg); font: inherit; outline: none; }
@@ -106,6 +116,7 @@
     <img src="../icons/icon-128.png" alt="">
     <strong>How can I help with this page?</strong>
     <span id="homeNote"></span>
+    <div id="pictures"></div>
     <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span><button class="link" type="button" id="suggestMore" hidden>Suggest questions for this page</button></div>
     <div class="suggest" id="suggest" role="group" aria-label="Suggested questions"></div>
   </div>

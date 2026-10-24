@@ -59,7 +59,7 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 | `contextMenus` | Right-click items: "Summarize this page", "Take a screenshot", and "Summarize this PDF with soroagent". |
 | `scripting` | When the user opens soroagent (or a right-click item) on a tab that was already open before soroagent was installed or updated, injects soroagent's own packaged content scripts into that tab so it works without a reload. |
 | `declarativeNetRequestWithHostAccess` | One session rule that sets the `Origin` header on soroagent's own background requests to the user's local model server (e.g. Ollama at 127.0.0.1), so the server accepts them. See "Local model servers" below. It never applies to web pages or tabs. |
-| `downloads` | Saves the automatic backup file and Markdown exports to the user's Downloads folder, and exports from the library page. |
+| `downloads` | Saves the automatic backup file and Markdown exports to the user's Downloads folder, exports from the library page, and high-resolution pictures from the current page when the user clicks Download on the panel's question (to `Downloads/soroagent/pictures/<site>/`). |
 | `downloads.ui` | Keeps the download bar from opening for the periodic automatic backup (a background save the user turned on). |
 | `alarms` | Schedules the periodic backup and the optional sync. |
 | `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |

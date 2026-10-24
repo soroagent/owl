@@ -432,6 +432,29 @@
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
       return { ok: true };
     },
+    // Pictures the reader chose to download from the page (the question in the panel): saved to
+    // Downloads/soroagent/pictures/<site>/, as the browser's own "Save image as" would fetch them.
+    'pictures:download': async (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id) return { ok: false, error: 'Not allowed.' };
+      const folder = S.pictureFolder(msg.host);
+      const items = (Array.isArray(msg.items) ? msg.items : []).filter((it) => it && /^https?:\/\//i.test(String(it.url || ''))).slice(0, 60);
+      let saved = 0;
+      let firstId = null;
+      for (const it of items) {
+        try {
+          const id = await ext.downloads.download({ url: it.url, filename: `${folder}/${S.safeFileName(it.name)}`, conflictAction: 'uniquify', saveAs: false });
+          saved += 1;
+          if (firstId === null) firstId = id;
+        } catch (err) {
+          quietly('pictures:download')(err);
+        }
+      }
+      return { ok: true, saved, failed: items.length - saved, folder, firstId };
+    },
+    'pictures:show': async (msg) => {
+      if (typeof msg.id === 'number') ext.downloads.show(msg.id);
+      return { ok: true };
+    },
     // Flight recorder: anything of ours may report (it's scrubbed again here); only extension pages read it.
     'diag:record': async (msg, sender) => {
       if (!sender || sender.id !== ext.runtime.id) return { ok: false };

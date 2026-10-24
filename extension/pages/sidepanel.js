@@ -120,6 +120,7 @@
     const snap = state.snap;
     const page = $('page');
     page.replaceChildren();
+    renderPictures(snap && snap.pictures);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -167,6 +168,83 @@
     $('newCount').hidden = !snap.newPosts || p.status === 'working';
     $('newCount').textContent = snap.newPosts > 99 ? '99+' : String(snap.newPosts || '');
     $('refresh').title = snap.newPosts ? `${snap.newPosts} new posts loaded since the summary: refresh` : 'Refresh the summary with the posts loaded now';
+  }
+
+  // ---------------------------------------------------------------------------
+  // High-resolution pictures on the page: the same question as in the floating panel (the content
+  // script finds them, names them and asks the background to download them)
+  // ---------------------------------------------------------------------------
+
+  const picturesQuestion = (n) => (n === 1 ? 'This page has a high-resolution picture. Download it?' : `This page has ${n} high-resolution pictures. Download them?`);
+
+  function renderPictures(offer) {
+    if ($('pictures').querySelector('.pictures-choose')) return; // the reader is choosing; leave it
+    if (!offer) return $('pictures').replaceChildren();
+    const n = offer.count;
+    const answer = (op, extra = {}) => toTab({ type: 'assistant:sp-pictures', op, ...extra });
+    $('pictures').replaceChildren(card({
+      kind: 'pictures-offer',
+      title: picturesQuestion(n),
+      body: `They're saved to your Downloads folder, in soroagent/pictures/${offer.host}.`,
+      actions: [
+        { label: n === 1 ? 'Download' : 'Download all', onClick: () => (clearPictures(), answer('download').then(showDownloaded, showDownloaded)) },
+        ...(n > 1 ? [{ label: 'Choose…', onClick: () => choosePictures() }] : []),
+        { label: 'Not now', onClick: () => (clearPictures(), answer('later')) },
+        { label: 'Never on this site', onClick: () => (clearPictures(), answer('never')) },
+      ],
+    }));
+  }
+  function clearPictures() {
+    if (state.snap) state.snap.pictures = null;
+    $('pictures').replaceChildren();
+  }
+
+  async function choosePictures() {
+    const res = await toTab({ type: 'assistant:sp-pictures', op: 'list' }).catch(() => null);
+    if (!res || !res.ok || !res.pictures.length) return clearPictures();
+    const grid = el('div', { className: 'picture-grid' });
+    const boxes = res.pictures.map((p) => {
+      const box = el('input', { type: 'checkbox', checked: true });
+      grid.append(el('label', { className: 'picture', title: `${p.width} × ${p.height}${p.alt ? ` · ${p.alt}` : ''}` }, [el('img', { src: p.url, alt: p.alt || '', loading: 'lazy' }), box, el('span', { textContent: `${p.width}×${p.height}` })]));
+      return box;
+    });
+    const node = card({ kind: 'pictures-choose', title: 'Choose the pictures to download' });
+    const go = el('button', { type: 'button', className: 'primary' });
+    const all = el('button', { type: 'button' });
+    const cancel = el('button', { type: 'button', textContent: 'Cancel' });
+    const update = () => {
+      const n = boxes.filter((b) => b.checked).length;
+      go.textContent = n ? `Download ${n}` : 'Download';
+      go.disabled = !n;
+      all.textContent = n === boxes.length ? 'Select none' : 'Select all';
+    };
+    grid.addEventListener('change', update);
+    all.addEventListener('click', () => {
+      const on = !boxes.every((b) => b.checked);
+      boxes.forEach((b) => (b.checked = on));
+      update();
+    });
+    go.addEventListener('click', () => {
+      const urls = res.pictures.filter((_, i) => boxes[i].checked).map((p) => p.url);
+      clearPictures();
+      toTab({ type: 'assistant:sp-pictures', op: 'download', urls }).then(showDownloaded, showDownloaded);
+    });
+    cancel.addEventListener('click', () => ($('pictures').replaceChildren(), renderPictures(state.snap && state.snap.pictures)));
+    node.append(grid, el('div', { className: 'card-actions' }, [go, all, cancel]));
+    update();
+    $('pictures').replaceChildren(node);
+  }
+
+  function showDownloaded(res) {
+    if (!res || !res.ok || !res.saved) {
+      return append(card({ kind: 'error', title: 'The pictures couldn’t be downloaded', body: (res && (res.error || res.message)) || 'The site may not allow it. You can still save one with a right-click → Save image as.' }));
+    }
+    append(card({
+      kind: 'ok',
+      title: res.saved === 1 ? 'Downloading 1 picture' : `Downloading ${res.saved} pictures`,
+      body: `To Downloads/${res.folder}.${res.failed ? ` ${res.failed} couldn’t be downloaded.` : ''}`,
+      actions: [{ label: 'Show in folder', onClick: () => ext.runtime.sendMessage({ type: 'pictures:show', id: res.firstId }) }],
+    }));
   }
 
   function setEnabled() {

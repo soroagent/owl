@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
-**Effective October 23, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.34 and later.
+**Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
+Arc and Firefox, version 2.35 and later.
 
 ## The short version
 
@@ -66,6 +66,7 @@ soroagent sends data over the network only in these cases, and only to the desti
 | You ask something **the page doesn't answer** | A short search query for your question | The same search engine, then the top result pages are read, as for Research. On by default; turn it off in Settings → On the page to get a button instead. |
 | You run a **Task** ("latest news from rediff.com") | Your task (to the AI you chose, to plan it); a request for the page it needs; if no site is named, a web search for it | The AI you chose, as above; the site the task is about, read without your cookies; the search engine, as for Research. If the site only shows its content with JavaScript, soroagent opens it in a background tab, which loads like any tab you open (with your cookies for that site), reads it and closes it. The page's text and links then go to your AI to write the report. |
 | You open a **PDF** in the side panel, or choose "Summarize this PDF with soroagent" | A request for the PDF file | The site the PDF is on, as your browser would make to show it. It is read on your computer. |
+| You click **Download** on the pictures question | A request for each picture you chose | The site that serves the picture, as your browser's own "Save image as" would make it (with your browser's cookies for that site). Finding the pictures happens on the page, in your browser; nothing is sent to ask the question. |
 | First-run setup | A request to `127.0.0.1:11434` to see whether Ollama is running | Your own computer only. |
 | You choose an AI that runs **in the browser** | Nothing of yours | The model is downloaded once: Chrome's built-in AI by Chrome itself, from Google; the in-browser model (Qwen2.5-1.5B, about 880 MB) from Hugging Face (`huggingface.co/mlc-ai`). The in-browser model is not offered in Firefox. |
 | You turn on **sync** | Your library, history and preferences, encrypted with your passphrase | The storage you pick: your Google Drive (section 4), a WebDAV server you name, or a private GitHub Gist under your account. |
@@ -140,6 +141,9 @@ data in Google Drive → Settings → Manage apps → soroagent → Delete hidde
   backup off in Settings → Backup & restore.
 - **Markdown folder** (optional): if you choose a folder, such as an Obsidian vault, soroagent writes
   your notes there as `.md` files. In Firefox these go to `Downloads/soroagent/notes`.
+- **Pictures** you choose to download from a page are saved to your Downloads folder under
+  `soroagent/pictures/<site>/`. soroagent asks first (Settings → On the page turns the question off) and
+  keeps no record of them.
 - **Exports** you start yourself (Markdown or JSON) are saved where your browser saves downloads.
 
 ## 6. Diagnostics
@@ -158,7 +162,8 @@ which copies the report and opens a pre-filled GitHub issue for you to read and 
   search, PDFs and your sync storage.
 - **Storage** and **unlimited storage:** to keep your library, settings and search index in your
   browser.
-- **Downloads:** for the automatic backup, exports and the Firefox Markdown folder; in Chrome also to
+- **Downloads:** for the automatic backup, exports, the Firefox Markdown folder and pictures you choose
+  to download from a page; in Chrome also to
   hide the download indicator during the automatic backup.
 - **Identity:** to open Google's own sign-in window when you connect Google Drive.
 - **Side panel** (Chrome) / **sidebar** (Firefox): to open soroagent beside the page if you choose to.
