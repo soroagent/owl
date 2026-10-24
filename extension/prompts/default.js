@@ -110,6 +110,25 @@ Each question: at most 12 words, names concrete things from the page (product, p
 Return JSON: {"questions": ["...", "...", "...", "..."]}`,
     },
 
+    // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
+    // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
+    // Reply: JSON (keep this shape).
+    followUps: {
+      system: `You suggest what a curious reader would ask next. Be fast and specific. Reply with JSON only.`,
+      user: `The reader is on the page "{{title}}" ({{url}}).
+
+They asked: {{question}}
+
+The answer they got:
+<answer>
+{{content}}
+</answer>
+
+Write 2 follow-up questions this reader would want to ask next, in their own voice (first person, plain words): one that goes deeper into the answer, and one that explores something related it raises (background, a comparison, what it means for them, or where to learn more).
+Each question: at most 12 words, names concrete things from the answer, and doesn't repeat what was asked or what the answer already says. No yes/no questions.
+Return JSON: {"questions": ["...", "..."]}`,
+    },
+
     // Research, step 0: topics the reader can pick from before researching. Reply: JSON (keep this shape).
     researchTopics: {
       system: `You pick research topics. Reply with JSON only.`,

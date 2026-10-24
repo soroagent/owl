@@ -49,6 +49,7 @@
     // browser, off with a cloud key (every page would be sent to it and billed). See autoOn().
     preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
+    followUps: true, // two follow-up questions under each answer, written by your AI from that answer
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)
     offerPictures: true, // ask in the panel whether to download a page's high-resolution pictures
     pictureNeverSites: [], // hosts where "Never on this site" was chosen for that question

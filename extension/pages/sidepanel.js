@@ -35,7 +35,7 @@
   };
   const toTab = (msg) => ext.tabs.sendMessage(state.tabId, msg);
   const thread = () => {
-    if (!state.threads.has(state.tabId)) state.threads.set(state.tabId, { node: el('div', { className: 'thread' }), history: [], url: '' });
+    if (!state.threads.has(state.tabId)) state.threads.set(state.tabId, { node: el('div', { className: 'thread' }), history: [], url: '', asked: new Set() });
     return state.threads.get(state.tabId);
   };
   function scrollEnd() {
@@ -60,7 +60,10 @@
     }
     return node;
   }
-  const addUser = (text) => append(el('div', { className: 'msg user', textContent: text }));
+  const addUser = (text) => {
+    stopFollowUps();
+    return append(el('div', { className: 'msg user', textContent: text }));
+  };
 
   // An assistant message that renders Markdown as it streams in (escaped by renderMarkdown).
   function addAssistant(pending = 'Thinking…') {
@@ -95,21 +98,30 @@
   // Views
   // ---------------------------------------------------------------------------
 
+  // The opening screen (suggested questions) stays above the conversation, so the reader can scroll
+  // back up and pick another; Home scrolls up to it.
   function showHome() {
+    const chatting = thread().node.childElementCount > 0;
+    if (chatting) return showThread(true);
     $('homeView').hidden = false;
+    $('main').classList.remove('chatting');
     for (const t of state.threads.values()) t.node.hidden = true;
   }
-  function showThread() {
-    $('homeView').hidden = true;
+  function showThread(top = false) {
+    $('homeView').hidden = false;
+    $('main').classList.add('chatting');
     for (const [id, t] of state.threads) t.node.hidden = id !== state.tabId;
     if (!thread().node.isConnected) $('main').append(thread().node);
+    if (top) $('main').scrollTop = 0;
   }
 
   function renderQuestions(list, label = '') {
     $('suggestMore').hidden = true;
     $('suggest').replaceChildren(...list.map((q) => {
       const b = el('button', { type: 'button', textContent: q.label || q });
-      b.addEventListener('click', () => ask(q.ask || q));
+      b.dataset.ask = q.ask || q;
+      b.classList.toggle('asked', thread().asked.has(askedKey(b.dataset.ask)));
+      b.addEventListener('click', () => askFrom(b));
       return b;
     }));
     $('suggestHead').hidden = !label;
@@ -275,6 +287,7 @@
     }
     const url = (tab && tab.url) || '';
     const t = thread();
+    if (t.url && url && t.url !== url) t.asked.clear();
     if (t.url && url && t.url !== url && t.node.childElementCount) t.node.append(el('div', { className: 'divider', textContent: `Now on: ${(tab && tab.title) || 'another page'}` }));
     t.url = url;
     state.url = url;
@@ -538,7 +551,60 @@
       reply.finish(record.text);
       thread().history.push({ role: 'user', content: res.spec.label }, { role: 'assistant', content: record.text });
       if (record.snippetId) append(card({ kind: 'ok', title: 'Saved to your snippets', actions: [{ label: 'Open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] }));
+      suggestFollowUps(res.spec.label, record.text);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Follow-up questions: two under each answer, written by the model from that answer (the same
+  // followUps prompt as the floating panel). Clicked questions, suggested or follow-up, are ticked.
+  // ---------------------------------------------------------------------------
+
+  const askedKey = (q) => String(q).toLowerCase().replace(/[?.!\s]+$/, '');
+  function askFrom(button) {
+    if (state.busy) return;
+    thread().asked.add(askedKey(button.dataset.ask));
+    button.classList.add('asked');
+    ask(button.dataset.ask);
+  }
+
+  let followUps = null; // { controller, node } while being written
+  function stopFollowUps() {
+    if (!followUps) return;
+    followUps.controller.abort();
+    if (!followUps.node.querySelector('button')) followUps.node.remove();
+    followUps = null;
+  }
+
+  async function suggestFollowUps(question, answer) {
+    stopFollowUps();
+    const text = S.stripThinking(String(answer || ''));
+    if ((await S.getSettings()).followUps === false || text.trim().length < 80) return;
+    const t = thread();
+    const node = el('div', { className: 'follow-ups', role: 'group' }, [el('div', { className: 'follow-label', textContent: 'Keep exploring' }), el('div', { className: 'ghost' }), el('div', { className: 'ghost' })]);
+    node.setAttribute('aria-label', 'Follow-up questions');
+    append(node);
+    const mine = (followUps = { controller: new AbortController(), node });
+    try {
+      const pdf = currentPdf();
+      const vars = S.followUpVars({ title: (pdf && pdf.title) || (state.snap && state.snap.title) || '', url: state.url, question, answer: text });
+      const quiet = { push() {}, status() {} };
+      const reply = await streamChat(S.buildMessages('followUps', vars, {}), quiet, mine.controller.signal, { json: true, quick: true });
+      const list = S.pickFollowUps(reply, [question, ...t.asked]);
+      if (followUps !== mine) return;
+      if (!list.length) throw new Error('No follow-ups');
+      node.querySelectorAll('.ghost').forEach((g) => g.remove());
+      for (const q of list) {
+        const b = el('button', { type: 'button', textContent: q });
+        b.dataset.ask = q;
+        b.addEventListener('click', () => askFrom(b));
+        node.append(b);
+      }
+      followUps = null;
+    } catch (err) {
+      if (followUps === mine) followUps = null;
+      node.remove();
+    }
   }
 
   function ask(question, { aboutPage = false, echo = true } = {}) {
@@ -583,10 +649,11 @@
       }
       const web = S.parseWebRequest(S.stripThinking(text), question);
       if (web.query && web.explicit) reply.node.remove();
-      else reply.finish(text);
+      else reply.finish(web.shown || text);
       if (!web.query) {
         t.history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
         t.history = t.history.slice(-12);
+        suggestFollowUps(question, text);
         return;
       }
       const settings = await S.getSettings();
@@ -620,6 +687,7 @@
     const t = thread();
     t.history.push({ role: 'user', content: question }, { role: 'assistant', content: `${text}\n\n(Answered from a web search for “${query}”.)` });
     t.history = t.history.slice(-12);
+    suggestFollowUps(question, text);
   }
 
   // ---------------------------------------------------------------------------

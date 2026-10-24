@@ -104,6 +104,8 @@ test('questions the page cannot answer become a web search (marker or plain word
   assert.equal(S.parseWebRequest('GoDaddy reported revenue of $4.6 billion for 2025 [1].', q).query, '');
   assert.equal(S.parseWebRequest('No, the author does not recommend it, because the page says it is slow.'.repeat(6), q).query, '', 'long answers are answers');
   assert.equal(S.parseWebRequest("The text doesn't say.", '').query, '', 'needs a question to search for');
+  const late = S.parseWebRequest('The page says they hunt in daylight but not how.\n\n[[search: snowy owl hunting adaptations]]', q);
+  assert.deepEqual(late, { query: 'snowy owl hunting adaptations', explicit: false, shown: 'The page says they hunt in daylight but not how.' });
   // Streaming: hold back only what could still become the marker.
   for (const p of ['', '[', '[[', '[[sea', '[[search', '[[search: GoDa']) assert.equal(S.mayBeWebRequest(p), true, JSON.stringify(p));
   for (const p of ['The', 'GoDaddy', '[link]', '1.']) assert.equal(S.mayBeWebRequest(p), false, JSON.stringify(p));
@@ -120,4 +122,19 @@ test('every ask prompt asks for [[search: …]] when the answer is not there; we
   assert.match(user, /Question: what is GoDaddy's revenue\?/);
   assert.match(user, /<sources>\n\[1\] GoDaddy IR/);
   assert.doesNotMatch(user, /\{\{/);
+});
+
+test('follow-up questions: at most 2, written from the answer, never one already asked', () => {
+  const vars = S.followUpVars({ title: 'Snowy owls', url: 'https://x.test/owls', question: 'Where do snowy owls nest?', answer: '<think>hmm</think>They nest on the open tundra. [[search: x]]' + ' More.'.repeat(1000) });
+  assert.equal(vars.question, 'Where do snowy owls nest?');
+  assert.doesNotMatch(vars.content, /think|\[\[search/);
+  assert.ok(vars.content.length <= 3010 && vars.content.endsWith('[…]'));
+  const messages = S.buildMessages('followUps', vars, {});
+  const user = messages.find((m) => m.role === 'user').content;
+  assert.match(user, /Where do snowy owls nest\?/);
+  assert.match(user, /open tundra/);
+  assert.match(user, /"questions"/);
+  const reply = '{"questions": ["Where do snowy owls nest", "Why do lemming cycles drive owl irruptions?", "How do tundra nests survive Arctic foxes?", "Which owls live further south?"]}';
+  assert.deepEqual(S.pickFollowUps(reply, ['Where do snowy owls nest?']), ['Why do lemming cycles drive owl irruptions?', 'How do tundra nests survive Arctic foxes?']);
+  assert.deepEqual(S.pickFollowUps('not json', []), []);
 });

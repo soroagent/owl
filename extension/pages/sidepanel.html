@@ -45,6 +45,17 @@
     .suggest button { text-align: left; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
     .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
     .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+    /* In a conversation the opening screen stays on top, compact: just the suggested questions. */
+    main.chatting .home { margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    main.chatting .home img, main.chatting #homeNote { display: none; }
+    main.chatting .home strong { font-size: 13.5px; }
+    .suggest button.asked, .follow-ups button.asked { color: var(--fg-muted); }
+    .suggest button.asked::before, .follow-ups button.asked::before { content: "✓"; color: var(--ok); }
+    .follow-ups { display: grid; gap: 6px; }
+    .follow-label { font-size: 11.5px; font-weight: 600; color: var(--fg-muted); }
+    .follow-ups button { text-align: left; padding: 7px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+    .follow-ups button::before { content: "→"; color: var(--spark); margin-right: 8px; }
+    .follow-ups button:hover { border-color: var(--accent); background: var(--accent-soft); }
     .ghost { height: 34px; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(90deg, var(--surface-soft) 0%, var(--border) 50%, var(--surface-soft) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
     @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     .thread { display: flex; flex-direction: column; gap: 10px; }

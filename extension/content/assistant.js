@@ -114,7 +114,6 @@
             <button type="button" data-ask="What claims here need checking, and what might be missing?">What should I double-check?</button>
           </div>
           <p class="empty-hint">Summaries and screenshots are saved to your snippets automatically.</p>
-          <button type="button" class="back-to-chat" hidden>Back to the conversation ↓</button>
         </div>
       </div>
       <form class="composer">
@@ -497,9 +496,11 @@
     if (force || t.scrollHeight - t.scrollTop - t.clientHeight < 80) t.scrollTop = t.scrollHeight;
   }
 
+  // The opening screen (suggested questions) stays at the top of the conversation, so the reader
+  // can scroll back up and pick another one.
   function append(node) {
     leaveHome();
-    els.empty.hidden = true;
+    els.thread.classList.add('chatting');
     els.thread.append(node);
     scrollToEnd(true);
     return node;
@@ -507,6 +508,7 @@
 
   const addUserMessage = (text) => {
     clearNextSteps();
+    stopFollowUps();
     return append(el('div', { className: 'msg user', textContent: text }));
   };
 
@@ -699,7 +701,7 @@
       ],
     });
     pics.node = node;
-    const home = !els.empty.hidden && (els.thread.classList.contains('home') || !els.thread.querySelector(':scope > .msg, :scope > .card'));
+    const home = !els.empty.hidden && !els.thread.classList.contains('chatting');
     if (home) els.empty.querySelector('.home-pictures').append(node);
     else append(node);
   }
@@ -1078,6 +1080,7 @@
     if (record.kind === 'task' && record.sources && record.sources.length) append(sourcesCard('', record.sources, 'Read for this task'));
     state.next = { ...(state.next || {}), record };
     renderNextSteps();
+    if (record.kind === 'page' || record.kind === 'items') suggestFollowUps(record.label || 'Summarize this page', record.text);
   }
 
   // One small "next steps" card under the latest answer: saved status, Research, and on feeds,
@@ -1292,18 +1295,15 @@
   }
 
 
-  // Home: the opening screen ("How can I help with this page?"). The conversation stays and comes
-  // back with "Back to the conversation" or the next message.
+  // Home: the opening screen ("How can I help with this page?") at the top of the thread; with a
+  // conversation under it, the home button scrolls back up to its questions.
   function showHome() {
     els.empty.hidden = false;
     suggestQuestions();
-    els.thread.classList.add('home');
-    els.empty.querySelector('.back-to-chat').hidden = !els.thread.querySelector('.msg, .card, .cached');
     els.thread.scrollTop = 0;
   }
   function leaveHome() {
     els.thread.classList.remove('home');
-    els.empty.querySelector('.back-to-chat').hidden = true;
   }
 
 
@@ -1347,7 +1347,10 @@
   // offer: automatic questions are off (cloud AI): show a link that writes them on request.
   function renderQuestions(list, label = '', { offer = false } = {}) {
     els.suggest.replaceChildren(...list.map((q) => el('button', { type: 'button', textContent: q.label || q })));
-    els.suggest.querySelectorAll('button').forEach((b, i) => (b.dataset.ask = list[i].ask || list[i]));
+    els.suggest.querySelectorAll('button').forEach((b, i) => {
+      b.dataset.ask = list[i].ask || list[i];
+      b.classList.toggle('asked', wasAsked(b.dataset.ask));
+    });
     els.suggestHead.hidden = !label && !offer;
     els.suggestHead.querySelector('.suggest-label').textContent = label;
     const more = els.suggestHead.querySelector('.suggest-more');
@@ -2028,6 +2031,67 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Follow-up questions: two under each answer, written by the model from that answer, so the reader
+  // can keep exploring. Earlier ones stay in the conversation; clicked questions are ticked.
+  // ---------------------------------------------------------------------------
+
+  const asked = new Set(); // questions asked on this page (lowercase), across suggestions and follow-ups
+  let askedUrl = '';
+  const askedKey = (q) => String(q).toLowerCase().replace(/[?.!\s]+$/, '');
+  function wasAsked(q) {
+    if (askedUrl !== location.href) {
+      askedUrl = location.href;
+      asked.clear();
+    }
+    return asked.has(askedKey(q));
+  }
+  function markAsked(button) {
+    wasAsked(''); // resets on a new URL
+    asked.add(askedKey(button.dataset.ask));
+    button.classList.add('asked');
+  }
+
+  let followUps = null; // { controller, node } while being written
+  function stopFollowUps() {
+    if (!followUps) return;
+    followUps.controller.abort();
+    if (!followUps.node.querySelector('button')) followUps.node.remove();
+    followUps = null;
+  }
+
+  async function suggestFollowUps(question, answer) {
+    stopFollowUps();
+    const text = S.stripThinking(String(answer || ''));
+    if (state.settings.followUps === false || text.trim().length < 80) return;
+    const node = el('div', { className: 'follow-ups', role: 'group' });
+    node.setAttribute('aria-label', 'Follow-up questions');
+    node.append(el('div', { className: 'follow-label', textContent: 'Keep exploring' }), el('div', { className: 'ghost' }), el('div', { className: 'ghost' }));
+    append(node);
+    const mine = (followUps = { controller: new AbortController(), node });
+    try {
+      const vars = S.followUpVars({ title: document.title, url: location.href, question, answer: text });
+      const reply = await runChat({ messages: S.buildMessages('followUps', vars, sitePrompts()), json: true, quick: true, signal: mine.controller.signal });
+      const list = S.pickFollowUps(reply, [question, ...asked]);
+      if (followUps !== mine) return;
+      if (!list.length) throw new Error('No follow-ups');
+      node.querySelectorAll('.ghost').forEach((g) => g.remove());
+      for (const q of list) node.append(el('button', { type: 'button', textContent: q }));
+      node.querySelectorAll('button').forEach((b) => (b.dataset.ask = b.textContent));
+      followUps = null;
+    } catch (err) {
+      if (followUps === mine) followUps = null;
+      node.remove();
+      if (err.name !== 'AbortError') report('llm', 'follow-ups-failed', err.message, { code: err.code || '' });
+    }
+  }
+  els.thread.addEventListener('click', (e) => {
+    const button = e.target.closest('.follow-ups button[data-ask]');
+    if (!button || state.busy) return;
+    markAsked(button);
+    ask(button.dataset.ask);
+  });
+
+  // ---------------------------------------------------------------------------
   // Ask
   // ---------------------------------------------------------------------------
 
@@ -2116,10 +2180,11 @@
     }
     const web = S.parseWebRequest(S.stripThinking(text), question);
     if (web.query && web.explicit) reply.node.remove();
-    else reply.finish(text);
+    else reply.finish(web.shown || text);
     if (!web.query) {
       state.history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
       state.history = state.history.slice(-12);
+      suggestFollowUps(question, text);
       return text;
     }
     if (state.settings.webFallback === false) {
@@ -2151,6 +2216,7 @@
     append(sourcesCard(query, res.sources, 'From the web'));
     state.history.push({ role: 'user', content: question }, { role: 'assistant', content: `${text}\n\n(Answered from a web search for “${query}”.)` });
     state.history = state.history.slice(-12);
+    suggestFollowUps(question, text);
     return text;
   }
 
@@ -2262,11 +2328,9 @@
   // Suggested questions on the empty screen.
   els.empty.addEventListener('click', (e) => {
     const button = e.target.closest('[data-ask]');
-    if (button) ask(button.dataset.ask);
-    else if (e.target.closest('.back-to-chat')) {
-      leaveHome();
-      if (els.thread.querySelector('.msg, .card, .cached')) els.empty.hidden = true;
-      scrollToEnd(true);
+    if (button && !state.busy) {
+      markAsked(button);
+      ask(button.dataset.ask);
     }
   });
   shadow.querySelector('.home-btn').addEventListener('click', showHome);
@@ -2331,9 +2395,13 @@
     else if (cmd === 'clear') {
       state.history = [];
       state.pageContext = null;
-      els.thread.querySelectorAll('.msg, .card, .cached').forEach((n) => n.remove());
+      els.thread.querySelectorAll(':scope > .msg, :scope > .card, :scope > .cached, :scope > .follow-ups').forEach((n) => n.remove());
       clearNextSteps();
+      stopFollowUps();
       leaveHome();
+      els.thread.classList.remove('chatting');
+      asked.clear();
+      els.suggest.querySelectorAll('.asked').forEach((b) => b.classList.remove('asked'));
       els.empty.hidden = false;
     } else if (cmd === 'reset-position') {
       const placements = { ...(state.settings.launcherPlacements || {}) };

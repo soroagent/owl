@@ -17,7 +17,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'taskPlan', 'taskReport', 'save', 'questions', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'taskPlan', 'taskReport', 'save', 'questions', 'followUps', 'researchTopics', 'researchQuery', 'research', 'synthesize', 'deliverable']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -245,6 +245,19 @@
     return { kind, describe: PAGE_KINDS[kind] };
   }
 
+  /** Pure: placeholder values for the followUps prompt: the page, the question and the answer (trimmed). */
+  function followUpVars({ title = '', url = '', question = '', answer = '' } = {}) {
+    let text = soroagent.stripThinking(String(answer || '')).replace(/\[\[[^\]]*\]\]/g, '').trim();
+    if (text.length > 3000) text = `${text.slice(0, 3000).replace(/\s+\S*$/, '')} […]`;
+    return { title: title || '(untitled)', url, question: String(question || '').trim(), content: text, page: '', context: '', note: '', count: '' };
+  }
+
+  /** Pure: at most 2 follow-up questions from the model's reply, leaving out ones already asked. */
+  function pickFollowUps(text, asked = []) {
+    const seen = new Set(asked.map((q) => String(q).toLowerCase().replace(/[?.!\s]+$/, '')));
+    return parseQuestions(text).filter((q) => !seen.has(q.toLowerCase().replace(/[?.!\s]+$/, ''))).slice(0, 2);
+  }
+
   /** Pure: suggested questions from the model's JSON reply (3 to 4 short, distinct questions). */
   function parseQuestions(text) {
     const json = parseJsonLoose(text) || {};
@@ -265,6 +278,7 @@
 
   // A question the page can't answer: the model replies [[search: query]] (see the ask prompts).
   const SEARCH_MARK = /^\s*\[\[\s*search\s*:\s*([^\]\n]{2,160}?)\s*\]\]/i;
+  const LATE_SEARCH_MARK = /\[\[\s*search\s*:\s*([^\]\n]{2,160}?)\s*\]\]/i;
   // Small models sometimes say so in words instead.
   const NOT_FOUND = /\b(does not|doesn't|do not|don't|did not|didn't|cannot|can't|isn't|is not|aren't|are not|no)\b[^.]{0,60}\b(contain|mention|include|provide|cover|say|state|information|details|data|specif|answer)/i;
   const ABOUT_PAGE = /\b(page|text|article|content|post|posts|document|thread|provided|given|above)\b/i;
@@ -277,6 +291,10 @@
     const text = String(replied || '').trim();
     const m = text.match(SEARCH_MARK);
     if (m) return { query: m[1].replace(/^["']|["']$/g, '').trim(), explicit: true };
+    // Small models sometimes answer what they can, then add the marker at the end: keep their words
+    // (shown, without the marker) and still look the rest up.
+    const late = text.match(LATE_SEARCH_MARK);
+    if (late) return { query: late[1].replace(/^["']|["']$/g, '').trim(), explicit: false, shown: text.replace(LATE_SEARCH_MARK, '').trim() };
     if (text.length < 320 && NOT_FOUND.test(text) && ABOUT_PAGE.test(text) && question.trim()) {
       return { query: String(question).trim().replace(/\?+$/, '').slice(0, 160), explicit: false };
     }
@@ -320,6 +338,8 @@
     parseTopics,
     pageKind,
     parseQuestions,
+    followUpVars,
+    pickFollowUps,
     parseWebRequest,
     mayBeWebRequest,
   });

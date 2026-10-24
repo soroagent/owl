@@ -198,8 +198,10 @@ header {
 
 /* Home: the opening screen over the conversation, which stays underneath */
 .thread.home > :not(.empty) { display: none; }
-.back-to-chat { margin-top: 10px; border: none; background: none; color: var(--accent); font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 8px; }
-.back-to-chat:hover { background: var(--accent-soft); }
+/* In a conversation, the opening screen stays on top as a compact block of suggested questions. */
+.thread.chatting > .empty { margin: 0; padding: 2px 12px 14px; border-bottom: 1px solid var(--border); }
+.thread.chatting > .empty .empty-mark, .thread.chatting > .empty .empty-note, .thread.chatting > .empty .empty-hint { display: none; }
+.thread.chatting > .empty strong { font-size: 13.5px; }
 .shutter { position: fixed; inset: 0; z-index: 2147483647; background: #fff; pointer-events: none; animation: shutter .45s ease-out forwards; }
 @keyframes shutter { from { opacity: .55; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .shutter { display: none; } }
@@ -216,6 +218,19 @@ header {
 }
 .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
 .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.suggest button.asked, .follow-ups button.asked { color: var(--fg-muted); }
+.suggest button.asked::before, .follow-ups button.asked::before { content: "✓"; color: var(--ok); }
+/* Follow-up questions under an answer */
+.follow-ups { display: grid; gap: 6px; }
+.follow-label { font-size: 11.5px; font-weight: 600; color: var(--fg-muted); }
+.follow-ups button {
+  text-align: left; padding: 7px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+  color: var(--fg); font-size: 12.5px; transition: border-color 0.12s ease, background 0.12s ease;
+}
+.follow-ups button::before { content: "→"; color: var(--spark); margin-right: 8px; }
+.follow-ups button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.follow-ups .ghost { height: 32px; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(90deg, var(--bg-soft) 0%, var(--border) 50%, var(--bg-soft) 100%); background-size: 200% 100%; animation: soro-shimmer 1.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .follow-ups .ghost { animation: none; } }
 .suggest-head { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 300px; margin-top: 12px; font-size: 11.5px; }
 .suggest-head + .suggest { margin-top: 6px; }
 .suggest-head button { border: none; background: none; padding: 0; color: var(--accent); font-size: 11.5px; font-weight: 600; cursor: pointer; }

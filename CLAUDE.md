@@ -212,6 +212,15 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `assistant:task-read`, tab closed) → condensed text + "LINKS ON THE PAGE" into the `taskReport`
   prompt via the page placeholders in `JOB_PLACEHOLDERS`. Saved under the site it read
   (`targetUrl`). Recent tasks in `storage.local.recentTasks`.
+- **Suggested questions stay; follow-ups** (`followUps`, on): the opening screen (`.empty` /
+  `#homeView`) is never hidden by a conversation; it stays first in the thread, compact
+  (`.thread.chatting` / `main.chatting`), and Home scrolls up to it. Clicked questions get `.asked`
+  (a tick), kept per URL (`asked` set; side panel: per tab thread). After an answer (ask, web answer,
+  page/feed summary) `suggestFollowUps()` runs the `followUps` prompt (quick, JSON;
+  `S.followUpVars` sends the question and the answer, not the page) and `S.pickFollowUps` keeps 2 not
+  already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
+  `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
+  words before it).
 - **High-resolution pictures** (`offerPictures`, on; `pictureNeverSites`): `S.pagePictures()` in
   `extract.js` reads `document.images` (the largest `srcset` / `<picture>` candidate each offers) and
   `S.pickPictures()` keeps real photos: ≥1600×900 or ≥2 MP, shown at ≥160 px, http(s), no SVG, no

@@ -56,7 +56,8 @@ test('download paths stay inside Downloads/soroagent/pictures', () => {
   assert.equal(S.safeFileName(''), 'picture.jpg');
 });
 
-test('the picture offer is on by default and can be turned off per site', () => {
+test('the picture offer and follow-up questions are on by default', () => {
   assert.equal(S.DEFAULT_SETTINGS.offerPictures, true);
   assert.deepEqual(S.DEFAULT_SETTINGS.pictureNeverSites, []);
+  assert.equal(S.DEFAULT_SETTINGS.followUps, true);
 });
