@@ -32,7 +32,6 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
 - **Keep exploring.** The suggested questions stay at the top of the conversation (the ones you've asked are ticked), so you can scroll up and pick another. Under each answer, two follow-up questions written from that answer take you deeper or somewhere related.
 - **Ask** anything about the page. If the page doesn't have the answer (ask a news article for a company's revenue), soroagent searches the web, reads the top results and answers with numbered sources instead of "the text doesn't say". Turn it into a one-click button in Settings → On the page.
-- **Ask about soroagent itself.** Questions about it ("where is my data stored?", "is this open source?") first ask whether you mean soroagent or the website, then get an accurate answer.
 - **Site profiles** read each site's structure before the AI sees it:
 
   | Site | What soroagent reads | What you get |
