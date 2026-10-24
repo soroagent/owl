@@ -69,8 +69,32 @@
 
   const keyOf = (href) => (soroagent.pageKey ? soroagent.pageKey(href) : href.split('#')[0]);
   const reset = () => {
-    reading = { url: keyOf(location.href), activeMs: 0, depth: 0, done: false };
+    if (reading) flushReading(); // the page being left (single-page sites change URL in place)
+    reading = { url: keyOf(location.href), href: location.href, title: document.title, activeMs: 0, depth: 0, done: false, logged: 0 };
   };
+
+  // Reading log (Settings → "Keep a reading log", on): the active time on each page, with its site and
+  // title, kept on this device for the Browsing pattern page (shared/patterns.js). Never synced or
+  // sent anywhere; skipped on the pages capture never touches (mail, banking, sign-in…) and in private
+  // windows. Sent in parts (when leaving, hiding the tab, and every minute) as time since the last part.
+  const LOG_MIN_MS = 10000; // under 10 s is a glance, not a read
+  function flushReading() {
+    if (!settings || settings.readingLog === false || !reading || reading.activeMs < LOG_MIN_MS) return;
+    if (ext.extension && ext.extension.inIncognitoContext) return;
+    const ms = reading.activeMs - reading.logged;
+    if (ms < 1000) return;
+    const sensitive = reading.href === location.href && Boolean(document.querySelector('input[type="password"]'));
+    if (!captureAllowed({ url: reading.href, hasPassword: sensitive, textLength: Infinity }, settings.captureExclude || []).ok) return;
+    const visit = reading.logged === 0;
+    reading.logged = reading.activeMs;
+    let host = '';
+    try {
+      host = new URL(reading.href).hostname;
+    } catch {
+      return;
+    }
+    ext.runtime.sendMessage({ type: 'reading:log', host, title: reading.title || host, ms, visit }).catch(() => {});
+  }
   reset();
 
   function measureDepth() {
@@ -124,7 +148,9 @@
     if (keyOf(location.href) !== reading.url) reset(); // single-page sites
     const active = document.visibilityState === 'visible' && document.hasFocus() && now - lastInput < IDLE_MS;
     if (active) reading.activeMs += Math.min(now - lastTick, TICK_MS * 2);
+    if (active && document.title) reading.title = document.title; // titles often settle after load
     lastTick = now;
+    if (reading.activeMs - reading.logged >= 60000) flushReading();
     if (!settings || settings.autoCapture !== 'on' || reading.done) return;
     const scrollable = measureDepth();
     if (hasBeenRead({ ...reading, scrollable }, Number(settings.captureMinSeconds) || 45)) {
@@ -138,6 +164,8 @@
     root.addEventListener(type, () => (lastInput = Date.now()), { passive: true, capture: true });
   }
   root.addEventListener('scroll', () => reading && measureDepth(), { passive: true });
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushReading());
+  root.addEventListener('pagehide', flushReading);
   setInterval(tick, TICK_MS);
 
   const apply = (s) => {

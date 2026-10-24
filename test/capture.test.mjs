@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { load } from './helpers.mjs';
 
 // capture.js needs a page to watch; give it a minimal one so its pure rules can be tested.
-globalThis.document = { visibilityState: 'visible', hasFocus: () => true, querySelector: () => null, querySelectorAll: () => [], scrollingElement: null, documentElement: { scrollHeight: 1 } };
+globalThis.document = { visibilityState: 'visible', title: 'Example', addEventListener() {}, hasFocus: () => true, querySelector: () => null, querySelectorAll: () => [], scrollingElement: null, documentElement: { scrollHeight: 1 } };
 globalThis.location = new URL('https://example.com/');
 globalThis.addEventListener = () => {};
 globalThis.chrome = { storage: { local: { get: () => Promise.resolve({}) }, onChanged: { addListener() {} } }, runtime: {} };

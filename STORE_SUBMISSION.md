@@ -101,7 +101,9 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
   device.
 - **Pictures**: downloaded only when the user clicks, straight from the site that serves them into
   the user's Downloads folder; soroagent keeps no record of them and sends nothing elsewhere.
-- **Web history**: saved notes include page addresses; stored locally; included in the user's
+- **Web history**: a local reading log (site, title, day and active reading time per page) for the
+  Browsing pattern page; never leaves the device, not synced or backed up; off switch and Clear in
+  Settings. Saved notes include page addresses; stored locally; included in the user's
   encrypted sync if they turn it on.
 - Not sold, not used for advertising or credit, not used for anything unrelated to the single purpose.
   Certify the Limited Use statements.

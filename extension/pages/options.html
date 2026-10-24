@@ -241,6 +241,10 @@
       <label class="field"><span>Never capture these sites <small>(one per line)</small></span>
         <textarea id="captureExclude" rows="3" spellcheck="false" placeholder="example.com"></textarea>
       </label>
+      <label class="check"><input type="checkbox" id="readingLog">
+        <span>Keep a reading log<small>How long you actively read each page (its site and title only), kept on this computer for your <a href="patterns.html">browsing pattern</a>: the topics you read most, average read time and when you read. Never synced, backed up or sent anywhere. Skips the same pages as passive capture and private windows.</small></span>
+      </label>
+      <div class="row" style="margin:-4px 0 12px 28px"><button class="btn small" type="button" id="clearReadingLog">Clear reading log</button><span class="muted" id="readingLogMsg"></span></div>
       <div class="field"><span>Markdown folder (Obsidian, Logseq…)</span>
         <small>Keep a clean <code>.md</code> file with YAML frontmatter (title, source, tags, dates) for every note in a folder on your computer, such as your Obsidian vault or Logseq <code>pages</code> folder. New and changed notes are written automatically; files you edit there are never overwritten.</small>
         <div class="row" style="margin-top:6px" id="mdOff">

@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'offerPictures', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'readingLog', 'offerPictures', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
   const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
   const autoTouched = new Set();
@@ -155,6 +155,18 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     values.captureExclude = $('captureExclude').value.split(/[\n,]+/).map((x) => x.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(Boolean).slice(0, 200);
     return values;
   }
+
+  // The reading log behind the Browsing pattern page: how much there is, and a way to clear it.
+  async function showReadingLog() {
+    const { readingLog = [] } = await ext.storage.local.get('readingLog');
+    $('readingLogMsg').textContent = readingLog.length ? `${readingLog.length} pages logged` : 'Empty';
+  }
+  $('clearReadingLog').addEventListener('click', async () => {
+    if (!confirm('Clear the reading log? Your browsing pattern starts again from now.')) return;
+    await ext.storage.local.remove('readingLog');
+    showReadingLog();
+  });
+  showReadingLog();
 
   // "Never on this site" for pictures: how many sites, and a way to be asked there again.
   function renderPictureNever(sites) {

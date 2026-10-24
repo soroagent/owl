@@ -13,6 +13,7 @@
 
   // Routine failures (the AI unreachable, a shortcut pressed on a browser page) go to the diagnostic
   // log, not the console: Chrome lists every console warning on the extension's Errors page.
+  let readingQueue = Promise.resolve();
   const quietly = (where) => (err) => diag.record({ area: 'error', code: (err && err.code) || 'failed', message: (err && err.message) || String(err), detail: { where } });
 
   // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
@@ -430,6 +431,15 @@
       const settings = await getSettings();
       const offer = settings.syncOffer || {};
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
+      return { ok: true };
+    },
+    // Reading log for the Browsing pattern page: added one part at a time, in order (tabs report at once).
+    'reading:log': (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id || !sender.tab || sender.tab.incognito) return { ok: false };
+      readingQueue = readingQueue.then(async () => {
+        const { readingLog = [] } = await ext.storage.local.get('readingLog');
+        await ext.storage.local.set({ readingLog: S.addReading(readingLog, { host: msg.host, title: msg.title, ms: Math.min(Number(msg.ms) || 0, 3600000), visit: Boolean(msg.visit) }) });
+      }).catch(quietly('reading log'));
       return { ok: true };
     },
     // Pictures the reader chose to download from the page (the question in the panel): saved to

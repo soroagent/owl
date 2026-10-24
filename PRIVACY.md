@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.36 and later.
+Arc and Firefox, version 2.37 and later.
 
 ## The short version
 
@@ -37,11 +37,17 @@ soroagent stores the following **only in your browser's extension storage on you
 - **Your AI API keys**, if you add any. They are encrypted (AES-256) with a key the browser keeps and
   cannot export. They are never included in backups or sync, and Settings only ever shows their last
   four characters.
+- **A reading log:** for each page you actively read for at least 10 seconds, its site, its title, the
+  day and hour, and how long you were active on it (the tab in front and you using it). It powers the
+  Browsing pattern page (the topics you read most, average read time, when you read). It keeps a year
+  at most and is **never synced, backed up or sent anywhere**. It skips the pages listed below and
+  private windows. Turn it off or clear it in Settings → Your library.
 - **A diagnostic log** of soroagent's own errors (the last 50), kept in memory only while the browser is
   open. Web addresses, host names, page text, emails, keys and file paths are removed before anything
   is logged. See section 6.
 
-soroagent does not collect your browsing history. It reads a page's content only:
+soroagent does not read your browser's history. Apart from the reading log above (site, title and
+time only, never page content, and never leaving your computer), it reads a page's content only:
 
 - when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, Screenshot);
 - when **automatic preparing** is on (section 3) and the side panel is open on the page, or you have
@@ -49,8 +55,8 @@ soroagent does not collect your browsing history. It reads a page's content only
 - if you turn on **passive capture**, when you have actually read a page (time spent and how far you
   scrolled). Passive capture is off by default.
 
-Automatic preparing and passive capture never run on mail, chat, banking, sign-in, checkout, account
-or settings pages, search results, AI chat sites or local pages.
+Automatic preparing, passive capture and the reading log never run on mail, chat, banking, sign-in,
+checkout, account or settings pages, search results, AI chat sites or local pages.
 
 ## 3. What leaves your computer
 
@@ -178,7 +184,7 @@ which copies the report and opens a pre-filled GitHub issue for you to read and 
 
 - You can view, search, export and delete any note on the Snippets page, and export or delete
   everything in Settings → Backup & restore.
-- Automatic preparing, suggested questions, follow-up questions, web answers, passive capture, the automatic backup and
+- Automatic preparing, suggested questions, follow-up questions, web answers, the reading log, passive capture, the automatic backup and
   sync can each be turned off in Settings.
 - Uninstalling soroagent deletes everything it stored in that browser. Backups in your Downloads
   folder, Markdown files and any sync file stay until you delete them.

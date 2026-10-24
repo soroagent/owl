@@ -78,7 +78,7 @@ selection, page, deliverable, read, screenshot), `summary:<id>` (summary history
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
 `backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
-`storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
+`readingLog` (Browsing pattern; local only). `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
 Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): how soroagent appears is three
 modes over two settings, `S.APPEARANCES` / `S.appearanceOf()`: owl (default: `openIn: 'page'`,
@@ -221,6 +221,15 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
   `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
   words before it).
+- **Browsing pattern** (`pages/patterns.html`, linked only from Snippets and Summary history; a
+  silent add-on: **not in the README**, the owner's call 2026-10-24; it is in PRIVACY.md, Settings
+  and the FAQ answer, as the privacy rules require). `capture.js` already measures active time on
+  every page; with `readingLog` on (default) it sends `reading:log` {host, title, ms, visit} when the
+  page is left or hidden and every minute (≥10 s, `captureAllowed` pages only, never incognito).
+  `background.js` queues the writes and `S.addReading` (shared/patterns.js) merges per day+site+title
+  into `storage.local.readingLog` (a year, 6,000 entries max; not synced or backed up).
+  `S.readingStats`, `S.readingTopics` (title words/pairs without site names, 2+ pages) and
+  `S.libraryStats` feed the page. Brings back a form of the removed "time stats", at the owner's request.
 - **High-resolution pictures** (`offerPictures`, on; `pictureNeverSites`): `S.pagePictures()` in
   `extract.js` reads `document.images` (the largest `srcset` / `<picture>` candidate each offers) and
   `S.pickPictures()` keeps real photos: ≥1600×900 or ≥2 MP, shown at ≥160 px, http(s), no SVG, no

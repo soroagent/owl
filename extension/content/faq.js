@@ -25,7 +25,7 @@
   }
 
   /**
-   * Markdown answer about soroagent. ctx: { cloud, providerLabel, autoBackup, autoCapture }.
+   * Markdown answer about soroagent. ctx: { cloud, providerLabel, autoBackup, autoCapture, readingLog }.
    */
   function ownAnswer(topic, ctx = {}) {
     const model = ctx.cloud
@@ -34,6 +34,7 @@
     const local = [
       'Everything soroagent keeps (your snippets, screenshots, summary history and settings) is stored **in this browser on your computer**.',
       ctx.autoBackup === false ? '' : 'A backup copy is also kept in your Downloads folder (`Downloads/soroagent/`).',
+      ctx.readingLog === false ? '' : 'It also keeps a reading log (how long you read each page, with its site and title) on this computer only, for your browsing pattern; turn it off or clear it in Settings → Your library.',
       ctx.autoCapture === 'on' ? 'Passive capture is on, so pages you actually read are saved too (never mail, chat, banking, logins or checkouts).' : '',
       'There are **no soroagent accounts, servers or cloud storage**. Sync across browsers and the Markdown folder export are optional, and only go where you point them.',
     ].filter(Boolean).join(' ');

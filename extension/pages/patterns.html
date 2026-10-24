@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browsing pattern · soroagent</title>
+  <link rel="stylesheet" href="pages.css">
+  <style>
+    body { overflow-y: scroll; }
+    main { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .toolbar p { margin: 0; color: var(--fg-muted); font-size: 13px; }
+    .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+    .segmented button { border: none; background: none; padding: 7px 12px; font: inherit; font-size: 13px; color: var(--fg-muted); cursor: pointer; }
+    .segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+    .tile .k { font-size: 12px; color: var(--fg-muted); font-weight: 550; }
+    .tile .v { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .tile .s { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+    .grid2 .panel { margin-bottom: 0; }
+    .panel h2 { font-size: 14px; margin: 0 0 2px; }
+    .panel .sub { font-size: 12px; color: var(--fg-muted); margin: 0 0 12px; }
+    .empty-note { color: var(--fg-muted); font-size: 13px; margin: 6px 0; }
+    /* Ranked bars: label, bar, value. One hue (magnitude), thin, rounded at the data end. */
+    .rank { display: grid; gap: 7px; }
+    .rank-row { display: grid; grid-template-columns: minmax(90px, 38%) 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+    .rank-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-row .track { height: 10px; }
+    .rank-row .bar { height: 100%; min-width: 3px; background: var(--accent); border-radius: 0 4px 4px 0; }
+    .rank-row .val { color: var(--fg-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* Column bars over time: a 2px gap between bars, rounded tops, a recessive baseline. */
+    .cols { display: flex; align-items: flex-end; gap: 2px; height: 140px; border-bottom: 1px solid var(--border); }
+    .cols .col { flex: 1; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+    .cols .col span { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 0; }
+    .cols .col:hover span { background: var(--accent-strong); }
+    .cols .col.zero span { height: 2px !important; background: var(--border); border-radius: 0; }
+    .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--fg-muted); margin-top: 5px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .tags .count { opacity: 0.7; margin-left: 4px; }
+    .tip { position: fixed; z-index: 60; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+    .foot-note { font-size: 12.5px; color: var(--fg-muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    @media (max-width: 560px) { .rank-row { grid-template-columns: minmax(80px, 42%) 1fr auto; } .tile .v { font-size: 20px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><span class="crumb">Browsing pattern</span></div>
+    <div class="row"><a class="btn small" href="snippets.html">Saved snippets</a><a class="btn small" href="history.html">Summary history</a><a class="btn small" href="options.html#library">Settings</a></div>
+  </header>
+
+  <div class="toolbar">
+    <p id="intro">What you read, how long and when.</p>
+    <div class="segmented" role="group" aria-label="Time range">
+      <button type="button" data-days="7" aria-pressed="false">7 days</button>
+      <button type="button" data-days="30" aria-pressed="true">30 days</button>
+      <button type="button" data-days="90" aria-pressed="false">90 days</button>
+      <button type="button" data-days="0" aria-pressed="false">All time</button>
+    </div>
+  </div>
+
+  <section class="panel" id="off" hidden>
+    <h2>The reading log is off</h2>
+    <p class="sub">Turn on "Keep a reading log" in <a href="options.html#library">Settings → Your library</a> to see the topics you read most, your average read time and when you read. It stays on this computer.</p>
+  </section>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid2">
+    <section class="panel"><h2>Topics you read most</h2><p class="sub">From the titles of pages you read, by reading time</p><div class="rank" id="topics"></div></section>
+    <section class="panel"><h2>Sites</h2><p class="sub">Where your reading time goes</p><div class="rank" id="sites"></div></section>
+  </div>
+
+  <section class="panel"><h2>Reading by day</h2><p class="sub" id="daySub">Active reading time</p><div class="cols" id="days" role="img"></div><div class="axis" id="dayAxis"></div></section>
+  <section class="panel"><h2>Time of day</h2><p class="sub">When you read</p><div class="cols" id="hours" role="img"></div><div class="axis"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></section>
+
+  <section class="panel"><h2>Your library</h2><p class="sub" id="libSub">Saved in this period</p><div class="tiles" id="libTiles" style="margin-bottom:8px"></div><div class="tags" id="tags"></div></section>
+
+  <p class="foot-note"><span>Reading time counts only while the tab is in front and you're active on it. Kept on this computer only: never synced, backed up or sent anywhere.</span><a href="options.html#library">Turn off or clear</a></p>
+</main>
+<div class="tip" id="tip" hidden></div>
+<footer class="site-foot">tech is art<span class="spark">.</span> © 2026 <a href="https://soroagent.com" target="_blank" rel="noopener">soroagent.com</a></footer>
+<script src="../shared/config.js"></script>
+<script src="../shared/patterns.js"></script>
+<script src="patterns.js"></script>
+</body>
+</html>
