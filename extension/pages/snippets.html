@@ -8,7 +8,6 @@
   <style>
     body { overflow-y: scroll; }
     main { max-width: 1240px; margin: 0 auto; padding: 24px 20px 48px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
     .toolbar input[type="search"] { flex: 1 1 260px; width: auto; }
     .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
@@ -43,6 +42,10 @@
     .kind.research { background: var(--spark-soft); color: var(--spark-fg); }
     .has-research { color: var(--spark-fg); }
     .kind.screenshot { background: var(--surface-soft); color: var(--fg); }
+    /* Summaries from the history that aren't saved snippets: still running, failed, or not saved. */
+    .kind.job { background: var(--surface-soft); color: var(--fg-muted); }
+    .kind.job.running { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+    .kind.job.error, .kind.job.interrupted { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
     .library-line { margin: -6px 0 12px; font-size: 13px; color: var(--fg-muted); }
     .library-line b { color: var(--fg); }
     .related-notes .related-list { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 4px; }
@@ -107,11 +110,11 @@
   </style>
 </head>
 <body>
+<header class="app-header"><div class="app-header-in">
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html" aria-current="page">Snippets</a><a href="patterns.html">Browsing pattern</a><a href="options.html">Settings</a></nav>
+</div></header>
 <main>
-  <header>
-    <div class="brand"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><span class="crumb">Snippets <span class="muted" id="count"></span></span></div>
-    <div class="row"><a class="btn small" href="patterns.html">Browsing pattern</a><a class="btn small" href="history.html">Summary history</a><a class="btn small" href="options.html">Settings</a></div>
-  </header>
   <p class="library-line" id="libraryLine"></p>
   <div class="toolbar">
     <input type="search" id="search" placeholder="Search everything you've read, by meaning or words…" aria-label="Search your library">
@@ -120,11 +123,6 @@
       <button type="button" data-group="day" aria-pressed="true">Day</button>
       <button type="button" data-group="site" aria-pressed="false">Site</button>
       <button type="button" data-group="topic" aria-pressed="false">Topic</button>
-    </div>
-    <div class="segmented" role="group" aria-label="Show">
-      <button type="button" data-kind="all" aria-pressed="true">All</button>
-      <button type="button" data-kind="summary" aria-pressed="false">Summaries</button>
-      <button type="button" data-kind="research" aria-pressed="false">Research</button>
     </div>
     <div class="segmented" role="group" aria-label="Sections">
       <button type="button" data-kind="screenshot" aria-pressed="false">Screenshots <span id="shotCount"></span></button>

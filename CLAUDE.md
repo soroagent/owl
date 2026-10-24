@@ -56,7 +56,8 @@ extension/
   shared/            loaded everywhere: config (settings, providers), prompts engine, snippets store,
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
   pages/             sidepanel (the default UI: Chrome side panel / Firefox sidebar), options (Settings),
-                     onboard (first run; ?sync = sync setup), snippets, history,
+                     onboard (first run; ?sync = sync setup), snippets (library + summary history),
+                     patterns (Browsing pattern),
                      libchat (Ask your library), offscreen (Chrome: backup blobs + the WebLLM engine)
   vendor/            vendored libraries, each with a README (source, version, SHA-256) and LICENSE:
                      web-llm (WebLLM 0.2.86 + Qwen2.5-1.5B library), pdfjs (pdf.js 6.4.299),
@@ -221,7 +222,14 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
   `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
   words before it).
-- **Browsing pattern** (`pages/patterns.html`, linked only from Snippets and Summary history; a
+- **Extension pages** (2026-10-24, the owner's call): three tabs only, Snippets · Browsing pattern ·
+  Settings, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px wide, 60 px
+  high, outside each page's `main`, `scrollbar-gutter: stable`) so nothing moves when switching.
+  The summary history page is gone: Snippets lists snippets plus the summary jobs (`summary:<id>`)
+  that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
+  snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
+  is a snippet like any other); Screenshots stays a toggle. `open:history` opens Snippets.
+- **Browsing pattern** (`pages/patterns.html`, a tab of the extension pages' header; a
   silent add-on: **not in the README**, the owner's call 2026-10-24; it is in PRIVACY.md, Settings
   and the FAQ answer, as the privacy rules require). `capture.js` already measures active time on
   every page; with `readingLog` on (default) it sends `reading:log` {host, title, ms, visit} when the

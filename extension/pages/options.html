@@ -8,7 +8,6 @@
   <style>
     button.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
     main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
     section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
     section h2 { font-size: 15px; margin: 0 0 4px; }
     section > p { margin: 0 0 14px; color: var(--fg-muted); font-size: 13px; }
@@ -57,6 +56,10 @@
   </style>
 </head>
 <body>
+<header class="app-header"><div class="app-header-in">
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html">Snippets</a><a href="patterns.html">Browsing pattern</a><a href="options.html" aria-current="page">Settings</a></nav>
+</div></header>
 <main>
   <div class="welcome-back" id="restoreOffer" hidden role="region" aria-label="Restore your data">
     <div>
@@ -69,10 +72,6 @@
     </div>
     <small id="restoreOfferHint" class="muted" hidden></small>
   </div>
-  <header>
-    <div class="brand"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><span class="crumb">Settings</span></div>
-    <div class="row"><a class="btn small" href="history.html">Summary history</a><a class="btn small" href="snippets.html">Saved snippets</a></div>
-  </header>
 
   <form id="form">
     <section>

@@ -622,7 +622,8 @@
       ext.alarms.clear(SYNC_ALARM);
       return sync.disconnect();
     },
-    'open:history': () => ext.tabs.create({ url: ext.runtime.getURL('pages/history.html') }),
+    // The summary history is part of Snippets now (summaries that aren't snippets show there with their status).
+    'open:history': () => handlers['open:snippets']({}),
     'summary:find': async (msg) => ({ ok: true, record: await jobs.find(msg.url, msg.fingerprint) }),
     'summary:for-url': async (msg) => ({ ok: true, records: await jobs.forUrl(msg.url) }),
     'summary:seen': async (msg) => {
@@ -715,8 +716,7 @@
 
   // Right-click on the toolbar owl.
   const ACTION_MENU_ITEMS = [
-    { id: 'soroagent-open-history', title: 'Summary history', open: () => handlers['open:history']() },
-    { id: 'soroagent-open-snippets', title: 'Saved snippets', open: () => handlers['open:snippets']({}) },
+    { id: 'soroagent-open-snippets', title: 'Snippets', open: () => handlers['open:snippets']({}) },
     { id: 'soroagent-open-notes', title: 'Ask your library', open: () => handlers['open:notes']({}) },
     { id: 'soroagent-feedback', title: 'Send feedback', open: () => ext.tabs.create({ url: S.feedbackUrl('toolbar') }) },
     { id: 'soroagent-open-settings', title: 'Settings', open: () => ext.runtime.openOptionsPage() },

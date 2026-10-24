@@ -46,7 +46,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 
   The panel's site bar shows the mode (for example *Q&A · Accepted-solution mode*). LinkedIn, Amazon and major news sites have tuned prompts too. Sites change their markup: when a profile's selectors find nothing, soroagent reads the page with Mozilla's Readability instead (the Firefox Reader View parser), so you still get a summary, and the diagnostic report notes it.
 - **Feeds** on X and Reddit: Summarize reads the posts that have loaded (on X, every post that appeared while you scrolled), and **Read more** loads the next batch. Promoted posts are left out.
-- **Tasks** check another site for you without leaving the page you're on. Click **Task** (or type `task:` in the chat) and say what you want: *latest news from rediff.com*, *top stories on news.ycombinator.com*, *what's trending on github.com/trending*. soroagent works out which page to open, reads it in the background (or in a background tab it closes again, for sites that need JavaScript), and reports here with links to each item. The result lands in your summary history and library.
+- **Tasks** check another site for you without leaving the page you're on. Click **Task** (or type `task:` in the chat) and say what you want: *latest news from rediff.com*, *top stories on news.ycombinator.com*, *what's trending on github.com/trending*. soroagent works out which page to open, reads it in the background (or in a background tab it closes again, for sites that need JavaScript), and reports here with links to each item. The result lands in your snippets.
 - **High-resolution pictures.** When a page shows large, high-resolution pictures (a photo story, a product gallery, a wallpaper site), the owl gets a small orange dot and its chat asks whether to download them: **Download all**, **Choose…** (thumbnails to tick), **Not now** or **Never on this site**. soroagent picks the largest version the page offers, skips icons, logos and thumbnails, and saves them to `Downloads/soroagent/pictures/<site>/`. Turn the question off in Settings → On the page.
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
@@ -59,7 +59,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Screenshots** of what you see go to their own gallery in your snippets.
 
 ### Ask your library
-A chat console at the bottom of the snippets and summary history pages (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd>). Ask follow-up questions over the past week, month, three months or all time, or focus on the open note with **About this note**:
+A chat console at the bottom of the Snippets page (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd>). Ask follow-up questions over the past week, month, three months or all time, or focus on the open note with **About this note**:
 - *What have I learned about this topic over the past month?*
 - *Where do my saved sources disagree?*
 - *What evidence supports this argument?*
@@ -113,12 +113,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.37.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.38.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.37.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.37.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.37.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.37.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.38.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.38.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.38.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.38.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -159,7 +159,7 @@ This creates `dist/chrome` and `dist/firefox`.
 | Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
 | Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> opens Ask your library on the snippets page. We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Take a screenshot* |
-| Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Summary history**, **Saved snippets**, **Ask your library**, **Send feedback** and **Settings**. |
+| Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Ask your library**, **Send feedback** and **Settings**. |
 
 Your data carries over to every update. The Chrome build has a fixed extension ID (`jomghmmgdlajfonjihmagbhomimadpcg`), so a newer version loaded from any folder keeps the same storage, and stored data is upgraded automatically.
 
@@ -180,7 +180,7 @@ Your data carries over to every update. The Chrome build has a fixed extension I
                  │                or in the browser: Gemini Nano, or WebLLM in the offscreen document)
                  │           ──► library index (embeddings + BM25), Markdown folder, encrypted sync
                  ▼
-          extension pages (settings, snippets + Ask your library, summary history)
+          extension pages (snippets + Ask your library, settings)
 ```
 
 - **Model requests:** all of them come from the background worker, so pages' security policies don't block them. Three wire formats cover every provider: Ollama, OpenAI chat completions and Anthropic Messages. Reasoning models run with thinking off for speed, and `<think>` output is removed.
@@ -202,7 +202,7 @@ extension/
                 jobs.js (summaries, auto-filing) · library.js (search) · mdexport.js (Markdown folder) · sync.js · research.js
                 autobackup.js · secrets.js (encrypted keys) · recommend.js (local model ranking) · sw.js (Chrome entry)
   content/      assistant.js (the panel) · launcher.js (the owl) · capture.js (passive capture) · extract.js · faq.js · styles.js
-  pages/        sidepanel · snippets (library + libchat.js console) · history · options (settings) · onboard (first run) · offscreen
+  pages/        sidepanel · snippets (library, summary history + libchat.js console) · options (settings) · onboard (first run) · offscreen
   prompts/      prompt texts per site, with a fine-tuning guide
   sites/        site profiles: X, Reddit, Stack Overflow, Hacker News, GitHub, YouTube, Wikipedia
   shared/       config · prompts · markdown · snippets · knowledge (BM25, related notes) · backup · ask · brand

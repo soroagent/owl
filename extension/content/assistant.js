@@ -82,9 +82,8 @@
         <button class="icon-btn menu-btn" type="button" aria-label="More options" aria-haspopup="menu">${ICONS.more}</button>
         <button class="icon-btn close-btn" type="button" aria-label="Close soroagent">${ICONS.close}</button>
         <div class="menu" role="menu" hidden>
-          <button type="button" role="menuitem" data-cmd="history">Summary history</button>
+          <button type="button" role="menuitem" data-cmd="snippets">Snippets</button>
           <button type="button" role="menuitem" data-cmd="notes">Ask your library</button>
-          <button type="button" role="menuitem" data-cmd="snippets">Saved snippets</button>
           <button type="button" role="menuitem" data-cmd="to-sidepanel">Switch to the side panel</button>
           <button type="button" role="menuitem" data-cmd="clear">Clear conversation</button>
           <button type="button" role="menuitem" data-cmd="reset-position" hidden>Reset button position</button>
@@ -1102,7 +1101,7 @@
     if (record) {
       status.append(el('span', { className: 'next-check', textContent: '✓' }), el('span', { textContent: record.snippetId ? 'Saved to snippets' : 'Kept in history' }));
       const open = el('button', { type: 'button', className: 'link', textContent: 'Open' });
-      open.addEventListener('click', () => sendMessage({ type: record.snippetId ? 'open:snippets' : 'open:history', id: record.snippetId || undefined }));
+      open.addEventListener('click', () => sendMessage({ type: 'open:snippets', id: record.snippetId || `job:${record.id}` }));
       status.append(open);
     }
     if (more && more.note) status.append(el('span', { className: 'next-note', textContent: more.note }));
@@ -2379,7 +2378,6 @@
     const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
     els.menu.hidden = true;
     if (cmd === 'snippets') sendMessage({ type: 'open:snippets' });
-    else if (cmd === 'history') sendMessage({ type: 'open:history' });
     else if (cmd === 'notes') sendMessage({ type: 'open:notes' });
     else if (cmd === 'feedback') window.open(S.feedbackUrl('menu'), '_blank', 'noopener');
     else if (cmd === 'settings') sendMessage({ type: 'open:options' });

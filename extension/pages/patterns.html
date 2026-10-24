@@ -8,7 +8,6 @@
   <style>
     body { overflow-y: scroll; }
     main { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
     .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
     .toolbar p { margin: 0; color: var(--fg-muted); font-size: 13px; }
     .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
@@ -47,11 +46,11 @@
   </style>
 </head>
 <body>
+<header class="app-header"><div class="app-header-in">
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html">Snippets</a><a href="patterns.html" aria-current="page">Browsing pattern</a><a href="options.html">Settings</a></nav>
+</div></header>
 <main>
-  <header>
-    <div class="brand"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><span class="crumb">Browsing pattern</span></div>
-    <div class="row"><a class="btn small" href="snippets.html">Saved snippets</a><a class="btn small" href="history.html">Summary history</a><a class="btn small" href="options.html#library">Settings</a></div>
-  </header>
 
   <div class="toolbar">
     <p id="intro">What you read, how long and when.</p>

@@ -3,7 +3,7 @@
 
   const S = globalThis.soroagent;
   S.watchPageErrors('snippets');
-  const { ext, listSnippets, deleteSnippets, importSnippets, isSnippetChange, groupTimeline, renderMarkdown, stripThinking } = S;
+  const { ext, listSnippets, deleteSnippets, importSnippets, isSnippetChange, groupTimeline, renderMarkdown, stripThinking, addSnippet } = S;
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, children = []) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -16,6 +16,10 @@
 
   const PREFS_KEY = 'soroagent.snippetsView';
   let snippets = [];
+  // The summary history, merged in: every summary job (summary:<id>). Saved ones show as their
+  // snippet; the rest (running, failed, or not saved) show as `jobs` items with their status.
+  let records = [];
+  let jobs = [];
   let selectedId = '';
   let tagFilter = '';
   let siteFilter = '';
@@ -48,7 +52,8 @@
   // Kinds with a section of their own, kept out of the text views.
   const SECTIONS = ['screenshot'];
   const topicPicks = new Map(); // snippet id -> { status: 'loading' | 'ready' | 'error', topics, error, draft }
-  if (!['all', 'summary', 'research', ...SECTIONS].includes(prefs.kind)) prefs.kind = 'all'; // e.g. the old Selections view
+  if (!['all', ...SECTIONS].includes(prefs.kind)) prefs.kind = 'all'; // e.g. the old Summaries / Research views
+  const JOB_LABEL = { running: 'Working', done: 'Not saved', error: 'Failed', interrupted: 'Interrupted', stopped: 'Stopped' };
   const kindOf = (s) => s.kind || (s.source === 'selection' ? 'selection' : s.source === 'summary' ? 'summary' : 'page');
   const hostOf = (url) => {
     try {
@@ -74,8 +79,6 @@
     if (SECTIONS.includes(prefs.kind) || SECTIONS.includes(kind)) {
       if (prefs.kind !== kind) return false;
     }
-    if (prefs.kind === 'summary' && kind !== 'summary') return false;
-    if (prefs.kind === 'research' && !s.research && kind !== 'research') return false;
     if (tagFilter && !s.tags.includes(tagFilter)) return false;
     if (siteFilter && hostOf(s.url) !== siteFilter) return false;
     if (!query) return true;
@@ -103,7 +106,7 @@
       el('div', { className: 'card-title', textContent: s.title || s.pageTitle || 'Untitled' }),
       summary ? el('div', { className: 'card-summary', textContent: summary }) : '',
       el('div', { className: 'meta' }, [
-        el('span', { className: `kind ${kind}`, textContent: KIND_LABEL[kind] || kind }),
+        s.job ? el('span', { className: `kind job ${s.job.status}`, textContent: JOB_LABEL[s.job.status] || s.job.status }) : el('span', { className: `kind ${kind}`, textContent: KIND_LABEL[kind] || kind }),
         host ? siteBadge(host) : '',
         el('span', { textContent: when(s.createdAt, { hour: 'numeric', minute: '2-digit', ...(prefs.group === 'day' ? {} : { day: 'numeric', month: 'short' }) }) }),
         s.research ? el('span', { className: 'has-research', textContent: '· researched' }) : '',
@@ -190,7 +193,7 @@
 
   function renderReader() {
     const reader = $('reader');
-    const s = snippets.find((x) => x.id === selectedId);
+    const s = snippets.find((x) => x.id === selectedId) || jobs.find((x) => x.id === selectedId);
     reader.classList.toggle('open', Boolean(s));
     if (!s) {
       reader.replaceChildren(el('div', { className: 'reader-empty', textContent: snippets.length ? 'Select a snippet to read it here.' : 'Your snippets will appear here.' }));
@@ -223,6 +226,7 @@
       renderShotReader(s, reader, [back, meta, el('h1', { textContent: s.title || s.pageTitle || 'Screenshot' })]);
       return;
     }
+    if (s.job) return renderJobReader(s, reader, back);
 
     const body = el('div', { className: 'prose' });
     if (kind === 'summary' || kind === 'research' || kind === 'deliverable') body.append(...markdown(s.text, s.url));
@@ -269,11 +273,84 @@
     const remove = el('button', { type: 'button', className: 'btn danger', textContent: 'Delete' });
     remove.addEventListener('click', async () => {
       await deleteSnippets([s.id]);
+      forgetJobsOf([s.id]);
       selectedId = '';
     });
     actions.append(copy, remove);
     nodes.push(actions);
     reader.replaceChildren(...nodes);
+  }
+
+  // A summary from the history that isn't a snippet: its progress, its problem, or its unsaved result.
+  function renderJobReader(s, reader, back) {
+    const r = s.job;
+    const seconds = r.finishedAt ? Math.round((Date.parse(r.finishedAt) - Date.parse(r.createdAt)) / 1000) : 0;
+    const meta = el('div', { className: 'meta' }, [
+      el('span', { className: `kind job ${r.status}`, textContent: JOB_LABEL[r.status] || r.status }),
+      hostOf(r.url) ? siteBadge(hostOf(r.url)) : '',
+      el('span', { textContent: when(r.createdAt, { dateStyle: 'medium', timeStyle: 'short' }) }),
+      r.label ? el('span', { textContent: r.label }) : '',
+      r.model ? el('span', { textContent: r.model }) : '',
+      seconds ? el('span', { textContent: seconds >= 60 ? `${Math.floor(seconds / 60)} min ${seconds % 60} s` : `${seconds} s` }) : '',
+    ]);
+    const nodes = [back, meta, el('h1', { textContent: s.title })];
+    if (r.status === 'running') nodes.push(el('div', { className: 'working', textContent: r.statusText || 'Working in the background…' }));
+    if (r.error && r.status !== 'done') nodes.push(el('div', { className: 'problem', textContent: `${r.error}${r.hint ? ` ${r.hint}` : ''}` }));
+    if (r.text) nodes.push(el('div', { className: 'prose' }, markdown(r.text, r.url)));
+    if (r.sources && r.sources.length) nodes.push(el('div', { className: 'section-title', textContent: 'Sources' }), sourcesList(r.sources));
+    const actions = el('div', { className: 'reader-actions' });
+    if (r.status === 'done' && r.text) {
+      const keep = el('button', { type: 'button', className: 'btn primary', textContent: 'Save as snippet' });
+      keep.addEventListener('click', async () => {
+        keep.disabled = true;
+        const text = stripThinking(r.text);
+        const saved = await addSnippet({ kind: r.kind === 'research' ? 'research' : 'summary', source: 'page', title: (r.pageTitle || r.label || 'Summary').slice(0, 160), pageTitle: r.pageTitle, createdAt: r.createdAt, summary: plain(text).slice(0, 300), text, url: r.url, model: r.model, tags: [] });
+        await ext.runtime.sendMessage({ type: 'summary:delete', ids: [r.id] }); // it lives on as the snippet
+        selectedId = saved && saved.id ? saved.id : '';
+      });
+      actions.append(keep);
+    }
+    if (/^https?:/.test(r.url)) actions.append(el('a', { className: 'btn', href: S.safeUrl(r.url), target: '_blank', rel: 'noopener', textContent: 'Open page ↗' }));
+    if (r.text) {
+      const copy = el('button', { type: 'button', className: 'btn', textContent: 'Copy' });
+      copy.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(`${r.pageTitle || r.label}\n${r.url}\n\n${stripThinking(r.text)}`);
+        copy.textContent = 'Copied';
+        setTimeout(() => (copy.textContent = 'Copy'), 1500);
+      });
+      actions.append(copy);
+    }
+    const remove = el('button', { type: 'button', className: 'btn danger', textContent: r.status === 'running' ? 'Stop & delete' : 'Delete' });
+    remove.addEventListener('click', async () => {
+      await ext.runtime.sendMessage({ type: 'summary:delete', ids: [r.id] });
+      selectedId = '';
+    });
+    actions.append(remove);
+    nodes.push(actions);
+    reader.replaceChildren(...nodes);
+  }
+
+  // Deleting a snippet also deletes the summary job that made it, so it doesn't come back as "not saved".
+  function forgetJobsOf(ids) {
+    const gone = records.filter((r) => r.snippetId && ids.includes(r.snippetId)).map((r) => r.id);
+    if (gone.length) ext.runtime.sendMessage({ type: 'summary:delete', ids: gone }).catch(() => {});
+  }
+
+  // A summary job as a list item (only those without a saved snippet; see load()).
+  function jobItem(r) {
+    const text = r.text || '';
+    return {
+      id: `job:${r.id}`,
+      job: r,
+      kind: 'job',
+      title: r.pageTitle || r.label || 'Summary',
+      summary: r.status === 'running' ? r.statusText || 'Working in the background…' : r.error && r.status !== 'done' ? r.error : plain(text).slice(0, 220),
+      text,
+      url: r.url || '',
+      pageTitle: r.pageTitle || '',
+      createdAt: r.createdAt,
+      tags: [],
+    };
   }
 
   function shotFileName(s) {
@@ -464,9 +541,8 @@
 
   function render() {
     const query = $('search').value.trim().toLowerCase();
-    const visible = snippets.filter((s) => matches(s, query));
+    const visible = [...snippets, ...jobs].filter((s) => matches(s, query)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     const shots = snippets.filter((s) => kindOf(s) === 'screenshot').length;
-    $('count').textContent = snippets.length ? `(${snippets.length})` : '';
     $('shotCount').textContent = shots ? `(${shots})` : '';
     for (const b of document.querySelectorAll('[data-group]')) b.setAttribute('aria-pressed', String(b.dataset.group === prefs.group));
     for (const b of document.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', String(b.dataset.kind === prefs.kind));
@@ -505,7 +581,7 @@
       return;
     }
     const id = decodeURIComponent(location.hash.slice(1));
-    const s = id && snippets.find((x) => x.id === id);
+    const s = id && (snippets.find((x) => x.id === id) || jobs.find((x) => x.id === id));
     if (!s) return;
     selectedId = id;
     prefs.kind = SECTIONS.includes(kindOf(s)) ? kindOf(s) : 'all';
@@ -516,9 +592,16 @@
     relatedCache.clear();
     settings = await S.getSettings();
     snippets = (await listSnippets()).map((s) => ({ ...s, tags: Array.isArray(s.tags) ? s.tags : [] }));
+    const all = await ext.storage.local.get(null);
+    records = Object.keys(all).filter((k) => k.startsWith('summary:')).map((k) => all[k]).filter((r) => r && r.id);
+    const saved = new Set(snippets.map((s) => s.id));
+    jobs = records.filter((r) => !(r.snippetId && saved.has(r.snippetId)) && (r.status !== 'done' || r.text)).map(jobItem);
+    // Opening the list counts as seeing the results (as the summary history did).
+    const unseen = records.filter((r) => r.status !== 'running' && !r.seen).map((r) => r.id);
+    if (unseen.length) ext.runtime.sendMessage({ type: 'summary:seen', ids: unseen }).catch(() => {});
     openFromHash();
     if (!selectedId && window.innerWidth > 860) selectedId = (snippets.find((s) => matches(s, '')) || { id: '' }).id;
-    if (selectedId && !snippets.some((s) => s.id === selectedId)) selectedId = '';
+    if (selectedId && !snippets.some((s) => s.id === selectedId) && !jobs.some((s) => s.id === selectedId)) selectedId = '';
     render();
   }
 
@@ -538,7 +621,7 @@
   }
   for (const b of document.querySelectorAll('[data-kind]')) {
     b.addEventListener('click', () => {
-      prefs.kind = b.dataset.kind;
+      prefs.kind = prefs.kind === b.dataset.kind ? 'all' : b.dataset.kind; // Screenshots toggles its section
       savePrefs();
       const first = snippets.find((s) => matches(s, ''));
       if (window.innerWidth > 860) selectedId = first ? first.id : '';
@@ -603,16 +686,17 @@
     }
   });
   $('clear').addEventListener('click', async () => {
-    if (snippets.length && confirm(`Delete all ${snippets.length} snippets? Download a backup first if you want to keep them.`)) {
+    if ((snippets.length || records.length) && confirm(`Delete all ${snippets.length} snippets and the summary history? Download a backup first if you want to keep them.`)) {
       await deleteSnippets(snippets.map((s) => s.id));
+      if (records.length) await ext.runtime.sendMessage({ type: 'summary:delete', ids: records.map((r) => r.id) });
     }
   });
 
   let pending = 0;
   ext.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || !isSnippetChange(changes)) return;
+    if (area !== 'local' || !(isSnippetChange(changes) || Object.keys(changes).some((k) => k.startsWith('summary:')))) return;
     clearTimeout(pending);
-    pending = setTimeout(load, 200);
+    pending = setTimeout(load, 300); // running summaries save every ~1.5 s
   });
 
   // "Ask your library": the chat console at the bottom of the page; it can focus on the open note.
