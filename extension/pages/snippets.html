@@ -41,13 +41,13 @@
     .kind.summary { background: var(--accent-soft); color: var(--accent); }
     .kind.research { background: var(--spark-soft); color: var(--spark-fg); }
     .has-research { color: var(--spark-fg); }
-    .kind.screenshot { background: var(--surface-soft); color: var(--fg); }
     /* Summaries from the history that aren't saved snippets: still running, failed, or not saved. */
     .kind.job { background: var(--surface-soft); color: var(--fg-muted); }
     .kind.job.running { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
     .kind.job.error, .kind.job.interrupted { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
     .library-line { margin: -6px 0 12px; font-size: 13px; color: var(--fg-muted); }
-    .library-line b { color: var(--fg); }
+    .library-line a { color: var(--fg); font-weight: 650; text-decoration: none; }
+    .library-line a:hover { color: var(--accent); text-decoration: underline; }
     .related-notes .related-list { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 4px; }
     .related-notes .link { border: none; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 550; cursor: pointer; text-align: left; }
     .related-notes .link:hover { text-decoration: underline; }
@@ -63,16 +63,6 @@
     .topic-own { display: flex; gap: 8px; margin-top: 10px; max-width: 520px; }
     .topic-own input { flex: 1; }
 
-    /* Screenshots: a gallery of thumbnails */
-    .list.gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .list.gallery .group-head { grid-column: 1 / -1; }
-    .shot { display: grid; gap: 6px; padding: 6px; border-radius: 12px; cursor: pointer; text-align: left; background: var(--surface); border: 1px solid var(--border); color: var(--fg); font: inherit; }
-    .shot:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
-    .shot[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    .shot img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-radius: 8px; background: var(--surface-soft); display: block; }
-    .shot .card-title { font-size: 12.5px; -webkit-line-clamp: 1; padding: 0 2px; }
-    .shot .meta { font-size: 11px; padding: 0 2px 2px; }
-    .shot-full { display: block; max-width: 100%; height: auto; margin-top: 18px; border-radius: 10px; border: 1px solid var(--border); cursor: zoom-in; }
 
     /* Reading view */
     .reader { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 34px 34px; }
@@ -102,7 +92,6 @@
 
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; }
-      .list.gallery { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
       .reader { display: none; position: fixed; inset: 0; z-index: 10; max-height: none; border-radius: 0; padding: 18px 18px 40px; }
       .reader.open { display: block; }
       .back { display: inline-flex; margin-bottom: 8px; }
@@ -112,20 +101,17 @@
 <body>
 <header class="app-header"><div class="app-header-in">
   <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
-  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="options.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="pkg.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8.3 7.2 15.6 7.6M7 8.4l1.4 7.2M10.9 16.4l5.6-6.3"/></svg>PKG</a><a href="options.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
 </div></header>
 <main>
   <p class="library-line" id="libraryLine"></p>
   <div class="toolbar">
-    <input type="search" id="search" placeholder="Search everything you've read, by meaning or words…" aria-label="Search your library">
+    <input type="search" id="search" placeholder="Search everything you've read, by meaning or words…" aria-label="Search your PKG">
     <span class="label">Group by</span>
     <div class="segmented" role="group" aria-label="Group by">
       <button type="button" data-group="day" aria-pressed="true">Day</button>
       <button type="button" data-group="site" aria-pressed="false">Site</button>
       <button type="button" data-group="topic" aria-pressed="false">Topic</button>
-    </div>
-    <div class="segmented" role="group" aria-label="Sections">
-      <button type="button" data-kind="screenshot" aria-pressed="false">Screenshots <span id="shotCount"></span></button>
     </div>
     <details class="more">
       <summary class="btn small">More ▾</summary>

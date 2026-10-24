@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.41.0 on 2026-10-24.
+against version 2.44.0 on 2026-10-24.
 
 ## Before you submit
 
@@ -91,8 +91,8 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 | Permission | Justification (paste) |
 |---|---|
 | `storage` | Stores the user's settings, saved notes and summary history locally. |
-| `unlimitedStorage` | The user's library (notes, page text, screenshots and search vectors) can grow beyond the default quota; it never leaves the device unless the user turns on sync. |
-| `contextMenus` | Right-click items: "Summarize this page", "Take a screenshot", and "Summarize this PDF with soroagent". |
+| `unlimitedStorage` | The user's PKG, their personal knowledge graph (notes, page text and search vectors) can grow beyond the default quota; it never leaves the device unless the user turns on sync. |
+| `contextMenus` | Right-click items: "Summarize this page" and "Summarize this PDF with soroagent". |
 | `scripting` | When the user opens soroagent (or a right-click item) on a tab that was already open before soroagent was installed or updated, injects soroagent's own packaged content scripts into that tab so it works without a reload. |
 | `declarativeNetRequestWithHostAccess` | One session rule that sets the `Origin` header on soroagent's own background requests to the user's local model server (e.g. Ollama at 127.0.0.1), so the server accepts them. See "Local model servers" below. It never applies to web pages or tabs. |
 | `downloads` | Saves files the user asks for to their Downloads folder: exports (Markdown, JSON) and, only if the user turns it on in Settings, the automatic backup file. Each one shows in the browser's downloads like any other download. |
@@ -125,8 +125,9 @@ Tick these data types:
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and
-  included in the user's encrypted sync only if they turn sync on. soroagent keeps no log of visited
-  pages.
+  included in the user's encrypted sync only if they turn sync on. For pages the user saved (only
+  those), the active reading time is added up per page to weight topics in the PKG view; it stays on
+  the device and can be switched off. soroagent keeps no log of visited pages.
 - **Authentication information**: the user's own AI API keys, stored encrypted on the device and sent
   only to that provider.
 

@@ -29,7 +29,7 @@ test('the Chrome service worker loads the same scripts as Firefox, in order', ()
 });
 
 test('pages only load scripts that exist', () => {
-  for (const page of ['options', 'snippets', 'onboard', 'sidepanel', 'offscreen']) {
+  for (const page of ['options', 'snippets', 'pkg', 'onboard', 'sidepanel', 'offscreen']) {
     const html = readFileSync(join(ext, 'pages', `${page}.html`), 'utf8');
     for (const [, src] of html.matchAll(/<script src="([^"]+)"/g)) {
       assert.ok(existsSync(join(ext, 'pages', src)), `${page}.html -> ${src}`);
@@ -153,9 +153,9 @@ test('store builds: third-party licenses ship; the Firefox build has no WebLLM (
   assert.ok(chrome.description.length <= 132);
 });
 
-test('the extension pages share one header: logo with the version, and two tabs with icons', async () => {
+test('the extension pages share one header: logo with the version, and three tabs with icons', async () => {
   const { readFileSync } = await import('node:fs');
-  const headers = ['snippets', 'options'].map((page) => {
+  const headers = ['snippets', 'pkg', 'options'].map((page) => {
     const html = readFileSync(new URL(`../extension/pages/${page}.html`, import.meta.url), 'utf8');
     const m = html.match(/<header class="app-header">[\s\S]*?<\/header>/);
     assert.ok(m, `${page}.html has the shared header`);
@@ -164,14 +164,14 @@ test('the extension pages share one header: logo with the version, and two tabs 
   });
   assert.equal(new Set(headers).size, 1, 'identical apart from the current tab');
   const tabs = [...headers[0].matchAll(/<a href="[^"]+">(<svg class="icon"[^]*?<\/svg>)([^<]+)<\/a>/g)];
-  assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'Settings'], 'two tabs, each with an icon');
+  assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'PKG', 'Settings'], 'three tabs, each with an icon');
   assert.match(headers[0], /<sup class="app-version" id="appVersion"><\/sup>/, 'the version sits next to the logo');
 });
 
 test('extension pages only look up elements their HTML has', async () => {
   const { readFileSync } = await import('node:fs');
   const read = (f) => readFileSync(new URL(`../extension/pages/${f}`, import.meta.url), 'utf8');
-  for (const page of ['sidepanel', 'options', 'snippets', 'onboard']) {
+  for (const page of ['sidepanel', 'options', 'snippets', 'pkg', 'onboard']) {
     const html = read(`${page}.html`);
     const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
     const used = new Set([...read(`${page}.js`).matchAll(/\$\('([A-Za-z][\w-]*)'\)/g)].map((m) => m[1]));

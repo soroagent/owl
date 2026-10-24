@@ -6,7 +6,7 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 7;
+  const SCHEMA_VERSION = 8;
   const FORMAT = 'soroagent-backup';
   // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced),
   // the Stats page's reading log and the recent Tasks (both retired 2026-10-24).
@@ -69,8 +69,14 @@
     return { settings: { ...settings, autoBackup: false } };
   };
 
-  /** Pure: keys of retired features to delete. */
-  const planRemovals = (all) => Object.keys(all).filter((k) => RETIRED_PREFIXES.some((p) => k.startsWith(p)));
+  /**
+   * Pure: keys of retired features to delete, including screenshots (removed 2026-10-24, so they
+   * could no longer be seen or deleted any other way).
+   */
+  const planRemovals = (all) => Object.keys(all).filter((k) => RETIRED_PREFIXES.some((p) => k.startsWith(p)) || (k.startsWith('snippet:') && all[k] && all[k].kind === 'screenshot'));
+
+  // v8: nothing to rewrite (screenshots go through planRemovals); recorded so the upgrade runs once.
+  MIGRATIONS[8] = () => ({});
 
   /** Pure: the storage updates needed to bring `all` (a storage dump) to the current schema. */
   function planMigrations(all) {

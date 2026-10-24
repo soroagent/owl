@@ -27,7 +27,6 @@
     history: svg('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>'),
     chat: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'),
     home: svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>'),
-    camera: svg('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>'),
     research: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M8 11h6M11 8v6"/>'),
     send: svg('<path d="M12 19V5M5 12l7-7 7 7"/>'),
     stop: svg('<rect x="7" y="7" width="10" height="10" rx="1.5"/>', 'currentColor'),
@@ -75,7 +74,6 @@
           <select class="model" aria-label="Model" hidden></select>
         </div>
         <button class="icon-btn home-btn" type="button" aria-label="Home" title="Home">${ICONS.home}</button>
-        <button class="icon-btn" type="button" data-action="screenshot" aria-label="Screenshot" title="Screenshot: keep what you see in your snippets">${ICONS.camera}</button>
         <button class="icon-btn" type="button" data-action="page-history" aria-label="History of this page" title="History: what you saved from this page before">${ICONS.history}</button>
         <button class="icon-btn refresh-btn" type="button" data-action="refresh" aria-label="Refresh the summary with new posts" hidden>${ICONS.refresh}<span class="new-count" hidden></span></button>
         <button class="icon-btn menu-btn" type="button" aria-label="More options" aria-haspopup="menu">${ICONS.more}</button>
@@ -93,7 +91,7 @@
       </header>
       <div class="actions">
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
-        <button class="chip" type="button" data-action="save" title="Save this page to your library">${ICONS.save}<span>Save</span></button>
+        <button class="chip" type="button" data-action="save" title="Save this page to your PKG">${ICONS.save}<span>Save</span></button>
         <button class="chip" type="button" data-action="tech" title="Only the tech: the posts, videos or parts of this page about technology">${ICONS.tech}<span>Tech only</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
@@ -109,7 +107,7 @@
             <button type="button" data-ask="Explain this page simply, as if I'm new to the topic.">Explain it simply</button>
             <button type="button" data-ask="What claims here need checking, and what might be missing?">What should I double-check?</button>
           </div>
-          <p class="empty-hint">Summaries and screenshots are saved to your snippets automatically.</p>
+          <p class="empty-hint">Summaries are saved to your snippets automatically.</p>
         </div>
       </div>
       <form class="composer">
@@ -620,7 +618,7 @@
       kind: 'sync-offer',
       icon: 'save',
       title: `You've saved ${res.count} things. Keep them safe?`,
-      body: 'Sync your library to every browser where you use soroagent, through your own Google Drive, encrypted with your passphrase. soroagent only sees its own hidden folder there.',
+      body: 'Sync your PKG to every browser where you use soroagent, through your own Google Drive, encrypted with your passphrase. soroagent only sees its own hidden folder there.',
       actions: [
         { label: 'Set up sync', onClick: () => (node.remove(), sendMessage({ type: 'open:sync-setup' })) },
         { label: 'Not now', onClick: () => (node.remove(), sendMessage({ type: 'sync:offer-later' })) },
@@ -1529,7 +1527,7 @@
   // Passive capture saved this page: the owl says so on hover.
   S.onCaptured = () => {
     const title = els.launcher.title;
-    els.launcher.title = 'Saved to your library: you read this page.';
+    els.launcher.title = 'Saved to your PKG: you read this page.';
     setTimeout(() => (els.launcher.title = title), 8000);
   };
 
@@ -1606,7 +1604,7 @@
   // Saves this page to the library (or finds it there). Used by Save here and in the side panel.
   // Resolves with { already, snippet, labelling }.
   async function savePageData({ label = state.status === 'ready' } = {}) {
-    const saved = (await S.snippetsForPage(location.href)).find((s) => s.kind !== 'screenshot');
+    const saved = (await S.snippetsForPage(location.href))[0];
     if (saved) return { already: true, snippet: saved, labelling: false };
     {
       // The page's own description, else its first real paragraph, else the start of its text.
@@ -1643,18 +1641,18 @@
     try {
       const { already, snippet, labelling } = await savePageData();
       if (already) {
-        append(card({ kind: 'ok', icon: 'save', title: 'Already in your library.', body: snippet.title, actions: [open(snippet.id)] }));
+        append(card({ kind: 'ok', icon: 'save', title: 'Already in your PKG.', body: snippet.title, actions: [open(snippet.id)] }));
         return;
       }
       setTimeout(maybeOfferSync, 1500);
-      append(card({ kind: 'ok', icon: 'save', title: 'Saved to your library.', body: labelling ? 'Your AI is adding a title, summary and tags.' : snippet.title, actions: [open(snippet.id)] }));
+      append(card({ kind: 'ok', icon: 'save', title: 'Saved to your PKG.', body: labelling ? 'Your AI is adding a title, summary and tags.' : snippet.title, actions: [open(snippet.id)] }));
     } catch (err) {
       showError(err, '', false);
     }
   }
 
-  // History: everything saved from this exact page before (summaries, selections, screenshots).
-  const KIND_LABEL = { summary: 'Summary', selection: 'Selection', page: 'Page', research: 'Research', screenshot: 'Shot', read: 'Read' };
+  // History: everything saved from this exact page before (summaries, selections, pages).
+  const KIND_LABEL = { summary: 'Summary', selection: 'Selection', page: 'Page', research: 'Research', read: 'Read' };
   async function showPageHistory() {
     let items = [];
     try {
@@ -1665,7 +1663,7 @@
     }
     els.thread.querySelectorAll('.history-card').forEach((n) => n.remove());
     if (!items.length) {
-      const empty = card({ icon: 'history', title: 'Nothing saved from this page yet.', body: 'Summaries and screenshots you take here will show up in this list.' });
+      const empty = card({ icon: 'history', title: 'Nothing saved from this page yet.', body: 'Summaries and pages you save here will show up in this list.' });
       empty.classList.add('history-card');
       append(empty);
       return;
@@ -1674,13 +1672,7 @@
     for (const s of items) {
       const kind = s.kind || (s.source === 'selection' ? 'selection' : 'page');
       const row = el('button', { type: 'button', className: 'page-snip', title: 'Open in snippets' });
-      if (kind === 'screenshot' && s.image) {
-        const img = el('img', { src: s.image, alt: '' });
-        img.addEventListener('error', () => img.replaceWith(el('span', { className: 'snip-kind', textContent: KIND_LABEL.screenshot })));
-        row.append(img);
-      } else {
-        row.append(el('span', { className: 'snip-kind', textContent: KIND_LABEL[kind] || kind }));
-      }
+      row.append(el('span', { className: 'snip-kind', textContent: KIND_LABEL[kind] || kind }));
       const when = new Date(s.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
       const preview = s.summary || S.stripThinking(s.text || '').replace(/[*_#>`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
       row.append(
@@ -1693,43 +1685,6 @@
     const node = card({ kind: 'history-card', icon: 'history', title: `${items.length} saved from this page` });
     node.append(list);
     append(node);
-  }
-
-  // Screenshot of the visible page (without soroagent's own button and panel), saved as a snippet.
-  let capturing = false;
-  async function takeScreenshot() {
-    if (capturing) return;
-    capturing = true;
-    const chip = shadow.querySelector('header [data-action="screenshot"]');
-    chip.disabled = true;
-    const wasOpen = isOpen();
-    host.style.setProperty('display', 'none', 'important');
-    // Let the page repaint without us before the browser captures it.
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 60))));
-    let result;
-    try {
-      result = await sendMessage({ type: 'screenshot:capture', title: document.title, width: innerWidth, height: innerHeight });
-    } catch (err) {
-      result = { error: err };
-    } finally {
-      host.style.removeProperty('display');
-      capturing = false;
-      chip.disabled = false;
-    }
-    if (!wasOpen) openPanel({ focus: false });
-    const flash = el('div', { className: 'shutter' });
-    shadow.append(flash);
-    setTimeout(() => flash.remove(), 450);
-    if (result.error) {
-      append(card({ kind: 'error', icon: 'alert', title: 'Couldn\'t take the screenshot.', pre: result.error.message || String(result.error) }));
-      return;
-    }
-    append(card({
-      kind: 'ok',
-      icon: 'camera',
-      title: 'Screenshot saved to your snippets.',
-      actions: [{ label: 'View screenshot', onClick: () => sendMessage({ type: 'open:snippets', id: result.id }) }],
-    }));
   }
 
   // Coming back to a page: show summaries that finished while the reader was away, and
@@ -2269,7 +2224,6 @@
     const action = chip.dataset.action;
     if (action === 'summarize') summarize();
     else if (action === 'tech') techOnly();
-    else if (action === 'screenshot') takeScreenshot();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
   });
@@ -2283,7 +2237,6 @@
     }
   });
   shadow.querySelector('.home-btn').addEventListener('click', showHome);
-  shadow.querySelector('header [data-action="screenshot"]').addEventListener('click', takeScreenshot);
   shadow.querySelector('header [data-action="page-history"]').addEventListener('click', showPageHistory);
 
   // Clicking a chip would otherwise clear the user's text selection on the page.
@@ -2368,8 +2321,6 @@
     if (msg.type === 'assistant:toggle') {
       if (isOpen()) closePanel();
       else openPanel();
-    } else if (msg.type === 'assistant:run' && msg.action === 'screenshot') {
-      takeScreenshot();
     } else if (msg.type === 'assistant:run') {
       openPanel();
       if (msg.action === 'summarize') summarize();

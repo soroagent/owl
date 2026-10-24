@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PKG · soroagent</title>
+  <link rel="stylesheet" href="pages.css">
+  <style>
+    main { max-width: 1240px; margin: 0 auto; padding: 22px 20px 48px; }
+    .intro { margin: 0 0 14px; color: var(--fg-muted); font-size: 13.5px; }
+    .intro b { color: var(--fg); }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+    .tile .k { font-size: 12px; color: var(--fg-muted); font-weight: 550; }
+    .tile .v { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .tile .s { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+    .panel h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 0 0 2px; color: var(--heading); }
+    .panel .sub { font-size: 12px; color: var(--fg-muted); margin: 0 0 10px; }
+    /* The graph: one hue; size = weight, line thickness = notes shared. */
+    #graph { width: 100%; height: auto; display: block; touch-action: none; }
+    #graph .edge { stroke: var(--border); stroke-linecap: round; }
+    #graph .edge.on { stroke: color-mix(in srgb, var(--icon) 70%, var(--border)); }
+    #graph .node circle { fill: color-mix(in srgb, var(--icon) 28%, var(--surface)); stroke: var(--icon); stroke-width: 1.5; cursor: pointer; }
+    #graph .node.on circle { fill: var(--icon); }
+    #graph .node.dim { opacity: 0.35; }
+    #graph .node text { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
+    #graph .node:focus-visible circle { stroke-width: 3; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--fg-muted); margin-top: 6px; }
+    .rank { display: grid; gap: 6px; }
+    .rank button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; width: 100%; padding: 4px 6px; border: none; border-radius: 8px; background: none; color: var(--fg); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+    .rank button:hover, .rank button[aria-pressed="true"] { background: var(--accent-soft); }
+    .rank .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank .track { grid-column: 1 / -1; }
+    .rank .bar { height: 6px; min-width: 3px; background: var(--icon); border-radius: 0 4px 4px 0; }
+    .rank .val { color: var(--fg-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .detail h3 { font-size: 18px; margin: 2px 0 6px; color: var(--heading); }
+    .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 8px 0 12px; }
+    .facts dt { color: var(--fg-muted); }
+    .facts dd { margin: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips button { border: 1px solid var(--border); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+    .chips button:hover { border-color: var(--icon); }
+    .notes { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+    .notes a { color: var(--fg); text-decoration: none; font-weight: 550; font-size: 13px; }
+    .notes a:hover { color: var(--accent); text-decoration: underline; }
+    .notes small { display: block; color: var(--fg-muted); font-size: 11.5px; }
+    .label { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-muted); margin: 14px 0 6px; }
+    .empty { text-align: center; padding: 48px 16px; color: var(--fg-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); }
+    .tip { position: fixed; z-index: 60; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+    .foot-note { font-size: 12.5px; color: var(--fg-muted); margin-top: 14px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header class="app-header"><div class="app-header-in">
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="pkg.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8.3 7.2 15.6 7.6M7 8.4l1.4 7.2M10.9 16.4l5.6-6.3"/></svg>PKG</a><a href="options.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
+</div></header>
+<main>
+  <p class="intro" id="intro"><b>Your PKG</b>, personal knowledge graph: the topics in your snippets, how they connect, and where your reading time goes.</p>
+  <div class="tiles" id="tiles"></div>
+  <div class="layout" id="layout">
+    <section class="panel">
+      <h2>Your topics</h2>
+      <p class="sub">Bigger means more weight: one point per snippet, plus one per 5 minutes you spent reading those pages. Lines join topics that share snippets. Click a topic.</p>
+      <svg id="graph" viewBox="0 0 800 520" role="img" aria-label="Knowledge graph of your topics"></svg>
+      <div class="legend"><span>● size: weight</span><span>— line: snippets shared</span></div>
+    </section>
+    <aside class="panel detail" id="detail" aria-live="polite"></aside>
+  </div>
+  <p class="foot-note">Topics are your snippets' tags. Reading time counts only on pages you've saved, while the tab is in front and you're active; it stays on this computer. <a href="options.html#pkg">Turn off or clear it</a>.</p>
+</main>
+<div class="tip" id="tip" hidden></div>
+<footer class="site-foot">tech is art<span class="spark">.</span> © 2026 <a href="https://soroagent.com" target="_blank" rel="noopener">soroagent.com</a></footer>
+<script src="../shared/config.js"></script>
+<script src="appheader.js"></script>
+<script src="../shared/snippets.js"></script>
+<script src="../shared/pkg.js"></script>
+<script src="pkg.js"></script>
+</body>
+</html>

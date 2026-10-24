@@ -30,8 +30,8 @@ test('file names are safe and readable', () => {
 test('planning writes new and changed notes, renames, de-duplicates names and deletes removed ones', () => {
   const a = { ...NOTE, id: 'a', title: 'Owls' };
   const b = { ...NOTE, id: 'b', title: 'Owls', createdAt: '2026-10-21T00:00:00Z' };
-  const first = S.planExport([a, b, { id: 's', kind: 'screenshot', title: 'Shot' }], {});
-  assert.deepEqual(first.writes.map((w) => w.name), ['Owls.md', 'Owls 2.md'], 'screenshots are not exported');
+  const first = S.planExport([a, b], {});
+  assert.deepEqual(first.writes.map((w) => w.name), ['Owls.md', 'Owls 2.md']);
   const index = Object.fromEntries(first.writes.map((w) => [w.id, { name: w.name, hash: w.hash }]));
   assert.equal(S.planExport([a, b], index).writes.length, 0, 'nothing changed, nothing written');
   const renamed = S.planExport([{ ...a, title: 'Barn owls' }, b], index);

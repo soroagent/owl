@@ -51,13 +51,13 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Feeds** on X and Reddit: Summarize reads the posts that have loaded (on X, every post that appeared while you scrolled), and **Read more** loads the next batch. Promoted posts are left out.
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
-### Your personal library
+### Your PKG (personal knowledge graph)
 - **Auto-filed and auto-tagged.** Every summary is saved with a title, short summary and tags. The tagger reuses the tags already in your library, so "AI Agents" files under your existing *ai-agents*.
 - **Save** puts the page itself into your library, with its text for search.
 - **Passive capture** (opt-in) saves the pages you actually read. That means pages where you were active for a while (45 seconds by default) and scrolled through at least half. Mail, chat, banking, logins, checkouts, search results, feeds and pages with a password box are never captured, and you can exclude any site.
 - **Search by meaning.** Finds notes about the same idea even when the words differ, and still finds exact names. It uses a free local embedding model (`ollama pull nomic-embed-text`) or your OpenAI, Gemini or Mistral key; vectors stay on your device. Without one, it searches by words.
 - **Related notes.** On the page you're reading, the panel shows *"📚 3 of your saved notes relate to this page"*. **Use in chat** brings them into the conversation, cited as [N1], [N2]…
-- **Screenshots** of what you see go to their own gallery in your snippets.
+- **PKG, your personal knowledge graph.** The PKG tab draws your snippets as a small graph of topics: each topic is sized by how many snippets you have on it and how long you've actually spent reading those pages, and lines join topics that share snippets. Click a topic for its snippets, sources and connected topics; the side list shows where your knowledge is, strongest first. Reading time is counted only on pages you've saved, and stays on your computer.
 
 ### Your notes, everywhere
 - **Markdown folder (Obsidian, Logseq…).** The archivist keeps a clean `.md` file with YAML frontmatter for every note in a folder you choose, such as your Obsidian vault or Logseq `pages` folder:
@@ -80,7 +80,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
   ```
 
   New and changed notes are written automatically (renamed when their title changes) and deleted notes are removed. Files you edit in your vault are never overwritten. Chrome, Edge, Brave and Arc write to the folder you pick; Firefox writes to `Downloads/soroagent/notes/`.
-- **Sync across browsers.** Every browser where soroagent is installed can share one library, on any computer. There are no soroagent servers, so the shared copy lives in **your own storage**. Once you've saved 5 things, the owl offers it (or turn it on any time in Settings → Sync): click **Connect Google Drive**, sign in, and pick a passphrase; do the same in your other browsers. **Not now** keeps everything in that browser. It goes in a hidden folder in your Drive that only soroagent can see (soroagent can't see your other files). A WebDAV folder (Nextcloud, ownCloud, Synology, Koofr…) or a private GitHub Gist also work. It's **end-to-end encrypted** with your passphrase before it leaves the browser. Notes merge one by one (the newest wins; deletions carry over); each browser keeps its own AI connection and keys; screenshots stay local.
+- **Sync across browsers.** Every browser where soroagent is installed can share one PKG, on any computer. There are no soroagent servers, so the shared copy lives in **your own storage**. Once you've saved 5 things, the owl offers it (or turn it on any time in Settings → Sync): click **Connect Google Drive**, sign in, and pick a passphrase; do the same in your other browsers. **Not now** keeps everything in that browser. It goes in a hidden folder in your Drive that only soroagent can see (soroagent can't see your other files). A WebDAV folder (Nextcloud, ownCloud, Synology, Koofr…) or a private GitHub Gist also work. It's **end-to-end encrypted** with your passphrase before it leaves the browser. Notes merge one by one (the newest wins; deletions carry over); each browser keeps its own AI connection and keys.
 - **Backups and restore.** Turn on the automatic backup (Settings → Library) and a backup file in `Downloads/soroagent/` is kept up to date. After a reinstall, soroagent finds it and restores everything in one click. Snippets also export as Markdown or JSON.
 
 ### Make it yours
@@ -103,12 +103,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.43.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.44.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.43.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.43.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.43.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.43.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.44.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.44.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.44.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.44.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -146,9 +146,9 @@ This creates `dist/chrome` and `dist/firefox`.
 
 | Where | How |
 |---|---|
-| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
+| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and **Tech only**, the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
 | Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
-| Right-click | *Summarize this page*, *Take a screenshot* |
+| Right-click | *Summarize this page*, *Summarize this PDF with soroagent* (on PDF links) |
 | Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Send feedback** and **Settings**. |
 
 Your data carries over to every update. The Chrome build has a fixed extension ID (`jomghmmgdlajfonjihmagbhomimadpcg`), so a newer version loaded from any folder keeps the same storage, and stored data is upgraded automatically.

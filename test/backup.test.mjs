@@ -113,3 +113,9 @@ test('v7: the automatic backup is opt-in, and Stats, Tasks and the pictures offe
   assert.equal(S.DEFAULT_SETTINGS.autoBackup, false);
   assert.equal(S.DEFAULT_SETTINGS.followUps, true);
 });
+
+test('v8: stored screenshots are deleted with the feature', () => {
+  const all = { meta: { schemaVersion: 7 }, 'snippet:a': { id: 'a', kind: 'summary' }, 'snippet:s': { id: 's', kind: 'screenshot', image: 'data:' } };
+  assert.deepEqual(S.planRemovals(all), ['snippet:s']);
+  assert.equal(S.planMigrations(all).meta.schemaVersion, 8);
+});

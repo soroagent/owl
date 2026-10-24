@@ -109,7 +109,7 @@ header {
 .status {
   min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 2px;
 }
-/* Everything after the status sits on the right: Home, Screenshot, History, ⋯, close */
+/* Everything after the status sits on the right: Home, History, ⋯, close */
 .home-btn { margin-left: auto; }
 .dot { cursor: help; width: 8px; height: 8px; border-radius: 50%; background: var(--fg-muted); flex: none; }
 .dot.ready { background: var(--ok); }
@@ -198,9 +198,6 @@ header {
 .thread.chatting > .empty { margin: 0; padding: 2px 12px 14px; border-bottom: 1px solid var(--border); }
 .thread.chatting > .empty .empty-mark, .thread.chatting > .empty .empty-note, .thread.chatting > .empty .empty-hint { display: none; }
 .thread.chatting > .empty strong { font-size: 13.5px; }
-.shutter { position: fixed; inset: 0; z-index: 2147483647; background: #fff; pointer-events: none; animation: shutter .45s ease-out forwards; }
-@keyframes shutter { from { opacity: .55; } to { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .shutter { display: none; } }
 
 .thread { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .empty { margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--fg-muted); font-size: 13px; text-align: center; padding: 0 12px; }

@@ -342,7 +342,7 @@
       if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not connect.');
       $('syncPass').value = '';
       const others = Object.keys(res.devices || {}).length - 1;
-      status(others > 0 ? `Sync is on. Your library from ${others === 1 ? 'your other browser' : `${others} other browsers`} is here now${res.received ? ` (${res.received} notes)` : ''}. You can close this tab.` : 'Sync is on. Install soroagent in your other browsers and connect with the same passphrase. You can close this tab.', 'ok');
+      status(others > 0 ? `Sync is on. Your PKG from ${others === 1 ? 'your other browser' : `${others} other browsers`} is here now${res.received ? ` (${res.received} notes)` : ''}. You can close this tab.` : 'Sync is on. Install soroagent in your other browsers and connect with the same passphrase. You can close this tab.', 'ok');
       show();
     } catch (err) {
       status(/did not approve|cancel|closed/i.test(err.message) ? 'Google sign-in was closed. Try again, or choose Not now.' : err.message, 'err');
@@ -364,7 +364,7 @@
   renderProviders();
   renderGuide();
   if (syncOnly) {
-    $('greeting').textContent = 'You have a library worth keeping.';
+    $('greeting').textContent = 'You have a PKG worth keeping.';
     show('sync');
   } else detect();
 })();

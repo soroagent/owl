@@ -96,8 +96,25 @@
 
   const keyOf = (href) => (soroagent.pageKey ? soroagent.pageKey(href) : href.split('#')[0]);
   const reset = () => {
-    reading = { url: keyOf(location.href), activeMs: 0, depth: 0, done: false };
+    if (reading) flushDwell(); // the page being left (single-page sites change URL in place)
+    reading = { url: keyOf(location.href), href: location.href, activeMs: 0, depth: 0, done: false, logged: 0 };
   };
+
+  // Reading time for the PKG (Settings → "Count reading time on saved pages", on): only on pages
+  // the reader saved, the active time is added to that page (background "pkg:dwell", storage
+  // "pkgDwell"), so topics they spend time on weigh more. Pages that aren't saved are never recorded.
+  // Sent when leaving or hiding the page and every minute, as time since the last report.
+  async function flushDwell() {
+    if (!settings || settings.pkgDwell === false || !reading) return;
+    const ms = reading.activeMs - reading.logged;
+    if (ms < 5000 || (ext.extension && ext.extension.inIncognitoContext)) return;
+    const page = reading;
+    page.logged = page.activeMs;
+    if (!captureAllowed({ url: page.href, textLength: Infinity, adult: isAdultPage(document) }, settings.captureExclude || []).ok) return;
+    const saved = soroagent.snippetsForPage ? await soroagent.snippetsForPage(page.href).catch(() => []) : [];
+    if (!saved.length) return;
+    ext.runtime.sendMessage({ type: 'pkg:dwell', url: page.href, ms }).catch(() => {});
+  }
   reset();
 
   function measureDepth() {
@@ -122,7 +139,7 @@
     if (!allowed.ok) return;
     // Already in the library (summarized, saved or captured before): nothing to add.
     const existing = await soroagent.snippetsForPage(location.href);
-    if (existing.some((s) => s.kind !== 'screenshot')) return;
+    if (existing.length) return;
     const description = document.querySelector('meta[name="description"], meta[property="og:description"]');
     const firstParagraph = [...document.querySelectorAll('article p, main p, p')].map((p) => p.textContent.trim()).find((t) => t.length > 100 && /[.!?]/.test(t));
     const excerpt = ((description && description.content) || firstParagraph || page.text).replace(/\s+/g, ' ').trim();
@@ -152,6 +169,7 @@
     const active = document.visibilityState === 'visible' && document.hasFocus() && now - lastInput < IDLE_MS;
     if (active) reading.activeMs += Math.min(now - lastTick, TICK_MS * 2);
     lastTick = now;
+    if (reading.activeMs - reading.logged >= 60000) flushDwell();
     if (!settings || settings.autoCapture !== 'on' || reading.done) return;
     const scrollable = measureDepth();
     if (hasBeenRead({ ...reading, scrollable }, Number(settings.captureMinSeconds) || 45)) {
@@ -165,6 +183,8 @@
     root.addEventListener(type, () => (lastInput = Date.now()), { passive: true, capture: true });
   }
   root.addEventListener('scroll', () => reading && measureDepth(), { passive: true });
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushDwell());
+  root.addEventListener('pagehide', () => flushDwell());
   setInterval(tick, TICK_MS);
 
   const apply = (s) => {

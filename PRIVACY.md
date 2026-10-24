@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.43 and later.
+Arc and Firefox, version 2.44 and later.
 
 ## The short version
 
@@ -27,7 +27,7 @@ data. In this policy, "soroagent", "we" and "us" mean the extension and the proj
 
 soroagent stores the following **only in your browser's extension storage on your device**:
 
-- **Your library:** summaries, saved pages and PDFs, highlights, research briefs, screenshots and the
+- **Your PKG (personal knowledge graph):** summaries, saved pages and PDFs, highlights, research briefs and the
   notes you create, with their titles, tags and the address of the page they came from.
 - **Summary history** and the conversation in the panel while you use it.
 - **A search index** of your library (numeric "embeddings" and word counts) so you can search it by
@@ -37,14 +37,19 @@ soroagent stores the following **only in your browser's extension storage on you
 - **Your AI API keys**, if you add any. They are encrypted (AES-256) with a key the browser keeps and
   cannot export. They are never included in backups or sync, and Settings only ever shows their last
   four characters.
+- **Reading time on saved pages:** for pages you've saved to your PKG, and only those, how long
+  you've actively read them (the tab in front and you using it), added up per page. It makes the
+  topics you spend time on weigh more in your PKG. Pages you haven't saved are never recorded. It
+  stays on this computer, is never synced, backed up or sent anywhere, and is deleted with "Delete
+  all". Turn it off or clear it in Settings → PKG.
 - **A diagnostic log** of soroagent's own errors (the last 50), kept in memory only while the browser is
   open. Web addresses, host names, page text, emails, keys and file paths are removed before anything
   is logged. See section 6.
 
-soroagent does not collect your browsing history or read your browser's history. It reads a page's
-content only:
+soroagent does not collect your browsing history or read your browser's history (the reading time
+above covers only pages you saved). It reads a page's content only:
 
-- when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, Screenshot);
+- when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, Tech only);
 - when **automatic preparing** is on (section 3) and the side panel is open on the page, or you have
   been reading the page for 15 seconds;
 - if you turn on **passive capture**, when you have actually read a page (time spent and how far you
@@ -106,11 +111,11 @@ see**.
 
 ### How soroagent uses it
 
-soroagent keeps one file there, `soroagent-sync.json`. It holds your library, summary history and
+soroagent keeps one file there, `soroagent-sync.json`. It holds your PKG, summary history and
 preferences, compressed and **encrypted in your browser with AES-256-GCM**, using a key derived from
 your sync passphrase. Google stores only this encrypted data and cannot read it. Your API keys and
-screenshots are never synced. Each browser where you connect with the same passphrase reads the file,
-merges it with its own library and writes it back. That is the only use of this data.
+your reading time are never synced. Each browser where you connect with the same passphrase reads
+the file, merges it with its own PKG and writes it back. That is the only use of this data.
 
 ### Sign-in tokens
 
@@ -175,7 +180,7 @@ which copies the report and opens a pre-filled GitHub issue for you to read and 
 
 - You can view, search, export and delete any note on the Snippets page, and export or delete
   everything in Settings → Backup & restore.
-- Automatic preparing, suggested questions, follow-up questions, web answers, passive capture, the automatic backup and
+- Automatic preparing, suggested questions, follow-up questions, web answers, reading time on saved pages, passive capture, the automatic backup and
   sync can each be turned off in Settings.
 - Uninstalling soroagent deletes everything it stored in that browser. Backups in your Downloads
   folder, Markdown files and any sync file stay until you delete them.

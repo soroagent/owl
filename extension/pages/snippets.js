@@ -23,7 +23,7 @@
   let selectedId = '';
   let tagFilter = '';
   let siteFilter = '';
-  let prefs = { group: 'day', kind: 'all' };
+  let prefs = { group: 'day' };
   try {
     prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') };
   } catch {
@@ -48,11 +48,8 @@
   let ranked = null; // { query, ids: [...], mode }
   const relatedCache = new Map(); // snippet id -> related notes
 
-  const KIND_LABEL = { summary: 'Summary', selection: 'Selection', page: 'Page', research: 'Research', screenshot: 'Screenshot', deliverable: 'Created', read: 'Read' };
-  // Kinds with a section of their own, kept out of the text views.
-  const SECTIONS = ['screenshot'];
+  const KIND_LABEL = { summary: 'Summary', selection: 'Selection', page: 'Page', research: 'Research', deliverable: 'Created', read: 'Read' };
   const topicPicks = new Map(); // snippet id -> { status: 'loading' | 'ready' | 'error', topics, error, draft }
-  if (!['all', ...SECTIONS].includes(prefs.kind)) prefs.kind = 'all'; // e.g. the old Summaries / Research views
   const JOB_LABEL = { running: 'Working', done: 'Not saved', error: 'Failed', interrupted: 'Interrupted', stopped: 'Stopped' };
   const kindOf = (s) => s.kind || (s.source === 'selection' ? 'selection' : s.source === 'summary' ? 'summary' : 'page');
   const hostOf = (url) => {
@@ -74,11 +71,6 @@
   const plain = (text) => stripThinking(text || '').replace(/[*_#>`]/g, '').replace(/\s+/g, ' ').trim();
 
   function matches(s, query) {
-    const kind = kindOf(s);
-    // Screenshots have their own section and stay out of the text views.
-    if (SECTIONS.includes(prefs.kind) || SECTIONS.includes(kind)) {
-      if (prefs.kind !== kind) return false;
-    }
     if (tagFilter && !s.tags.includes(tagFilter)) return false;
     if (siteFilter && hostOf(s.url) !== siteFilter) return false;
     if (!query) return true;
@@ -117,18 +109,6 @@
     return card;
   }
 
-  function renderShot(s) {
-    const host = hostOf(s.url);
-    const shot = el('button', { type: 'button', className: 'shot' }, [
-      el('img', { src: s.image, alt: '', loading: 'lazy', decoding: 'async' }),
-      el('div', { className: 'card-title', textContent: s.title || s.pageTitle || 'Screenshot' }),
-      el('div', { className: 'meta' }, [host ? siteBadge(host) : '', el('span', { textContent: when(s.createdAt, { hour: 'numeric', minute: '2-digit' }) })]),
-    ]);
-    shot.setAttribute('aria-current', String(s.id === selectedId));
-    shot.addEventListener('click', () => select(s.id));
-    return shot;
-  }
-
   function groups(visible) {
     if (prefs.group === 'site') {
       const bySite = new Map();
@@ -155,28 +135,24 @@
     if (!visible.length) {
       $('list').replaceChildren(el('div', {
         className: 'empty',
-        textContent: prefs.kind === 'screenshot'
-          ? 'No screenshots yet. Use Screenshot in the soroagent panel (or right-click a page) to take one.'
-          : snippets.some((s) => !SECTIONS.includes(kindOf(s)))
+        textContent: snippets.length
           ? libraryMode === 'words' && $('search').value.trim()
             ? 'Nothing uses those words. To also find notes by meaning (the same idea in other words), install a free embedding model: ollama pull nomic-embed-text'
             : 'No snippets match.'
           : 'No snippets yet. Every summary you make is saved here automatically.',
       }));
-      $('list').classList.remove('gallery');
       return;
     }
-    $('list').classList.toggle('gallery', prefs.kind === 'screenshot');
     const nodes = [];
     if (rankedBy) {
       nodes.push(el('div', { className: 'group-head' }, [el('span', { textContent: `Best matches${rankedBy.mode === 'meaning' ? ' · by meaning and words' : ''}` }), el('small', { textContent: String(visible.length) })]));
-      for (const s of visible) nodes.push(kindOf(s) === 'screenshot' ? renderShot(s) : renderCard(s));
+      for (const s of visible) nodes.push(renderCard(s));
       $('list').replaceChildren(...nodes);
       return;
     }
     for (const group of groups(visible)) {
       nodes.push(el('div', { className: 'group-head' }, [el('span', { textContent: group.label }), el('small', { textContent: String(group.items.length) })]));
-      for (const s of group.items) nodes.push(kindOf(s) === 'screenshot' ? renderShot(s) : renderCard(s));
+      for (const s of group.items) nodes.push(renderCard(s));
     }
     $('list').replaceChildren(...nodes);
   }
@@ -222,10 +198,6 @@
       })));
     }
 
-    if (kind === 'screenshot') {
-      renderShotReader(s, reader, [back, meta, el('h1', { textContent: s.title || s.pageTitle || 'Screenshot' })]);
-      return;
-    }
     if (s.job) return renderJobReader(s, reader, back);
 
     const body = el('div', { className: 'prose' });
@@ -353,45 +325,6 @@
     };
   }
 
-  function shotFileName(s) {
-    const name = (hostOf(s.url) || 'screenshot').replace(/[^a-z0-9.-]+/gi, '-');
-    return `soroagent-${name}-${String(s.createdAt).slice(0, 19).replace(/[T:]/g, '-')}.jpg`;
-  }
-
-  function renderShotReader(s, reader, nodes) {
-    const img = el('img', { className: 'shot-full', src: s.image, alt: `Screenshot of ${s.pageTitle || s.url}` });
-    // Full size in a new tab (browsers block opening data: URLs directly).
-    img.addEventListener('click', async () => window.open(URL.createObjectURL(await (await fetch(s.image)).blob()), '_blank'));
-    nodes.push(img);
-    const actions = el('div', { className: 'reader-actions' });
-    const save = el('a', { className: 'btn primary', href: s.image, download: shotFileName(s), textContent: 'Download' });
-    const copy = el('button', { type: 'button', className: 'btn', textContent: 'Copy image' });
-    copy.addEventListener('click', async () => {
-      try {
-        // The clipboard takes PNG, so redraw the stored JPEG.
-        const bitmap = await createImageBitmap(await (await fetch(s.image)).blob());
-        const canvas = el('canvas', { width: bitmap.width, height: bitmap.height });
-        canvas.getContext('2d').drawImage(bitmap, 0, 0);
-        const png = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-        copy.textContent = 'Copied';
-      } catch {
-        copy.textContent = 'Copy not supported here';
-      }
-      setTimeout(() => (copy.textContent = 'Copy image'), 1500);
-    });
-    actions.append(save, copy);
-    if (/^https?:/.test(s.url)) actions.append(el('a', { className: 'btn', href: S.safeUrl(s.url), target: '_blank', rel: 'noopener', textContent: 'Open page ↗' }));
-    const remove = el('button', { type: 'button', className: 'btn danger', textContent: 'Delete' });
-    remove.addEventListener('click', async () => {
-      await deleteSnippets([s.id]);
-      selectedId = '';
-    });
-    actions.append(remove);
-    nodes.push(actions);
-    reader.replaceChildren(...nodes);
-  }
-
   // Before researching, ask what to focus on: topics the model finds in the snippet, the whole
   // snippet, or the reader's own words.
   function pickTopic(s) {
@@ -493,7 +426,7 @@
     const show = (list) => {
       if (!list.length) return box.replaceChildren();
       box.replaceChildren(
-        el('div', { className: 'section-title', textContent: 'Related in your library' }),
+        el('div', { className: 'section-title', textContent: 'Related in your PKG' }),
         el('ul', { className: 'related-list' }, list.map((n) => {
           const link = el('button', { type: 'button', className: 'link', textContent: n.title || n.pageTitle || 'Untitled' });
           link.addEventListener('click', () => select(n.id));
@@ -541,10 +474,7 @@
   function render() {
     const query = $('search').value.trim().toLowerCase();
     const visible = [...snippets, ...jobs].filter((s) => matches(s, query)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    const shots = snippets.filter((s) => kindOf(s) === 'screenshot').length;
-    $('shotCount').textContent = shots ? `(${shots})` : '';
     for (const b of document.querySelectorAll('[data-group]')) b.setAttribute('aria-pressed', String(b.dataset.group === prefs.group));
-    for (const b of document.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', String(b.dataset.kind === prefs.kind));
     renderFilters();
     renderLibraryLine();
     if (ranked && ranked.query === query) visible.sort((a, b) => ranked.ids.indexOf(a.id) - ranked.ids.indexOf(b.id));
@@ -555,7 +485,7 @@
   // The library at a glance: it grows with everything you read.
   let libraryMode = '';
   function renderLibraryLine() {
-    const text = snippets.filter((s) => kindOf(s) !== 'screenshot');
+    const text = snippets;
     if (!text.length) {
       $('libraryLine').textContent = '';
       return;
@@ -567,23 +497,15 @@
     const parts = [`${text.length} note${text.length === 1 ? '' : 's'}`, `${topics.size} topic${topics.size === 1 ? '' : 's'}`, `${sites.size} site${sites.size === 1 ? '' : 's'}`, `growing since ${when(first, { month: 'long', year: 'numeric' })}`];
     if (week) parts.push(`+${week} this week`);
     if (libraryMode) parts.push(libraryMode === 'meaning' ? 'searchable by meaning' : 'searchable by words');
-    $('libraryLine').replaceChildren(el('b', { textContent: 'Your library: ' }), document.createTextNode(parts.join(' · ')));
+    $('libraryLine').replaceChildren(el('a', { href: 'pkg.html', textContent: 'Your PKG' }), document.createTextNode(': '), document.createTextNode(parts.join(' · ')));
   }
 
-  // snippets.html#<id> opens that snippet (the panel links new screenshots this way).
+  // snippets.html#<id> opens that snippet (the panel's "Open in snippets" links).
   function openFromHash() {
-    const view = location.hash.match(/^#view=(\w+)$/);
-    if (view && SECTIONS.includes(view[1])) {
-      prefs.kind = view[1];
-      selectedId = '';
-      history.replaceState(null, '', location.pathname);
-      return;
-    }
     const id = decodeURIComponent(location.hash.slice(1));
     const s = id && (snippets.find((x) => x.id === id) || jobs.find((x) => x.id === id));
     if (!s) return;
     selectedId = id;
-    prefs.kind = SECTIONS.includes(kindOf(s)) ? kindOf(s) : 'all';
     history.replaceState(null, '', location.pathname);
   }
 
@@ -615,15 +537,6 @@
     b.addEventListener('click', () => {
       prefs.group = b.dataset.group;
       savePrefs();
-      render();
-    });
-  }
-  for (const b of document.querySelectorAll('[data-kind]')) {
-    b.addEventListener('click', () => {
-      prefs.kind = prefs.kind === b.dataset.kind ? 'all' : b.dataset.kind; // Screenshots toggles its section
-      savePrefs();
-      const first = snippets.find((s) => matches(s, ''));
-      if (window.innerWidth > 860) selectedId = first ? first.id : '';
       render();
     });
   }
@@ -662,7 +575,6 @@
   $('exportJson').addEventListener('click', () => download(`soroagent-snippets-${stamp()}.json`, 'application/json', JSON.stringify(snippets, null, 2)));
   $('exportMd').addEventListener('click', () => {
     const md = snippets
-      .filter((s) => !SECTIONS.includes(kindOf(s)))
       .map((s) => {
         const tags = s.tags.length ? `\n${s.tags.map((t) => `#${t}`).join(' ')}` : '';
         const body = kindOf(s) === 'summary' || kindOf(s) === 'research' ? stripThinking(s.text) : s.text.split('\n').map((l) => `> ${l}`).join('\n');
@@ -688,6 +600,7 @@
     if ((snippets.length || records.length) && confirm(`Delete all ${snippets.length} snippets and the summary history? Download a backup first if you want to keep them.`)) {
       await deleteSnippets(snippets.map((s) => s.id));
       if (records.length) await ext.runtime.sendMessage({ type: 'summary:delete', ids: records.map((r) => r.id) });
+      await ext.storage.local.remove('pkgDwell'); // reading time belongs to the saved pages
     }
   });
 

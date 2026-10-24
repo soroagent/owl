@@ -74,9 +74,9 @@ files in `extension/vendor/` (see each README). Pure functions are exported on `
 ## Data
 
 `chrome.storage.local` keys: `settings`, `snippet:<id>` (library notes; kinds: summary, research,
-selection, page, deliverable, read, screenshot), `summary:<id>` (summary history), `vec:<id>`
+selection, page, deliverable, read), `summary:<id>` (summary history), `vec:<id>`
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
-`backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
+`backupState`, `pkgDwell` (PKG reading time per saved page, local only), `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
 `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
@@ -90,9 +90,9 @@ a cloud API),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
-`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 7). When a feature is
+`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 8). When a feature is
 removed or a default changes, add a migration (v3: wishlist → readlater; v4: readlater → page and
-stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl; v7: automatic backup opt-in, Stats/Tasks/pictures data and settings deleted).
+stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl; v7: automatic backup opt-in, Stats/Tasks/pictures data and settings deleted; v8: screenshot snippets deleted).
 
 ## Rules
 
@@ -213,18 +213,28 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
   `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
   words before it).
-- **Extension pages** (2026-10-24, the owner's call): two tabs, Snippets · Settings, each with an icon, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px
+- **Extension pages** (2026-10-24, the owner's call): three tabs, Snippets · PKG · Settings, each with an icon, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px
   wide, 60 px high, outside each page's `main`, `scrollbar-gutter: stable`, no bold on the current
   tab) so nothing moves when switching; the version is a superscript by the logo (`appheader.js`
   reads the manifest). Icons are one colour everywhere, mint (`--icon` on pages, `--brand` in the
   panels; the ⋯/× controls and red error icons excepted); section headings are dark green
   (`--heading`, a light green in dark mode). Settings is four groups with a jump row: **AI** (Model,
   Generation, While you read, Research, Prompts), **Appearance** (How soroagent appears, The owl
-  button), **Library** (Your library, Sync, Backup & restore `#backups`), **Help** (Troubleshooting).
+  button), **PKG** (Your PKG `#pkg`, Sync, Backup & restore `#backups`), **Help** (Troubleshooting).
   The summary history page is gone: Snippets lists snippets plus the summary jobs (`summary:<id>`)
   that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
   snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
-  is a snippet like any other); Screenshots stays a toggle. `open:history` opens Snippets.
+  is a snippet like any other). `open:history` opens Snippets.
+- **PKG** (`pages/pkg.html`, the personal knowledge graph; the interface's name for the library):
+  `S.buildGraph(snippets, pkgDwell)` in `shared/pkg.js` makes topics from tags (case-folded), weight
+  = notes + reading minutes / 5 (a page's time counts once per topic; passive capture's
+  `readSeconds` counts too), edges between tags sharing notes; `S.layoutGraph` is a deterministic
+  force layout and `pkg.js` fits it into the SVG with room for labels (above the circle when below
+  would collide). Tiles: snippets, topics, reading time, strongest, growing (30 days), deepest
+  reading (time per note). Reading time (`pkgDwell`, setting `pkgDwell` on): `capture.js`
+  `flushDwell()` (leave, hide, every minute; ≥5 s; never incognito or excluded pages) sends
+  `pkg:dwell` only if `snippetsForPage` finds the page saved; the background adds it with
+  `S.addDwell` (≤1 h per report). Local only: not synced or backed up; "Delete all" clears it.
 - **Tech only** (chip in both panels, `assistant:sp-focus` for the side panel): `focusRequest()` in
   `assistant.js` builds the `focus` prompt from all loaded X posts (`preparedContent()`, which now
   also returns their `urls`), a feed's loaded items, or the page (YouTube: transcript via
@@ -285,7 +295,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `knowledge.js` formatting).
 - **Sync:** one encrypted document (`soroagent-sync.json`), gzip + AES-GCM with a PBKDF2 key from
   the passphrase; merged per item, newest wins, tombstones for deletions. Settings sync except each
-  browser's AI connection and keys; screenshots stay local. Google Drive uses only the
+  browser's AI connection and keys. Google Drive uses only the
   `drive.appdata` scope (hidden app folder). The sign-in window opens from an extension page
   (Settings or onboarding), and the background then reads the token from `storage.session` and
   renews it silently. WebDAV and Gist are the alternatives.
@@ -338,11 +348,11 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).
-- "Summarize" (not "TL;DR"), "Save" (not "Read later"); screenshot and page history are icons.
+- "Summarize" (not "TL;DR"), "Save" (not "Read later"); page history is an icon. "Library" is called the PKG (personal knowledge graph) in the interface since 2026-10-24; code names (`library.js`, `library:*`) stay.
 - Google Drive became the default sync because GitHub tokens and WebDAV were too hard for most
   users; a shared folder on disk can't work because Firefox extensions can't read files.
 - Sync is not part of first run: asking for Google access and a passphrase to sync an empty

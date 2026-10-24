@@ -196,7 +196,6 @@
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);
     $('tech').disabled = !readable || !ready || Boolean(state.busy);
     $('save').disabled = !state.snap && !(pdf && pdf.status === 'ready');
-    $('shot').disabled = !state.tabId;
     $('input').disabled = !ready || !readable;
     $('send').disabled = !state.busy && (!ready || !readable);
     setHtml($('send'), state.busy ? STOP : SEND);
@@ -353,7 +352,7 @@
   }
 
   async function savePdf(pdf) {
-    const saved = (await S.snippetsForPage(pdf.url)).find((s) => s.kind !== 'screenshot');
+    const saved = (await S.snippetsForPage(pdf.url))[0];
     if (saved) return { ok: true, already: true, snippet: saved };
     const intro = pdf.text.replace(/\s+/g, ' ').trim();
     const snippet = await S.addSnippet({ kind: 'page', source: 'pdf', title: pdf.title, pageTitle: pdf.title, url: pdf.url, summary: intro.length > 280 ? `${intro.slice(0, 280).replace(/\s+\S*$/, '')}…` : intro, text: pdf.text.slice(0, 20000) });
@@ -658,13 +657,7 @@
     const res = pdf ? await savePdf(pdf).catch((err) => ({ ok: false, error: err.message })) : await toTab({ type: 'assistant:sp-save' }).catch((err) => ({ ok: false, error: err.message }));
     if (!res || !res.ok) return append(card({ kind: 'error', title: (res && res.error) || 'Couldn’t save this page.' }));
     const open = { label: 'Open in snippets', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: res.snippet.id }) };
-    append(card({ kind: 'ok', title: res.already ? 'Already in your library.' : 'Saved to your library.', body: res.already ? res.snippet.title : 'Your AI is adding a title, summary and tags.', actions: [open] }));
-  });
-  $('shot').addEventListener('click', async () => {
-    const tab = await ext.tabs.get(state.tabId).catch(() => null);
-    const res = await ext.runtime.sendMessage({ type: 'screenshot:capture', tabId: state.tabId, title: tab ? tab.title : '' }).catch((err) => ({ ok: false, error: err.message }));
-    if (!res || res.ok === false) append(card({ kind: 'error', title: 'Couldn’t take the screenshot.', pre: (res && res.error) || '' }));
-    else append(card({ kind: 'ok', title: 'Screenshot saved to your snippets.', actions: [{ label: 'Open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: res.id }) }] }));
+    append(card({ kind: 'ok', title: res.already ? 'Already in your PKG.' : 'Saved to your PKG.', body: res.already ? res.snippet.title : 'Your AI is adding a title, summary and tags.', actions: [open] }));
   });
   // X: prepare again with every post loaded so far, then show the new summary.
   $('refresh').addEventListener('click', async () => {

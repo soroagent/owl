@@ -39,9 +39,9 @@ function davServer() {
 
 test('merging: newest wins, both sides keep their new notes, deletions carry over', () => {
   const now = Date.parse('2026-10-22T12:00:00Z');
-  const a = { 'snippet:1': note('1', '2026-10-20T00:00:00Z'), 'snippet:2': note('2', '2026-10-21T00:00:00Z', { updatedAt: '2026-10-22T10:00:00Z', title: 'edited on A' }), 'snippet:shot': { id: 'shot', kind: 'screenshot', createdAt: '2026-10-21T00:00:00Z' } };
+  const a = { 'snippet:1': note('1', '2026-10-20T00:00:00Z'), 'snippet:2': note('2', '2026-10-21T00:00:00Z', { updatedAt: '2026-10-22T10:00:00Z', title: 'edited on A' }) };
   const first = S.mergeSync(a, null, { deviceId: 'A', now });
-  assert.deepEqual(Object.keys(first.doc.items).sort(), ['snippet:1', 'snippet:2'], 'screenshots stay local');
+  assert.deepEqual(Object.keys(first.doc.items).sort(), ['snippet:1', 'snippet:2']);
   const b = { 'snippet:2': note('2', '2026-10-21T00:00:00Z', { title: 'old on B' }), 'snippet:3': note('3', '2026-10-22T09:00:00Z') };
   const second = S.mergeSync(b, first.doc, { deviceId: 'B', now });
   assert.equal(second.updates['snippet:2'].title, 'edited on A', 'the newer edit wins');

@@ -49,6 +49,7 @@
     // browser, off with a cloud key (every page would be sent to it and billed). See autoOn().
     preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
+    pkgDwell: true, // count active reading time on saved pages (only those), for the PKG's topic weights
     techFilter: [], // feeds where "Hide non-tech" is on: 'x' | 'reddit' | 'youtube' (posts are sent to the AI to sort)
     followUps: true, // two follow-up questions under each answer, written by your AI from that answer
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)

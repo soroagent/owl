@@ -11,7 +11,6 @@ const NOTES = [
   { id: 'a3', kind: 'page', title: 'Agent memory architectures', summary: 'Long-term memory for LLM agents.', tags: [], text: '', url: 'https://papers.example/agent-memory', createdAt: day(2) },
   { id: 'b1', kind: 'summary', title: 'Sourdough starter basics', summary: 'Feed the starter flour and water daily.', tags: ['baking'], text: 'Hydration, flour, fermentation and oven spring.', url: 'https://food.example/sourdough', createdAt: day(18) },
   { id: 'b2', kind: 'summary', title: 'Marathon training plan', summary: 'Long runs, tempo runs and tapering.', tags: ['running'], text: 'Weekly mileage, recovery and race pace.', url: 'https://run.example/plan', createdAt: day(10) },
-  { id: 's1', kind: 'screenshot', title: 'AI agents screenshot', url: 'https://x.example', createdAt: day(1), image: 'data:' },
 ];
 
 test('words are normalized so related wording meets', () => {
@@ -27,7 +26,6 @@ test('notes about the same topic as a page are found, unrelated ones are not', (
   assert.ok(ids.length >= 2 && ids.length <= 3, `found ${ids}`);
   assert.ok(ids.every((id) => id.startsWith('a')), `only agent notes: ${ids}`);
   assert.deepEqual(S.relatedNotes(index, 'A recipe for banana bread with walnuts and cinnamon.'), []);
-  assert.equal(index.docs.some((d) => d.note.id === 's1'), false, 'screenshots are not searched');
 });
 
 test('the page you are on is never "related" to itself, and time ranges apply', () => {

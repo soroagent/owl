@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'pkgDwell', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
   const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
   const autoTouched = new Set();
@@ -155,6 +155,19 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     values.captureExclude = $('captureExclude').value.split(/[\n,]+/).map((x) => x.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(Boolean).slice(0, 200);
     return values;
   }
+
+  // PKG reading time: how much is counted, and a way to clear it.
+  async function showDwell() {
+    const { pkgDwell = {} } = await ext.storage.local.get('pkgDwell');
+    const pages = Object.keys(pkgDwell).length;
+    $('dwellMsg').textContent = pages ? `${S.readingTime(Object.values(pkgDwell).reduce((a, b) => a + b, 0))} on ${pages} saved page${pages === 1 ? '' : 's'}` : 'None counted yet';
+  }
+  $('clearDwell').addEventListener('click', async () => {
+    if (!confirm('Clear the reading time counted on your saved pages? Your PKG keeps its snippets and topics.')) return;
+    await ext.storage.local.remove('pkgDwell');
+    showDwell();
+  });
+  showDwell();
 
   function fillForm(settings) {
     saved = settings;

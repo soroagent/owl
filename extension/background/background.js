@@ -13,6 +13,7 @@
 
   // Routine failures (the AI unreachable, a shortcut pressed on a browser page) go to the diagnostic
   // log, not the console: Chrome lists every console warning on the extension's Errors page.
+  let dwellQueue = Promise.resolve();
   const quietly = (where) => (err) => diag.record({ area: 'error', code: (err && err.code) || 'failed', message: (err && err.message) || String(err), detail: { where } });
 
   // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
@@ -371,26 +372,6 @@
       const hash = msg && msg.id ? `#${encodeURIComponent(msg.id)}` : msg && msg.view ? `#view=${encodeURIComponent(msg.view)}` : '';
       return ext.tabs.create({ url: ext.runtime.getURL(`pages/snippets.html${hash}`) });
     },
-    // Screenshot of the visible part of the sender's tab, saved as a snippet. The page hides
-    // soroagent's own button and panel before asking.
-    'screenshot:capture': async (msg, sender) => {
-      // From the page itself, or from the side panel (which sits beside the page, so nothing to hide).
-      const tab = fromExtensionPage(sender) && msg.tabId ? await ext.tabs.get(msg.tabId) : sender.tab;
-      if (!tab || (fromExtensionPage(sender) && !msg.tabId)) throw new Error('Screenshots are taken from a web page.');
-      sender = { ...sender, tab };
-      const image = await ext.tabs.captureVisibleTab(sender.tab.windowId, { format: 'jpeg', quality: 90 });
-      const snippet = await globalThis.soroagent.addSnippet({
-        kind: 'screenshot',
-        source: 'screenshot',
-        title: String(msg.title || sender.tab.title || 'Screenshot').slice(0, 200),
-        pageTitle: String(msg.title || sender.tab.title || ''),
-        url: sender.tab.url || '',
-        image,
-        width: Number(msg.width) || 0,
-        height: Number(msg.height) || 0,
-      });
-      return { ok: true, id: snippet.id };
-    },
     'open:options': () => ext.runtime.openOptionsPage(),
 
     // First run: what AI this computer already has. Ollama on its default address (the request
@@ -419,7 +400,7 @@
     // Sync is offered once the library holds 5 things worth keeping (see syncOfferDue).
     'sync:offer': async () => {
       const all = await ext.storage.local.get(null);
-      const count = Object.keys(all).filter((k) => k.startsWith('snippet:') && all[k] && all[k].kind !== 'screenshot').length;
+      const count = Object.keys(all).filter((k) => k.startsWith('snippet:') && all[k]).length;
       const settings = await getSettings();
       return { ok: true, count, offer: S.syncOfferDue({ count, syncOn: Boolean(all.syncConfig), offer: settings.syncOffer || {} }) };
     },
@@ -429,6 +410,16 @@
       const settings = await getSettings();
       const offer = settings.syncOffer || {};
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
+      return { ok: true };
+    },
+    // PKG reading time: active time on a page the reader saved (capture.js checks it's saved), added
+    // to storage "pkgDwell" one report at a time, in order.
+    'pkg:dwell': (msg, sender) => {
+      if (!sender || sender.id !== ext.runtime.id || !sender.tab || sender.tab.incognito) return { ok: false };
+      dwellQueue = dwellQueue.then(async () => {
+        const { pkgDwell = {} } = await ext.storage.local.get('pkgDwell');
+        await ext.storage.local.set({ pkgDwell: S.addDwell(pkgDwell, String(msg.url || ''), msg.ms) });
+      }).catch(quietly('pkg dwell'));
       return { ok: true };
     },
     // Flight recorder: anything of ours may report (it's scrubbed again here); only extension pages read it.
@@ -643,7 +634,6 @@
 
   const MENU_ITEMS = [
     { id: 'soroagent-summarize', title: 'Summarize this page', contexts: ['page'], action: 'summarize' },
-    { id: 'soroagent-screenshot', title: 'Take a screenshot', contexts: ['page', 'image', 'video'], action: 'screenshot' },
   ];
   // PDFs open in the browser's viewer, where content scripts can't run: read them in the side panel.
   const PDF_PATTERNS = ['*://*/*.pdf', '*://*/*.PDF', '*://*/*.pdf?*', '*://arxiv.org/pdf/*', '*://*.arxiv.org/pdf/*'];

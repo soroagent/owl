@@ -3,7 +3,7 @@
 // has no servers, so the shared copy lives in the user's own storage (their Google Drive, a WebDAV
 // folder or a private GitHub Gist), end-to-end encrypted with their passphrase (PBKDF2 → AES-GCM) before it leaves the
 // browser. Notes and history merge item by item (newest wins; deletions carry over); preferences
-// sync but each browser keeps its own AI connection and keys; screenshots stay local (too big). The merge and crypto are pure/portable and unit tested.
+// sync but each browser keeps its own AI connection and keys. The merge and crypto are pure/portable and unit tested.
 (function (root) {
   'use strict';
 
@@ -25,7 +25,7 @@
   // Pure: what syncs, and merging
   // ---------------------------------------------------------------------------
 
-  const isSyncedKey = (key, value) => (key.startsWith('snippet:') && !(value && value.kind === 'screenshot')) || (key.startsWith('summary:') && !(value && value.status === 'running'));
+  const isSyncedKey = (key, value) => key.startsWith('snippet:') || (key.startsWith('summary:') && !(value && value.status === 'running'));
   const timeOf = (v) => Date.parse((v && (v.updatedAt || v.finishedAt || v.createdAt)) || 0) || 0;
   const syncableSettings = (settings) => Object.fromEntries(Object.entries(settings || {}).filter(([k]) => !LOCAL_ONLY_SETTINGS.has(k)));
 

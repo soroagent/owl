@@ -6,7 +6,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  // Notes worth searching: everything except screenshots (pictures, no text).
+  // Notes worth searching: every kind of note with text.
   const SEARCHABLE = new Set(['summary', 'research', 'selection', 'page', 'deliverable', 'read']);
   const kindOf = (s) => s.kind || (s.source === 'selection' ? 'selection' : s.source === 'summary' ? 'summary' : 'page');
 
