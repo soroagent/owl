@@ -55,7 +55,7 @@ svg.icon { width: 16px; height: 16px; flex: none; color: var(--icon); }
 html { scrollbar-gutter: stable; }
 a { color: var(--accent); }
 
-/* The header shared by Snippets, Stats and Settings: same width, height and place on
+/* The header shared by Snippets and Settings: same width, height and place on
    every page (it sits outside each page's own content width), so switching tabs moves nothing. */
 .app-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .app-header-in { max-width: 1240px; margin: 0 auto; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }

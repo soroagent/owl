@@ -48,9 +48,6 @@
       const backup = buildBackup(all, ext.runtime.getManifest().version);
       const json = JSON.stringify(backup);
       const { url, revoke } = await blobUrl(json);
-      // Chrome can keep a routine backup out of the download bubble.
-      const quiet = ext.downloads.setUiOptions ? (enabled) => ext.downloads.setUiOptions({ enabled }).catch(() => {}) : null;
-      if (quiet) await quiet(false);
       try {
         const id = await ext.downloads.download({ url, filename: BACKUP_FILE, conflictAction: 'overwrite', saveAs: false });
         const outcome = await finished(id);
@@ -67,7 +64,6 @@
         await ext.storage.local.set({ backupState: state });
         throw err;
       } finally {
-        if (quiet) setTimeout(() => quiet(true), 1500);
         setTimeout(() => revoke(url), 10000);
       }
     })().finally(() => {

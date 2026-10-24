@@ -46,7 +46,7 @@ function manifestFor(browser) {
     manifest.action.theme_icons = [16, 32].map((size) => ({ light: `icons/dark/icon-${size}.png`, dark: `icons/icon-${size}.png`, size }));
     manifest.permissions = manifest.permissions
       // Chrome-only: DNR Origin rewrite, the offscreen backup helper, quiet downloads, the side panel.
-      .filter((p) => !['declarativeNetRequestWithHostAccess', 'offscreen', 'downloads.ui', 'sidePanel'].includes(p))
+      .filter((p) => !['declarativeNetRequestWithHostAccess', 'offscreen', 'sidePanel'].includes(p))
       .concat(['webRequest', 'webRequestBlocking']);
     // Firefox's sidebar hosts the same page as Chrome's side panel.
     delete manifest.side_panel;

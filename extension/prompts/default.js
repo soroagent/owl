@@ -58,28 +58,6 @@ Web search results:
 </sources>`,
     },
 
-    // Tasks, step 1: which page to open for a task like "latest news from rediff". Reply: JSON (keep this shape).
-    taskPlan: {
-      system: `You plan quick web tasks for a browser assistant. Reply with JSON only.`,
-      user: `Task: {{question}}
-{{context}}
-
-Pick the single best web page to open for this task: the site's home page or the section that answers it (for example its news, trending or results page). Use the site the task names; for a well-known site give its real address.
-Return JSON: {"url": "https://… (empty if you don't know which site)", "search": "a web search query to find the page if url is empty", "goal": "what to report, in one short sentence"}`,
-    },
-
-    // Tasks, step 2: the report, from the page the background read (with its links). Reply: Markdown.
-    taskReport: {
-      system: `{{persona}}
-You complete a web task for the user from the page below, which soroagent just opened for them. Report only what the page shows; never invent items. Be brief and scannable. When you list items (headlines, results, prices), give each as a Markdown link from the page's links when one matches, and keep the page's order unless the task asks otherwise.`,
-      user: `Task: {{question}}
-Goal: {{context}}
-
-{{page}}
-
-Report on the task. Start with one line saying what you looked at (the site and section), then the result.`,
-    },
-
     // Save button: title, summary and tags for the saved text. Reply: JSON (keep this shape).
     save: {
       system: `You label saved web snippets. Reply with JSON only, no prose.`,

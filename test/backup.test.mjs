@@ -104,3 +104,12 @@ test('v6: the floating owl is the default again; the three modes map to two sett
   for (const mode of ['owl', 'sidepanel', 'quiet']) assert.equal(S.appearanceOf(S.APPEARANCES[mode]), mode);
   assert.equal(S.appearanceOf({ openIn: 'sidepanel', showLauncher: true }), 'sidepanel');
 });
+
+test('v7: the automatic backup is opt-in, and Stats, Tasks and the pictures offer leave no data behind', () => {
+  const all = { meta: { schemaVersion: 6 }, settings: { autoBackup: true, readingLog: true, offerPictures: true, pictureNeverSites: ['a.com'], source: 'local' }, readingLog: [{ d: '2026-10-24' }], recentTasks: ['x'], 'snippet:a': { id: 'a', kind: 'summary' } };
+  const updates = S.planMigrations(all);
+  assert.deepEqual(updates.settings, { autoBackup: false, source: 'local' });
+  assert.deepEqual(S.planRemovals(all).sort(), ['readingLog', 'recentTasks']);
+  assert.equal(S.DEFAULT_SETTINGS.autoBackup, false);
+  assert.equal(S.DEFAULT_SETTINGS.followUps, true);
+});

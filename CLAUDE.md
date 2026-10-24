@@ -57,7 +57,6 @@ extension/
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
   pages/             sidepanel (the default UI: Chrome side panel / Firefox sidebar), options (Settings),
                      onboard (first run; ?sync = sync setup), snippets (library + summary history),
-                     patterns (Stats),
                      offscreen (Chrome: backup blobs + the WebLLM engine)
   vendor/            vendored libraries, each with a README (source, version, SHA-256) and LICENSE:
                      web-llm (WebLLM 0.2.86 + Qwen2.5-1.5B library), pdfjs (pdf.js 6.4.299),
@@ -79,7 +78,7 @@ selection, page, deliverable, read, screenshot), `summary:<id>` (summary history
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
 `backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
-`readingLog` (Stats; local only). `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
+`storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
 Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): how soroagent appears is three
 modes over two settings, `S.APPEARANCES` / `S.appearanceOf()`: owl (default: `openIn: 'page'`,
@@ -91,9 +90,9 @@ a cloud API),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
-`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 6). When a feature is
+`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 7). When a feature is
 removed or a default changes, add a migration (v3: wishlist → readlater; v4: readlater → page and
-stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl).
+stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl; v7: automatic backup opt-in, Stats/Tasks/pictures data and settings deleted).
 
 ## Rules
 
@@ -205,14 +204,6 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   and asks the background (`pdf:read`) to fetch and parse it with pdf.js. Summary, questions, chat
   and Save are built in the side panel with the default prompts. The context menu item on PDF links
   opens the side panel and passes the URL through `storage.session` (`pdfRequest`).
-- **Tasks** (Task chip, or `task:` / `/task` in either composer): a job of kind `task`.
-  `prepareTask` in `jobs.js`: the `taskPlan` prompt (JSON url/search/goal) → `S.taskTarget` (a site
-  the user named wins; a typed path is kept; typed addresses may be private, model ones must be
-  public) → web search if no URL → `S.readSite` (fetch without cookies, `htmlToText` + `pickLinks`)
-  → if under 800 chars, `readTab` in background.js (inactive tab, content script answers
-  `assistant:task-read`, tab closed) → condensed text + "LINKS ON THE PAGE" into the `taskReport`
-  prompt via the page placeholders in `JOB_PLACEHOLDERS`. Saved under the site it read
-  (`targetUrl`). Recent tasks in `storage.local.recentTasks`.
 - **Suggested questions stay; follow-ups** (`followUps`, on): the opening screen (`.empty` /
   `#homeView`) is never hidden by a conversation; it stays first in the thread, compact
   (`.thread.chatting` / `main.chatting`), and Home scrolls up to it. Clicked questions get `.asked`
@@ -222,8 +213,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
   `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
   words before it).
-- **Extension pages** (2026-10-24, the owner's call): three tabs only, Snippets · Stats ·
-  Settings, each with an icon, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px
+- **Extension pages** (2026-10-24, the owner's call): two tabs, Snippets · Settings, each with an icon, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px
   wide, 60 px high, outside each page's `main`, `scrollbar-gutter: stable`, no bold on the current
   tab) so nothing moves when switching; the version is a superscript by the logo (`appheader.js`
   reads the manifest). Icons are one colour everywhere, mint (`--icon` on pages, `--brand` in the
@@ -235,25 +225,6 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
   snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
   is a snippet like any other); Screenshots stays a toggle. `open:history` opens Snippets.
-- **Stats** (`pages/patterns.html`, was "Browsing pattern"; a tab of the extension pages' header; a
-  silent add-on: **not in the README**, the owner's call 2026-10-24; it is in PRIVACY.md, Settings
-  and the FAQ answer, as the privacy rules require). `capture.js` already measures active time on
-  every page; with `readingLog` on (default) it sends `reading:log` {host, title, ms, visit} when the
-  page is left or hidden and every minute (≥10 s, `captureAllowed` pages only, never incognito).
-  `background.js` queues the writes and `S.addReading` (shared/patterns.js) merges per day+site+title
-  into `storage.local.readingLog` (a year, 6,000 entries max; not synced or backed up).
-  `S.readingStats`, `S.readingTopics` (title words/pairs without site names, 2+ pages) and
-  `S.libraryStats` feed the page. Brings back a form of the removed "time stats", at the owner's request.
-- **High-resolution pictures** (`offerPictures`, on; `pictureNeverSites`): `S.pagePictures()` in
-  `extract.js` reads `document.images` (the largest `srcset` / `<picture>` candidate each offers) and
-  `S.pickPictures()` keeps real photos: ≥1600×900 or ≥2 MP, shown at ≥160 px, http(s), no SVG, no
-  duplicates, largest first, at most 40. Rescanned 1.2 s after any large image loads (capture-phase
-  `load` listener). The owl gets an orange dot (`.launcher.pictures`); opening the panel puts the
-  question on the opening screen (or in the conversation), and the side panel shows it from the
-  snapshot (`pictures`) and answers through `assistant:sp-pictures` (list / download / later / never).
-  Downloads go through `pictures:download` in the background (`S.pictureFolder`, `S.safeFileName`,
-  `conflictAction: 'uniquify'`) to `Downloads/soroagent/pictures/<host>/`. Asked once per URL; never
-  on pages `preparable()` rejects (mail, banking, local pages…).
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).
@@ -287,7 +258,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 - **Never read** (owner's call 2026-10-24): `NEVER_READ` in `content/capture.js` (adult sites,
   a betting mirror, an ad redirect, unlicensed streaming, irctc.co.in) plus any page with the adult
   label (`isAdultPage`: the RTA meta tag or rating "adult"). Part of `DEFAULT_EXCLUDED`, so no
-  preparing, capture, pictures offer or reading log; `suggestQuestions` and the snapshot also show
+  preparing or capture; `suggestQuestions` and the snapshot also show
   no questions there (`neverRead`). The reader can still ask something explicitly.
 - **Suggested questions without preparing** (`pageQuestions`): if preparing is off or failed, opening
   the panel asks for questions from the page text directly. Standard questions are the last fallback.
@@ -349,7 +320,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).
@@ -370,6 +341,8 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   default with local/in-browser AI (cloud keys would pay for every page). Cloud users get a
   "Suggest questions for this page" link instead.
 - Long pages are condensed, not cut, so small models see the whole document's structure.
+- The automatic backup is opt-in (2026-10-24, v7 turned it off for everyone) and no longer hides
+  Chrome's download bubble (`downloads.ui` removed): store reviewers question hidden downloads.
 - Shortcut is Alt+Shift+O, not Cmd+Shift+O/S as first asked: those are taken by the browsers.
 - (Superseded 2026-10-23) Preparing on every visit with cloud keys was on by default; it now
   follows `S.autoOn` (off for cloud), with migration v5 turning the old `true` into `'auto'`.

@@ -75,11 +75,6 @@ svg { width: 18px; height: 18px; flex: none; }
 .launcher.open { box-shadow: 0 0 0 2px var(--brand), 0 8px 22px rgba(0, 0, 0, 0.2); }
 .launcher:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--brand), 0 8px 22px rgba(0, 0, 0, 0.2); }
 .launcher.dragging { transition: none; cursor: grabbing; }
-/* High-resolution pictures to offer: a small orange dot (the question waits in the panel). */
-.launcher.pictures:not(.open)::before {
-  content: ""; position: absolute; top: 6px; right: 6px; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box;
-  background: var(--spark); border: 2px solid var(--owl-bg); z-index: 1;
-}
 .launcher.busy::after {
   content: ""; position: absolute; inset: -1px; border-radius: 50%;
   border: 2px solid transparent; border-top-color: var(--brand); border-right-color: var(--spark); animation: spin 0.9s linear infinite;
@@ -278,17 +273,6 @@ header {
 .card pre { margin: 8px 0 0; white-space: pre-wrap; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--fg); }
 .card-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .card-actions button { border: 1px solid var(--border); background: var(--bg); border-radius: 8px; padding: 3px 9px; font-size: 11.5px; }
-.card-actions button.primary { background: var(--brand); border-color: var(--brand); color: #04271b; font-weight: 600; }
-.card-actions button:disabled { opacity: 0.5; cursor: default; }
-.home-pictures { width: 100%; text-align: left; }
-.home-pictures:empty { display: none; }
-.home-pictures .card { margin: 6px 0 4px; }
-.picture-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; margin-top: 8px; max-height: 260px; overflow: auto; }
-.picture { position: relative; display: block; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; background: var(--bg); }
-.picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.picture input { position: absolute; top: 5px; left: 5px; margin: 0; width: 15px; height: 15px; accent-color: var(--brand); }
-.picture span { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 4px; font-size: 10px; color: #fff; background: rgba(0, 0, 0, 0.55); }
-.picture:has(input:not(:checked)) img { opacity: 0.45; }
 
 /* Research: pick a topic first */
 .topics-status { margin: 4px 0 8px; }

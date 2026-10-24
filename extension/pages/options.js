@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'readingLog', 'offerPictures', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
   const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
   const autoTouched = new Set();
@@ -156,38 +156,10 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     return values;
   }
 
-  // The reading log behind the Stats page: how much there is, and a way to clear it.
-  async function showReadingLog() {
-    const { readingLog = [] } = await ext.storage.local.get('readingLog');
-    $('readingLogMsg').textContent = readingLog.length ? `${readingLog.length} pages logged` : 'Empty';
-  }
-  $('clearReadingLog').addEventListener('click', async () => {
-    if (!confirm('Clear the reading log? Your browsing pattern starts again from now.')) return;
-    await ext.storage.local.remove('readingLog');
-    showReadingLog();
-  });
-  showReadingLog();
-
-  // "Never on this site" for pictures: how many sites, and a way to be asked there again.
-  function renderPictureNever(sites) {
-    const note = $('pictureNeverNote');
-    note.replaceChildren();
-    if (!sites.length) return;
-    const reset = document.createElement('button');
-    Object.assign(reset, { type: 'button', className: 'link', textContent: 'ask there again' });
-    reset.addEventListener('click', async (e) => {
-      e.preventDefault();
-      saved = await S.saveSettings({ pictureNeverSites: [] });
-      renderPictureNever([]);
-    });
-    note.append(` (${sites.length === 1 ? sites[0] : `${sites.length} sites`}: `, reset, ')');
-  }
-
   function fillForm(settings) {
     saved = settings;
     for (const id of [...TEXT_FIELDS, ...NUMBER_FIELDS]) $(id).value = settings[id];
     for (const id of CHECK_FIELDS) $(id).checked = Boolean(settings[id]);
-    renderPictureNever(settings.pictureNeverSites || []);
     autoTouched.clear();
     for (const id of AUTO_FIELDS) $(id).checked = S.autoOn(settings, id);
     document.querySelector(`input[name="source"][value="${['cloud', 'browser'].includes(settings.source) ? settings.source : 'local'}"]`).checked = true;

@@ -131,7 +131,6 @@
     const snap = state.snap;
     const page = $('page');
     page.replaceChildren();
-    renderPictures(snap && snap.pictures);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -179,83 +178,6 @@
     $('newCount').hidden = !snap.newPosts || p.status === 'working';
     $('newCount').textContent = snap.newPosts > 99 ? '99+' : String(snap.newPosts || '');
     $('refresh').title = snap.newPosts ? `${snap.newPosts} new posts loaded since the summary: refresh` : 'Refresh the summary with the posts loaded now';
-  }
-
-  // ---------------------------------------------------------------------------
-  // High-resolution pictures on the page: the same question as in the floating panel (the content
-  // script finds them, names them and asks the background to download them)
-  // ---------------------------------------------------------------------------
-
-  const picturesQuestion = (n) => (n === 1 ? 'This page has a high-resolution picture. Download it?' : `This page has ${n} high-resolution pictures. Download them?`);
-
-  function renderPictures(offer) {
-    if ($('pictures').querySelector('.pictures-choose')) return; // the reader is choosing; leave it
-    if (!offer) return $('pictures').replaceChildren();
-    const n = offer.count;
-    const answer = (op, extra = {}) => toTab({ type: 'assistant:sp-pictures', op, ...extra });
-    $('pictures').replaceChildren(card({
-      kind: 'pictures-offer',
-      title: picturesQuestion(n),
-      body: `They're saved to your Downloads folder, in soroagent/pictures/${offer.host}.`,
-      actions: [
-        { label: n === 1 ? 'Download' : 'Download all', onClick: () => (clearPictures(), answer('download').then(showDownloaded, showDownloaded)) },
-        ...(n > 1 ? [{ label: 'Choose…', onClick: () => choosePictures() }] : []),
-        { label: 'Not now', onClick: () => (clearPictures(), answer('later')) },
-        { label: 'Never on this site', onClick: () => (clearPictures(), answer('never')) },
-      ],
-    }));
-  }
-  function clearPictures() {
-    if (state.snap) state.snap.pictures = null;
-    $('pictures').replaceChildren();
-  }
-
-  async function choosePictures() {
-    const res = await toTab({ type: 'assistant:sp-pictures', op: 'list' }).catch(() => null);
-    if (!res || !res.ok || !res.pictures.length) return clearPictures();
-    const grid = el('div', { className: 'picture-grid' });
-    const boxes = res.pictures.map((p) => {
-      const box = el('input', { type: 'checkbox', checked: true });
-      grid.append(el('label', { className: 'picture', title: `${p.width} × ${p.height}${p.alt ? ` · ${p.alt}` : ''}` }, [el('img', { src: p.url, alt: p.alt || '', loading: 'lazy' }), box, el('span', { textContent: `${p.width}×${p.height}` })]));
-      return box;
-    });
-    const node = card({ kind: 'pictures-choose', title: 'Choose the pictures to download' });
-    const go = el('button', { type: 'button', className: 'primary' });
-    const all = el('button', { type: 'button' });
-    const cancel = el('button', { type: 'button', textContent: 'Cancel' });
-    const update = () => {
-      const n = boxes.filter((b) => b.checked).length;
-      go.textContent = n ? `Download ${n}` : 'Download';
-      go.disabled = !n;
-      all.textContent = n === boxes.length ? 'Select none' : 'Select all';
-    };
-    grid.addEventListener('change', update);
-    all.addEventListener('click', () => {
-      const on = !boxes.every((b) => b.checked);
-      boxes.forEach((b) => (b.checked = on));
-      update();
-    });
-    go.addEventListener('click', () => {
-      const urls = res.pictures.filter((_, i) => boxes[i].checked).map((p) => p.url);
-      clearPictures();
-      toTab({ type: 'assistant:sp-pictures', op: 'download', urls }).then(showDownloaded, showDownloaded);
-    });
-    cancel.addEventListener('click', () => ($('pictures').replaceChildren(), renderPictures(state.snap && state.snap.pictures)));
-    node.append(grid, el('div', { className: 'card-actions' }, [go, all, cancel]));
-    update();
-    $('pictures').replaceChildren(node);
-  }
-
-  function showDownloaded(res) {
-    if (!res || !res.ok || !res.saved) {
-      return append(card({ kind: 'error', title: 'The pictures couldn’t be downloaded', body: (res && (res.error || res.message)) || 'The site may not allow it. You can still save one with a right-click → Save image as.' }));
-    }
-    append(card({
-      kind: 'ok',
-      title: res.saved === 1 ? 'Downloading 1 picture' : `Downloading ${res.saved} pictures`,
-      body: `To Downloads/${res.folder}.${res.failed ? ` ${res.failed} couldn’t be downloaded.` : ''}`,
-      actions: [{ label: 'Show in folder', onClick: () => ext.runtime.sendMessage({ type: 'pictures:show', id: res.firstId }) }],
-    }));
   }
 
   function setEnabled() {
@@ -625,7 +547,7 @@
               label: 'soroagent 🦉',
               onClick: (e, node) => {
                 node.remove();
-                const answer = S.ownAnswer(res.topic, { cloud: state.ai && state.ai.cloud, providerLabel: state.ai && state.ai.providerLabel, autoBackup: settings.autoBackup, autoCapture: settings.autoCapture, readingLog: settings.readingLog });
+                const answer = S.ownAnswer(res.topic, { cloud: state.ai && state.ai.cloud, providerLabel: state.ai && state.ai.providerLabel, autoBackup: settings.autoBackup, autoCapture: settings.autoCapture });
                 addAssistant().finish(answer);
                 t.history.push({ role: 'user', content: question }, { role: 'assistant', content: answer });
               },
@@ -691,67 +613,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Tasks: "latest news from rediff.com", checked in the background and reported here
-  // (the same job as the floating panel's Task; see prepareTask in background/jobs.js)
-  // ---------------------------------------------------------------------------
-
-  const TASK_EXAMPLES = ['Latest news from rediff.com', 'Top stories on news.ycombinator.com', "What's trending on github.com/trending"];
-  const recentTasks = async () => ((await ext.storage.local.get('recentTasks')).recentTasks || []);
-
-  function runWebTask(task) {
-    const text = String(task || '').replace(/\s+/g, ' ').trim();
-    if (!text) return;
-    recentTasks().then((list) => ext.storage.local.set({ recentTasks: [text, ...list.filter((t) => t.toLowerCase() !== text.toLowerCase())].slice(0, 6) })).catch(() => {});
-    return run(async (signal) => {
-      const P = S.JOB_PLACEHOLDERS;
-      const today = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const spec = {
-        label: `Task: ${text}`.slice(0, 140),
-        kind: 'task',
-        task: text,
-        url: state.url,
-        pageTitle: (state.snap && state.snap.title) || '',
-        site: '',
-        model: '',
-        planMessages: S.buildMessages('taskPlan', S.pageVars({ title: '', url: '', text: '' }, { question: text, context: `Today is ${today}.` }), {}),
-        final: S.buildMessages('taskReport', S.pageVars({ title: P.pageTitle, url: P.pageUrl, text: P.pageText }, { question: text, context: P.goal }), {}),
-        saveMessages: S.buildMessages('save', S.pageVars({ title: `Task: ${text}`, url: '', text: P.summary }), {}),
-      };
-      addUser(`Task: ${text}`);
-      const reply = addAssistant('Working out where to look…');
-      const record = await runJob(spec, reply, signal);
-      reply.finish(record.text);
-      thread().history.push({ role: 'user', content: `Task: ${text}` }, { role: 'assistant', content: record.text });
-      const read = (record.sources || []).map((src) => el('li', {}, [el('a', { href: S.safeUrl(src.url), target: '_blank', rel: 'noopener noreferrer', textContent: src.title || src.url })]));
-      append(card({ kind: 'ok', title: 'Read for this task', actions: record.snippetId ? [{ label: 'Saved to snippets: open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] : [] })).append(el('ol', {}, read));
-    });
-  }
-
-  async function chooseTask() {
-    document.querySelectorAll('.task-card').forEach((n) => n.remove());
-    const node = card({ kind: 'task-card', title: 'What should soroagent check for you?', body: 'It opens the site in the background and reports back here.' });
-    const input = el('input', { type: 'text', placeholder: 'e.g. Latest news from rediff.com', maxLength: 300 });
-    const go = el('button', { type: 'button', className: 'btn', textContent: 'Run' });
-    const start = (task) => (node.remove(), runWebTask(task));
-    go.addEventListener('click', () => input.value.trim() && start(input.value));
-    input.addEventListener('keydown', (e) => e.key === 'Enter' && !e.isComposing && input.value.trim() && start(input.value));
-    const recent = await recentTasks();
-    const chips = el('div', { className: 'task-chips' }, [...recent, ...TASK_EXAMPLES.filter((x) => !recent.some((r) => r.toLowerCase() === x.toLowerCase()))].slice(0, 6).map((task) => {
-      const b = el('button', { type: 'button', textContent: task });
-      b.addEventListener('click', () => start(task));
-      return b;
-    }));
-    node.append(chips, el('div', { className: 'task-row' }, [input, go]));
-    append(node);
-    input.focus();
-  }
-
-  // ---------------------------------------------------------------------------
   // Controls
   // ---------------------------------------------------------------------------
 
   $('summarize').addEventListener('click', () => summarize());
-  $('task').addEventListener('click', chooseTask);
   $('save').addEventListener('click', async () => {
     const pdf = currentPdf();
     const res = pdf ? await savePdf(pdf).catch((err) => ({ ok: false, error: err.message })) : await toTab({ type: 'assistant:sp-save' }).catch((err) => ({ ok: false, error: err.message }));
@@ -811,9 +676,7 @@
     if (!q) return;
     $('input').value = '';
     $('input').style.height = '';
-    const task = q.match(/^(?:\/task|task:)\s*(.+)$/is);
-    if (task) runWebTask(task[1]);
-    else ask(q);
+    ask(q);
   });
   $('input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {

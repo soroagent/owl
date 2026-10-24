@@ -37,7 +37,7 @@
     captureLabel: true, // let the AI add a title, summary and tags to captured pages
     captureExclude: [], // sites never captured (on top of mail, chat, banking…)
     semanticSearch: true, // search the library by meaning when an embedding model is available
-    autoBackup: true, // save a backup file to Downloads/soroagent/ automatically
+    autoBackup: false, // opt-in: save a backup file to Downloads/soroagent/ after the library changes
     onboarded: false, // set once the first-run setup connects (or for installs from before it existed)
     panelWidth: 400, // panel size in px, set by dragging its edges
     panelHeight: 600,
@@ -51,9 +51,6 @@
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
     followUps: true, // two follow-up questions under each answer, written by your AI from that answer
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)
-    readingLog: true, // active reading time per page (site + title), on this device only, for the Stats page
-    offerPictures: true, // ask in the panel whether to download a page's high-resolution pictures
-    pictureNeverSites: [], // hosts where "Never on this site" was chosen for that question
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens
     launcherPosition: 'auto', // 'auto' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     launcherPlacements: {}, // hostname -> { side: 'left' | 'right', y: 0..1 } after the user drags the button
@@ -255,18 +252,6 @@
    * Pure: whether to offer sync now. Offered once the library holds 5 items (something worth
    * keeping), never while sync is on; "Not now" waits for 15 more items, and after two it stops.
    */
-  /** Pure: a file name safe on every system (no path separators or reserved characters, no leading dot). */
-  function safeFileName(name, fallback = 'picture.jpg') {
-    const safe = String(name || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/^[\s.]+|[\s.]+$/g, '').replace(/\s+/g, ' ').slice(0, 120);
-    return safe || fallback;
-  }
-
-  /** Pure: where a site's pictures go, under Downloads: soroagent/pictures/<host>. */
-  function pictureFolder(host) {
-    const site = String(host || '').toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9.-]+/g, '-').replace(/^[.-]+|[.-]+$/g, '');
-    return `soroagent/pictures/${site || 'pages'}`;
-  }
-
   function syncOfferDue({ count, syncOn, offer = {} }) {
     if (syncOn || count < 5 || (offer.times || 0) >= 2) return false;
     return offer.snoozedAt === undefined || count >= offer.snoozedAt + 15;
@@ -347,8 +332,6 @@
     appearanceOf,
     ollamaOriginsFix,
     syncOfferDue,
-    safeFileName,
-    pictureFolder,
     modelPatch,
     getSettings,
     saveSettings,

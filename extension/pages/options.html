@@ -6,7 +6,6 @@
   <title>Settings · soroagent</title>
   <link rel="stylesheet" href="pages.css">
   <style>
-    button.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
     main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
     section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
     section h3 { font-size: 15px; margin: 0 0 4px; color: var(--heading); }
@@ -67,7 +66,7 @@
 <body>
 <header class="app-header"><div class="app-header-in">
   <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
-  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="patterns.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg>Stats</a><a href="options.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="options.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
 </div></header>
 <main>
   <div class="welcome-back" id="restoreOffer" hidden role="region" aria-label="Restore your data">
@@ -191,9 +190,6 @@
       <label class="check"><input type="checkbox" id="followUps">
         <span>Suggest follow-up questions after each answer<small>Under each answer, two questions to keep exploring, written by your AI from that answer (it gets the question and the answer, not the page again). The questions you started with stay at the top of the conversation.</small></span>
       </label>
-      <label class="check"><input type="checkbox" id="offerPictures">
-        <span>Offer to download high-resolution pictures<small>When a page shows large, high-resolution pictures, the owl gets an orange dot and the panel asks whether to download them, all at once or the ones you pick. They go to Downloads/soroagent/pictures, in a folder for the site. Nothing is downloaded until you click. Sites where you chose "Never on this site" are skipped<span id="pictureNeverNote"></span>.</small></span>
-      </label>
       <label class="check"><input type="checkbox" id="preparePages">
         <span>Prepare a summary and questions automatically<small>When the side panel is open on a page, or after you've been reading it for 15 seconds, your AI summarizes it in the background and works out the questions you're likely to have, so they're ready when you look and Summarize is instant. Never on mail, chat, banking, sign-in or checkout pages. On by default with an AI on your computer or in the browser; off by default with a cloud API, where it would send and bill every page you read.</small></span>
       </label>
@@ -303,10 +299,6 @@
       <label class="field"><span>Never capture these sites <small>(one per line)</small></span>
         <textarea id="captureExclude" rows="3" spellcheck="false" placeholder="example.com"></textarea>
       </label>
-      <label class="check"><input type="checkbox" id="readingLog">
-        <span>Keep a reading log<small>How long you actively read each page (its site and title only), kept on this computer for <a href="patterns.html">Stats</a>: the topics you read most, average read time and when you read. Never synced, backed up or sent anywhere. Skips the same pages as passive capture and private windows.</small></span>
-      </label>
-      <div class="row" style="margin:-4px 0 12px 28px"><button class="btn small" type="button" id="clearReadingLog">Clear reading log</button><span class="muted" id="readingLogMsg"></span></div>
       <div class="field"><span>Markdown folder (Obsidian, Logseq…)</span>
         <small>Keep a clean <code>.md</code> file with YAML frontmatter (title, source, tags, dates) for every note in a folder on your computer, such as your Obsidian vault or Logseq <code>pages</code> folder. New and changed notes are written automatically; files you edit there are never overwritten.</small>
         <div class="row" style="margin-top:6px" id="mdOff">
@@ -360,7 +352,7 @@
       <h3>Backup &amp; restore</h3>
       <p>Everything soroagent keeps (snippets, screenshots, summary history and settings) stays on this computer and carries over to every new version automatically. API keys are never included in backups.</p>
       <label class="check"><input type="checkbox" id="autoBackup">
-        <span>Back up automatically to my Downloads folder<small>soroagent keeps <code>Downloads/soroagent/soroagent-backup.json</code> up to date (a few minutes after changes, at most every 30 minutes). If you ever reinstall soroagent, it finds this file and offers to restore it.</small></span>
+        <span>Back up automatically to my Downloads folder<small>Off unless you turn it on. soroagent then keeps <code>Downloads/soroagent/soroagent-backup.json</code> up to date (a few minutes after changes, at most every 30 minutes); each save shows in your browser's downloads like any other. If you ever reinstall soroagent, it finds this file and offers to restore it.</small></span>
       </label>
       <div class="row" style="margin-bottom:12px">
         <span class="muted" id="autoBackupStatus" role="status">No automatic backup yet.</span>

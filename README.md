@@ -47,8 +47,6 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 
   The panel's site bar shows the mode (for example *Q&A · Accepted-solution mode*). LinkedIn, Amazon and major news sites have tuned prompts too. Sites change their markup: when a profile's selectors find nothing, soroagent reads the page with Mozilla's Readability instead (the Firefox Reader View parser), so you still get a summary, and the diagnostic report notes it.
 - **Feeds** on X and Reddit: Summarize reads the posts that have loaded (on X, every post that appeared while you scrolled), and **Read more** loads the next batch. Promoted posts are left out.
-- **Tasks** check another site for you without leaving the page you're on. Click **Task** (or type `task:` in the chat) and say what you want: *latest news from rediff.com*, *top stories on news.ycombinator.com*, *what's trending on github.com/trending*. soroagent works out which page to open, reads it in the background (or in a background tab it closes again, for sites that need JavaScript), and reports here with links to each item. The result lands in your snippets.
-- **High-resolution pictures.** When a page shows large, high-resolution pictures (a photo story, a product gallery, a wallpaper site), the owl gets a small orange dot and its chat asks whether to download them: **Download all**, **Choose…** (thumbnails to tick), **Not now** or **Never on this site**. soroagent picks the largest version the page offers, skips icons, logos and thumbnails, and saves them to `Downloads/soroagent/pictures/<site>/`. Turn the question off in Settings → On the page.
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
 ### Your personal library
@@ -81,7 +79,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 
   New and changed notes are written automatically (renamed when their title changes) and deleted notes are removed. Files you edit in your vault are never overwritten. Chrome, Edge, Brave and Arc write to the folder you pick; Firefox writes to `Downloads/soroagent/notes/`.
 - **Sync across browsers.** Every browser where soroagent is installed can share one library, on any computer. There are no soroagent servers, so the shared copy lives in **your own storage**. Once you've saved 5 things, the owl offers it (or turn it on any time in Settings → Sync): click **Connect Google Drive**, sign in, and pick a passphrase; do the same in your other browsers. **Not now** keeps everything in that browser. It goes in a hidden folder in your Drive that only soroagent can see (soroagent can't see your other files). A WebDAV folder (Nextcloud, ownCloud, Synology, Koofr…) or a private GitHub Gist also work. It's **end-to-end encrypted** with your passphrase before it leaves the browser. Notes merge one by one (the newest wins; deletions carry over); each browser keeps its own AI connection and keys; screenshots stay local.
-- **Backups and restore.** A backup file in `Downloads/soroagent/` is kept up to date automatically. After a reinstall, soroagent finds it and restores everything in one click. Snippets also export as Markdown or JSON.
+- **Backups and restore.** Turn on the automatic backup (Settings → Library) and a backup file in `Downloads/soroagent/` is kept up to date. After a reinstall, soroagent finds it and restores everything in one click. Snippets also export as Markdown or JSON.
 
 ### Make it yours
 - **Prompts in settings.** Rewrite the system prompt for all websites or any one site, and click **Optimize with AI** to have your model improve it.
@@ -96,7 +94,6 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Google Drive sync** asks only for soroagent's own app folder in your Drive (`drive.appdata`), never your files. The sign-in token stays in memory for the session.
 - **Prepared automatically:** to have the summary and questions ready, your AI reads a page when the side panel is open on it or after 15 seconds of reading (never mail, chat, banking, sign-in or checkout pages). On by default only with an AI on your computer or in the browser; off by default with a cloud key. Change it in Settings → On the page.
 - **PDFs** are downloaded from where they are, as your browser would, and read on your computer.
-- **Pictures** are found on the page in your browser; nothing is downloaded until you click, and then only from the site that serves them, into your Downloads folder.
 - **Opt-in only:** passive capture, sync and the Markdown folder are off until you turn them on, and only go where you point them.
 - **No tracking:** there are no soroagent accounts, servers, trackers or analytics.
 
@@ -104,12 +101,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.40.1**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.41.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.40.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.40.1.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.40.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.40.1.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.41.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.41.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.41.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.41.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

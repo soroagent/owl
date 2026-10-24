@@ -13,7 +13,6 @@
 
   // Routine failures (the AI unreachable, a shortcut pressed on a browser page) go to the diagnostic
   // log, not the console: Chrome lists every console warning on the extension's Errors page.
-  let readingQueue = Promise.resolve();
   const quietly = (where) => (err) => diag.record({ area: 'error', code: (err && err.code) || 'failed', message: (err && err.message) || String(err), detail: { where } });
 
   // The in-browser AI (Gemini Nano, WebLLM); llm.js routes "browser" connections to it.
@@ -210,7 +209,6 @@
   const jobs = createJobRunner({
     ext,
     errorPayload: (err) => (recordLlmError(err, null, 'summary job'), errorPayload(err)),
-    readTab,
     getSettings,
     runChat: async ({ messages, model, signal, onToken, onThinking, json }) => {
       const { connection, api } = await resolveChat(model);
@@ -433,38 +431,6 @@
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
       return { ok: true };
     },
-    // Reading log for the Stats page: added one part at a time, in order (tabs report at once).
-    'reading:log': (msg, sender) => {
-      if (!sender || sender.id !== ext.runtime.id || !sender.tab || sender.tab.incognito) return { ok: false };
-      readingQueue = readingQueue.then(async () => {
-        const { readingLog = [] } = await ext.storage.local.get('readingLog');
-        await ext.storage.local.set({ readingLog: S.addReading(readingLog, { host: msg.host, title: msg.title, ms: Math.min(Number(msg.ms) || 0, 3600000), visit: Boolean(msg.visit) }) });
-      }).catch(quietly('reading log'));
-      return { ok: true };
-    },
-    // Pictures the reader chose to download from the page (the question in the panel): saved to
-    // Downloads/soroagent/pictures/<site>/, as the browser's own "Save image as" would fetch them.
-    'pictures:download': async (msg, sender) => {
-      if (!sender || sender.id !== ext.runtime.id) return { ok: false, error: 'Not allowed.' };
-      const folder = S.pictureFolder(msg.host);
-      const items = (Array.isArray(msg.items) ? msg.items : []).filter((it) => it && /^https?:\/\//i.test(String(it.url || ''))).slice(0, 60);
-      let saved = 0;
-      let firstId = null;
-      for (const it of items) {
-        try {
-          const id = await ext.downloads.download({ url: it.url, filename: `${folder}/${S.safeFileName(it.name)}`, conflictAction: 'uniquify', saveAs: false });
-          saved += 1;
-          if (firstId === null) firstId = id;
-        } catch (err) {
-          quietly('pictures:download')(err);
-        }
-      }
-      return { ok: true, saved, failed: items.length - saved, folder, firstId };
-    },
-    'pictures:show': async (msg) => {
-      if (typeof msg.id === 'number') ext.downloads.show(msg.id);
-      return { ok: true };
-    },
     // Flight recorder: anything of ours may report (it's scrubbed again here); only extension pages read it.
     'diag:record': async (msg, sender) => {
       if (!sender || sender.id !== ext.runtime.id) return { ok: false };
@@ -657,31 +623,6 @@
   // ---------------------------------------------------------------------------
   // Talking to the assistant in a tab
   // ---------------------------------------------------------------------------
-
-  // Tasks: a page that only shows its content with JavaScript is read in a background tab (not
-  // focused), by soroagent's content script there, then the tab is closed.
-  async function readTab(url, signal) {
-    const tab = await ext.tabs.create({ url, active: false });
-    try {
-      await new Promise((resolve) => {
-        const finish = () => {
-          ext.tabs.onUpdated.removeListener(listener);
-          clearTimeout(timer);
-          resolve();
-        };
-        const listener = (id, info) => id === tab.id && info.status === 'complete' && finish();
-        const timer = setTimeout(finish, 20000);
-        ext.tabs.onUpdated.addListener(listener);
-        if (signal) signal.addEventListener('abort', finish, { once: true });
-      });
-      if (signal && signal.aborted) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
-      await new Promise((r) => setTimeout(r, 2500)); // let the page's scripts render
-      const res = await sendToTab(tab.id, { type: 'assistant:task-read' });
-      return res && res.ok ? res : null;
-    } finally {
-      ext.tabs.remove(tab.id).catch(() => {});
-    }
-  }
 
   async function sendToTab(tabId, message) {
     try {

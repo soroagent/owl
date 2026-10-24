@@ -205,38 +205,5 @@
     return { text: out.join('\n\n').slice(0, limit), condensed: true };
   }
 
-  /**
-   * Pure: headline-like links from a page's anchors ([{ href, text }]): absolute http(s), 20–160
-   * characters of text, no account/legal links, no duplicates, the page's own site first.
-   */
-  function pickLinks(anchors, baseUrl, { max = 40 } = {}) {
-    let base;
-    try {
-      base = new URL(baseUrl);
-    } catch {
-      return [];
-    }
-    const site = (host) => host.replace(/^www\./, '').split('.').slice(-2).join('.');
-    const seen = new Set();
-    const same = [];
-    const other = [];
-    for (const a of anchors || []) {
-      let url;
-      try {
-        url = new URL(String(a.href || ''), base);
-      } catch {
-        continue;
-      }
-      if (!/^https?:$/.test(url.protocol)) continue;
-      const text = String(a.text || '').replace(/\s+/g, ' ').trim();
-      if (text.length < 20 || text.length > 160 || /\b(sign ?in|log ?in|sign ?up|register|subscribe|cookie|privacy|terms of)\b/i.test(text)) continue;
-      const key = url.href.replace(/#.*$/, '');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      (site(url.hostname) === site(base.hostname) ? same : other).push({ text, url: key });
-    }
-    return [...same, ...other].slice(0, max);
-  }
-
-  Object.assign(soroagent, { pickLinks, condenseText, SEARCHABLE_KINDS: SEARCHABLE, tokenize, buildIndex, searchNotes, relatedNotes, formatNotes });
+  Object.assign(soroagent, { condenseText, SEARCHABLE_KINDS: SEARCHABLE, tokenize, buildIndex, searchNotes, relatedNotes, formatNotes });
 })(globalThis);

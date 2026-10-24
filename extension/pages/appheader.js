@@ -1,4 +1,4 @@
-// The header shared by Snippets, Stats and Settings: the version next to the logo.
+// The header shared by Snippets and Settings: the version next to the logo.
 (function () {
   'use strict';
 

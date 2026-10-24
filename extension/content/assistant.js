@@ -34,8 +34,6 @@
     check: svg('<path d="M20 6 9 17l-5-5"/>'),
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
     refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
-    task: svg('<path d="M10 6h10M10 12h10M10 18h10"/><path d="m3.5 6 1.5 1.5L7.5 5"/><path d="m3.5 12 1.5 1.5 2.5-2.5"/><path d="m3.5 18 1.5 1.5 2.5-2.5"/>'),
-    picture: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -95,7 +93,6 @@
       <div class="actions">
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
         <button class="chip" type="button" data-action="save" title="Save this page to your library">${ICONS.save}<span>Save</span></button>
-        <button class="chip" type="button" data-action="task" title="Task: have soroagent check a website for you, like the latest news on rediff.com">${ICONS.task}<span>Task</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
       <div class="related" hidden></div>
@@ -104,7 +101,6 @@
           <span class="empty-mark">${OWL_MARK}</span>
           <strong>How can I help with this page?</strong>
           <span class="empty-note">Runs on the model served at your local URL. Nothing leaves your machine.</span>
-          <div class="home-pictures"></div>
           <div class="suggest-head" hidden><span class="suggest-label"></span><button type="button" class="suggest-more">New questions</button></div>
           <div class="suggest" role="group" aria-label="Suggested questions">
             <button type="button" data-ask="What are the key points of this page?">What are the key points?</button>
@@ -629,138 +625,6 @@
   }
 
   // ---------------------------------------------------------------------------
-  // High-resolution pictures: offered for download in the chat (S.pagePictures finds them)
-  // ---------------------------------------------------------------------------
-
-  // url: the page they were found on; answered: "Not now", a download or the chooser on this URL.
-  const pics = { url: '', list: [], answered: false, node: null };
-  const pageHost = () => location.hostname.replace(/^www\./, '');
-
-  function findPictures() {
-    if (pics.url !== location.href) Object.assign(pics, { url: location.href, answered: false, node: null });
-    pics.list = isPdfDocument() ? [] : S.pagePictures(document);
-    return pics.list;
-  }
-  function picturesOffered() {
-    const s = state.settings;
-    return s.offerPictures !== false && !(s.pictureNeverSites || []).includes(pageHost()) && !pics.answered && pics.list.length > 0 && preparable();
-  }
-  const picturesLine = (n) => (n === 1 ? 'This page has a high-resolution picture.' : `This page has ${n} high-resolution pictures.`);
-  const picturesQuestion = (n) => `${picturesLine(n)} Download ${n === 1 ? 'it' : 'them'}?`;
-
-  // On start and when images finish loading: the owl's badge, the panel's offer, the side panel.
-  let picturesTimer = 0;
-  function schedulePictures(delay = 1200) {
-    clearTimeout(picturesTimer);
-    picturesTimer = setTimeout(() => {
-      findPictures();
-      const offered = picturesOffered();
-      els.launcher.classList.toggle('pictures', offered);
-      els.launcher.title = offered ? `soroagent · ${picturesLine(pics.list.length)}` : 'soroagent';
-      if (isOpen()) offerPictures();
-      notifySidePanel();
-    }, delay);
-  }
-
-  // Images (often lazy-loaded) fire "load" on themselves only, so listen in the capture phase.
-  document.addEventListener('load', (e) => {
-    if (e.target && e.target.tagName === 'IMG' && e.target.naturalWidth >= 900) schedulePictures();
-  }, true);
-
-  function answerPictures() {
-    pics.answered = true;
-    els.launcher.classList.remove('pictures');
-    els.launcher.title = 'soroagent';
-    if (pics.node) pics.node.remove();
-  }
-  const neverPictures = () => S.saveSettings({ pictureNeverSites: [...new Set([...(state.settings.pictureNeverSites || []), pageHost()])] });
-
-  // The question in the chat: on the opening screen while nothing's been said yet, else in the conversation.
-  function offerPictures() {
-    if (!picturesOffered()) {
-      if (pics.node) pics.node.remove();
-      return;
-    }
-    const n = pics.list.length;
-    if (pics.node && pics.node.isConnected) {
-      pics.node.querySelector('.card-title-text').textContent = picturesQuestion(n);
-      return;
-    }
-    const node = card({
-      kind: 'pictures-offer',
-      icon: 'picture',
-      title: picturesQuestion(n),
-      body: `They're saved to your Downloads folder, in soroagent/pictures/${pageHost()}.`,
-      actions: [
-        { label: n === 1 ? 'Download' : 'Download all', onClick: () => (answerPictures(), downloadPictures(pics.list)) },
-        ...(n > 1 ? [{ label: 'Choose…', onClick: () => (answerPictures(), choosePictures()) }] : []),
-        { label: 'Not now', onClick: answerPictures },
-        { label: 'Never on this site', onClick: () => (answerPictures(), neverPictures()) },
-      ],
-    });
-    pics.node = node;
-    const home = !els.empty.hidden && !els.thread.classList.contains('chatting');
-    if (home) els.empty.querySelector('.home-pictures').append(node);
-    else append(node);
-  }
-
-  // Thumbnails with checkboxes, all ticked to start.
-  function choosePictures() {
-    const node = card({ kind: 'pictures-choose', icon: 'picture', title: 'Choose the pictures to download' });
-    const grid = el('div', { className: 'picture-grid' });
-    const boxes = pics.list.map((p) => {
-      const box = el('input', { type: 'checkbox', checked: true });
-      const img = el('img', { src: p.url, alt: p.alt || '', loading: 'lazy' });
-      grid.append(el('label', { className: 'picture', title: `${p.width} × ${p.height}${p.alt ? ` · ${p.alt}` : ''}` }, [img, box, el('span', { textContent: `${p.width}×${p.height}` })]));
-      return box;
-    });
-    const go = el('button', { type: 'button', className: 'primary' });
-    const all = el('button', { type: 'button' });
-    const cancel = el('button', { type: 'button', textContent: 'Cancel' });
-    const update = () => {
-      const n = boxes.filter((b) => b.checked).length;
-      go.textContent = n ? `Download ${n}` : 'Download';
-      go.disabled = !n;
-      all.textContent = n === boxes.length ? 'Select none' : 'Select all';
-    };
-    grid.addEventListener('change', update);
-    all.addEventListener('click', () => {
-      const on = !boxes.every((b) => b.checked);
-      boxes.forEach((b) => (b.checked = on));
-      update();
-    });
-    go.addEventListener('click', () => {
-      node.remove();
-      downloadPictures(pics.list.filter((_, i) => boxes[i].checked));
-    });
-    cancel.addEventListener('click', () => node.remove());
-    node.append(grid, el('div', { className: 'card-actions' }, [go, all, cancel]));
-    update();
-    append(node);
-  }
-
-  async function downloadPictures(list) {
-    const res = await savePictures(list).catch((err) => ({ ok: false, error: err.message }));
-    if (!res.ok || !res.saved) {
-      return append(card({ kind: 'error', icon: 'alert', title: 'The pictures couldn’t be downloaded', body: res.error || 'The site may not allow it. You can still save one with a right-click → Save image as.' }));
-    }
-    append(card({
-      kind: 'ok',
-      icon: 'check',
-      title: res.saved === 1 ? 'Downloading 1 picture' : `Downloading ${res.saved} pictures`,
-      body: `To Downloads/${res.folder}.${res.failed ? ` ${res.failed} couldn’t be downloaded.` : ''}`,
-      actions: [{ label: 'Show in folder', onClick: () => sendMessage({ type: 'pictures:show', id: res.firstId }) }],
-    }));
-  }
-
-  // Names come from the pictures' own file names (or their description); the browser numbers repeats.
-  function savePictures(list) {
-    const host = pageHost();
-    const items = list.map((p, i) => ({ url: p.url, name: S.pictureFileName(p.url, { host, index: i + 1, alt: p.alt }) }));
-    return sendMessage({ type: 'pictures:download', host, items });
-  }
-
-  // ---------------------------------------------------------------------------
   // Running tasks
   // ---------------------------------------------------------------------------
 
@@ -808,7 +672,7 @@
     const busy = Boolean(state.busy);
     const ready = state.status === 'ready';
     // Only Summarize needs the model; the other buttons always work.
-    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'task'].includes(chip.dataset.action) && (busy || !ready);
+    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize'].includes(chip.dataset.action) && (busy || !ready);
     els.input.disabled = !ready;
     els.send.disabled = !busy && !ready;
     els.send.classList.toggle('stop', busy);
@@ -1075,7 +939,6 @@
       if (record.sources && record.sources.length) append(sourcesCard(record.query, record.sources, 'Sources'));
       return;
     }
-    if (record.kind === 'task' && record.sources && record.sources.length) append(sourcesCard('', record.sources, 'Read for this task'));
     state.next = { ...(state.next || {}), record };
     renderNextSteps();
     if (record.kind === 'page' || record.kind === 'items') suggestFollowUps(record.label || 'Summarize this page', record.text);
@@ -1186,76 +1049,6 @@
       .catch((err) => {
         status.textContent = `Couldn't suggest topics (${err.message}). Research everything, or type your own:`;
       });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Tasks: "latest news from rediff.com". The background works out which page to open, reads it
-  // (in a background tab if it needs JavaScript) and reports here, on the page you're on. It runs
-  // as a job, so it finishes even if you leave, and the result is saved like a summary.
-  // ---------------------------------------------------------------------------
-
-  const TASK_EXAMPLES = ['Latest news from rediff.com', 'Top stories on news.ycombinator.com', "What's trending on github.com/trending"];
-
-  async function recentTasks() {
-    try {
-      return (await ext.storage.local.get('recentTasks')).recentTasks || [];
-    } catch {
-      return [];
-    }
-  }
-  async function rememberTask(task) {
-    const list = [task, ...(await recentTasks()).filter((t) => t.toLowerCase() !== task.toLowerCase())].slice(0, 6);
-    ext.storage.local.set({ recentTasks: list }).catch(() => {});
-  }
-
-  /** The specification of a task job; the background fills in the page it reads. */
-  function taskSpec(task) {
-    const P = S.JOB_PLACEHOLDERS;
-    const today = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    return {
-      label: `Task: ${task}`.slice(0, 140),
-      kind: 'task',
-      task,
-      planMessages: S.buildMessages('taskPlan', S.pageVars({ title: '', url: '', text: '' }, { question: task, context: `Today is ${today}.` }), {}),
-      final: S.buildMessages('taskReport', S.pageVars({ title: P.pageTitle, url: P.pageUrl, text: P.pageText }, { question: task, context: P.goal }), {}),
-      saveMessages: S.buildMessages('save', S.pageVars({ title: `Task: ${task}`, url: '', text: P.summary }), {}),
-    };
-  }
-
-  function runWebTask(task) {
-    const text = String(task || '').replace(/\s+/g, ' ').trim();
-    if (!text) return;
-    rememberTask(text);
-    return runTask(async (signal) => {
-      addUserMessage(`Task: ${text}`);
-      await runSummaryJob(taskSpec(text), { signal, reply: addAssistantMessage('Working out where to look…') });
-    });
-  }
-
-  async function chooseTask() {
-    els.thread.querySelectorAll('.task-card').forEach((n) => n.remove());
-    const node = card({ kind: 'topic-card task-card', icon: 'task', title: 'What should soroagent check for you?' });
-    const input = el('input', { type: 'text', placeholder: 'e.g. Latest news from rediff.com', maxLength: 300 });
-    input.setAttribute('aria-label', 'Task');
-    const go = el('button', { type: 'button', className: 'primary', textContent: 'Run' });
-    const start = (task) => {
-      node.remove();
-      runWebTask(task);
-    };
-    go.addEventListener('click', () => input.value.trim() && start(input.value));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.isComposing && input.value.trim()) start(input.value);
-    });
-    const recent = await recentTasks();
-    const chips = el('div', { className: 'topics' });
-    for (const task of [...recent, ...TASK_EXAMPLES.filter((x) => !recent.some((r) => r.toLowerCase() === x.toLowerCase()))].slice(0, 6)) {
-      const b = el('button', { type: 'button', className: 'topic', textContent: task });
-      b.addEventListener('click', () => start(task));
-      chips.append(b);
-    }
-    node.append(el('p', { className: 'topics-status', textContent: `It opens the site in the background and reports back here.${recent.length ? ' Recent and example tasks:' : ' For example:'}` }), chips, el('div', { className: 'topic-own' }, [input, go]));
-    append(node);
-    input.focus();
   }
 
   // Research: search the web (for `query`, or a query the model picks), read the top sources,
@@ -1609,12 +1402,11 @@
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
       standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
-      pictures: picturesOffered() ? { count: pics.list.length, host: pageHost() } : null,
     };
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${picturesOffered() ? pics.list.length : 0}`;
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -2129,7 +1921,7 @@
           label: 'soroagent 🦉',
           onClick: () => {
             node.remove();
-            const answer = S.ownAnswer(topic, { cloud: state.cloud, providerLabel: els.where.textContent, autoBackup: state.settings.autoBackup, autoCapture: state.settings.autoCapture, readingLog: state.settings.readingLog });
+            const answer = S.ownAnswer(topic, { cloud: state.cloud, providerLabel: els.where.textContent, autoBackup: state.settings.autoBackup, autoCapture: state.settings.autoCapture });
             addAssistantMessage().finish(answer);
             state.history.push({ role: 'user', content: question }, { role: 'assistant', content: answer });
           },
@@ -2291,7 +2083,6 @@
       els.panel.hidden = false;
       els.launcher.classList.add('open');
       renderSiteBar();
-      offerPictures();
       launcherCtl.placePanel();
       findRelated();
       if (state.status !== 'ready') connect();
@@ -2328,7 +2119,6 @@
     else if (action === 'screenshot') takeScreenshot();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
-    else if (action === 'task') chooseTask();
   });
 
   // Suggested questions on the empty screen.
@@ -2356,9 +2146,7 @@
     if (!question) return;
     els.input.value = '';
     els.input.style.height = '';
-    const task = question.match(/^(?:\/task|task:)\s*(.+)$/is);
-    if (task) runWebTask(task[1]);
-    else ask(question);
+    ask(question);
   });
 
   els.input.addEventListener('keydown', (e) => {
@@ -2424,14 +2212,6 @@
 
   ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || typeof msg.type !== 'string' || !msg.type.startsWith('assistant:')) return false;
-    // Tasks: the background opened this page in a background tab to read it (sites that need JavaScript).
-    if (msg.type === 'assistant:task-read') {
-      if (sender.id !== ext.runtime.id || sender.tab) return false;
-      const page = sitePage(60000);
-      const anchors = [...document.querySelectorAll('main a[href], article a[href], body a[href]')].slice(0, 600).map((a) => ({ href: a.href, text: a.innerText || a.textContent }));
-      sendResponse({ ok: true, title: page.title || document.title, url: location.href, text: page.text, links: S.pickLinks(anchors, location.href) });
-      return false;
-    }
     if (msg.type === 'assistant:toggle') {
       if (isOpen()) closePanel();
       else openPanel();
@@ -2463,16 +2243,6 @@
         if (msg.type === 'assistant:sp-refresh') {
           await preparePage({ explicit: true });
           return snapshot();
-        }
-        // The side panel's answer to the pictures offer: list them, download some, not now or never.
-        if (msg.type === 'assistant:sp-pictures') {
-          if (pics.url !== location.href) findPictures();
-          if (msg.op === 'list') return { ok: true, host: pageHost(), pictures: pics.list };
-          answerPictures();
-          notifySidePanel();
-          if (msg.op === 'never') await neverPictures();
-          if (msg.op === 'download') return savePictures(Array.isArray(msg.urls) ? pics.list.filter((p) => msg.urls.includes(p.url)) : pics.list);
-          return { ok: true };
         }
         if (msg.type === 'assistant:sp-open') {
           openPanel();
@@ -2521,7 +2291,6 @@
     showPendingSummaries();
     watchX();
     schedulePrepare();
-    schedulePictures(600);
   });
   updateControls();
 })();

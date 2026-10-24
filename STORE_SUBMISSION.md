@@ -1,22 +1,38 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.36.0 on 2026-10-24.
+against version 2.41.0 on 2026-10-24.
 
 ## Before you submit
+
+### Done in the code
 
 | | Item | Status |
 |---|---|---|
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-24 (v2.36.0) |
-| ✅ | No unused permissions (`activeTab` removed); manifest description ≤ 132 characters | Tested |
-| ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Added 2026-10-23 |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-24 (v2.41.0) |
+| ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
+| ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
+| ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
+| ✅ | Fewer features to justify against "single purpose": Tasks (background tabs) and the pictures download offer were removed in 2.41 | 2026-10-24 |
+| ✅ | The first-run page that shows inside the panel is web-accessible with `use_dynamic_url: true`, so websites can't use it to detect soroagent | 2026-10-24 |
+| ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Updated 2026-10-24 |
 | ✅ | Third-party licenses ship in both builds | Tested |
-| ⚠️ | **Firefox data collection declaration** is `"none"`, which is not accurate for cloud AI, Research, sync and diagnostic reports | **Needs a decision**: see "Firefox: data collection" |
-| ⚠️ | **Google Drive sync in the Chrome Web Store build**: the store assigns a new extension ID, so its sign-in redirect must be added to the Google Cloud OAuth client | After the first upload: see "Chrome: extension ID and Google sign-in" |
-| ⚠️ | Google OAuth consent screen must be **published** (not "Testing") or only test users can connect Drive | Google Cloud console |
+
+### Still to do (outside the code)
+
+| | Item | Where |
+|---|---|---|
+| ⚠️ | **A way for the reviewer to test.** Reviewers won't have Ollama, Gemini Nano may be missing and the in-browser model is an 880 MB download. Create a cloud key with a small spending cap (OpenAI or Gemini) and put it in the reviewer notes. This is the most common reason AI extensions are rejected ("functionality not working"). | Notes for reviewers, below |
+| ⚠️ | **Google Drive sync in the store build**: the store assigns a new extension ID; add its sign-in redirect to the Google Cloud OAuth client after the first (unpublished) upload | "Chrome: extension ID and Google sign-in", below |
+| ⚠️ | **Google OAuth consent screen**: publish it (not "Testing"), or only test users can connect Drive. Brand verification wants the homepage and privacy policy **on a domain you own and have verified** (a `github.com/…` link won't do): host `PRIVACY.md` at https://soroagent.github.io/ (live) or soroagent.com and verify that domain in Google Search Console | Google Cloud console |
+| ⚠️ | **soroagent.com shows a "One moment, please…" bot check** to automated visitors. Google's verifier and store reviewers may be blocked by it; turn it off for the homepage, privacy and feedback pages, or point the listing at soroagent.github.io | Website hosting |
+| ⚠️ | **Store listing assets**: 1–5 screenshots (1280×800), small promo tile (440×280), optional marquee (1400×560), category Productivity, a support URL | Developer Dashboard |
+| ⚠️ | **Firefox data collection declaration** is `"none"`, not accurate for cloud AI, web lookups, sync and diagnostic reports | **Needs a decision**: "Firefox: data collection", below |
+| ℹ️ | If the extension is renamed, do it **before** the first upload (the listing name and the OAuth consent screen's app name are hard to change later) | |
+| ℹ️ | Optional: `"minimum_chrome_version": "116"` (opening the side panel from a click needs Chrome 116) | `extension/manifest.json` |
 | ℹ️ | Broad host access means Chrome's in-depth review (slower). Justification below | Expected |
 
 Packages: `npm run store` → `dist/soroagent-chrome-store-<version>.zip` (no `key`, for the Chrome Web
@@ -33,23 +49,24 @@ npx addons-linter dist/firefox
 ## How soroagent works (for both reviewers)
 
 soroagent is an AI reading assistant. It summarizes and answers questions about the page you're on,
-saves what you read to a private library on your device, and lets you search and chat with that
-library. The AI is chosen by the user: a model server on their computer (Ollama, LM Studio…), an
-AI inside the browser (Chrome's Gemini Nano, or Qwen2.5-1.5B via WebLLM in Chrome), or the user's own
-API key for a cloud provider. There are no soroagent servers, accounts, analytics or ads.
+and saves what you read to a private library on your device that you can search. The AI is chosen by
+the user: a model server on their computer (Ollama, LM Studio…), an AI inside the browser (Chrome's
+Gemini Nano, or Qwen2.5-1.5B via WebLLM in Chrome), or the user's own API key for a cloud provider.
+There are no soroagent servers, accounts, analytics or ads.
 
-Features a reviewer may notice while testing (all serve that purpose, all started by the user or
-switchable in Settings → On the page):
+Things a reviewer may notice while testing (all serve that purpose; automatic ones can be switched off
+in Settings → AI → While you read):
 
-- **Suggested and follow-up questions.** The panel suggests questions for the page; after each
-  answer it asks the same AI for two follow-up questions, sending only the question and the answer.
+- **Suggested questions.** The panel suggests four questions for the page, in four labelled slots
+  (Gist, Understand, Check, Next) that follow a template for the site (`shared/templates.js`), written
+  by the user's AI. After each answer it asks the same AI for two follow-up questions, sending only
+  the question and the answer.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
-- **Tasks** ("latest news from rediff.com"): soroagent fetches that site without cookies; if it only
-  renders with JavaScript, it opens it in an inactive background tab, reads it and closes the tab.
-- **High-resolution pictures.** When a page shows large photos, the owl gets a dot and the panel asks
-  whether to download them (all, chosen ones, not now, never on this site). Nothing is downloaded
-  until the user clicks; files go through the `downloads` API to `Downloads/soroagent/pictures/<site>/`.
+- **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
+  betting, ad-redirect and unlicensed streaming sites and IRCTC, and any page with the adult (RTA)
+  label is treated the same way: no suggested questions, no automatic summary, no capture there. The
+  domain names in that list are only for this exclusion.
 
 Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.com/soroagent/owl/blob/main/PRIVACY.md
 
@@ -60,8 +77,8 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 ### Single purpose
 
 > soroagent helps you understand and keep what you read on the web: it summarizes and answers
-> questions about the current page with an AI model the user chooses, and files what they read (and,
-> when they ask, the page's high-resolution pictures) into a private library on their device.
+> questions about the current page with an AI model the user chooses, and files what they read into
+> a private, searchable library on their device.
 
 ### Permission justifications
 
@@ -72,13 +89,12 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 | `contextMenus` | Right-click items: "Summarize this page", "Take a screenshot", and "Summarize this PDF with soroagent". |
 | `scripting` | When the user opens soroagent (or a right-click item) on a tab that was already open before soroagent was installed or updated, injects soroagent's own packaged content scripts into that tab so it works without a reload. |
 | `declarativeNetRequestWithHostAccess` | One session rule that sets the `Origin` header on soroagent's own background requests to the user's local model server (e.g. Ollama at 127.0.0.1), so the server accepts them. See "Local model servers" below. It never applies to web pages or tabs. |
-| `downloads` | Saves the automatic backup file and Markdown exports to the user's Downloads folder, exports from the library page, and high-resolution pictures from the current page when the user clicks Download on the panel's question (to `Downloads/soroagent/pictures/<site>/`). |
-| `downloads.ui` | Keeps the download bar from opening for the periodic automatic backup (a background save the user turned on). |
-| `alarms` | Schedules the periodic backup and the optional sync. |
+| `downloads` | Saves files the user asks for to their Downloads folder: exports (Markdown, JSON) and, only if the user turns it on in Settings, the automatic backup file. Each one shows in the browser's downloads like any other download. |
+| `alarms` | Schedules the optional automatic backup and the optional sync. |
 | `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |
 | `offscreen` | A hidden document for two things a service worker can't do: create a blob URL for the backup file (BLOBS), and run pdf.js (which uses a Worker) and the optional in-browser AI (WebLLM) as ES modules (WORKERS). |
 | `sidePanel` | Users can choose to open soroagent in the side panel, beside the page, instead of the floating panel on the page (one click in its menu, or in Settings). |
-| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for Research and for questions the page can't answer, the site a user's Task names ("latest news from rediff.com"), PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
+| Host permission `<all_urls>` | The content script must run on any page the user reads (to read the page they ask about, show the optional on-page panel, and prepare a summary when they open the side panel). The background also fetches: the user's chosen AI provider or local model server, web search results for Research and for questions the page can't answer, PDFs the user opens, and the user's own sync storage. None of these are fixed hosts. |
 
 ### Remote code
 
@@ -94,35 +110,38 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 
 ### Data usage (Privacy practices tab)
 
-- **Website content**: yes. Page text is sent to the AI provider the *user* configured when they use
+Tick these data types:
+
+- **Website content**: page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
   or in-browser AI by default). After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.
-- **Pictures**: downloaded only when the user clicks, straight from the site that serves them into
-  the user's Downloads folder; soroagent keeps no record of them and sends nothing elsewhere.
-- **Web history**: a local reading log (site, title, day and active reading time per page) for the
-  Stats page; never leaves the device, not synced or backed up; off switch and Clear in
-  Settings. Saved notes include page addresses; stored locally; included in the user's
-  encrypted sync if they turn it on.
-- Not sold, not used for advertising or credit, not used for anything unrelated to the single purpose.
-  Certify the Limited Use statements.
+- **Web history**: saved notes include the address of the page they came from; stored locally and
+  included in the user's encrypted sync only if they turn sync on. soroagent keeps no log of visited
+  pages.
+- **Authentication information**: the user's own AI API keys, stored encrypted on the device and sent
+  only to that provider.
+
+Not collected: personally identifiable information, health, financial, personal communications,
+location, user activity (no clicks, keystrokes or browsing log are recorded).
+
+Certify all three statements: not sold, not used or transferred for purposes unrelated to the single
+purpose, not used for creditworthiness or lending.
 
 ### Notes for reviewers (paste)
 
-> soroagent is an AI reading assistant that uses an AI model the user chooses. To test without an
-> account: install Ollama (https://ollama.com) and run `ollama pull qwen2.5:7b`; soroagent finds it
-> automatically on first run. Or, on a supported Chrome, choose "Use Chrome's built-in AI". Then open
-> any article, click the owl in the page corner (or the toolbar button, or press Alt+Shift+O) and use
-> Summarize or ask a question. The panel's ⋯ menu has "Switch to the side panel".
+> soroagent is an AI reading assistant that uses an AI model the user chooses.
+>
+> To test: on the first-run page, choose "Use Claude, ChatGPT or Gemini", pick the provider of this
+> spending-capped test key (for review only) and paste it: **<TEST KEY HERE>**. Alternatively install Ollama
+> (https://ollama.com) and run `ollama pull qwen2.5:7b`; soroagent finds it automatically. Then open
+> any article, click the owl in the page corner (or the toolbar button, or press Alt+Shift+O), and
+> use Summarize or one of the suggested questions. The panel's ⋯ menu has "Switch to the side panel".
 >
 > After each answer the panel shows two follow-up questions (a second, short request to the same AI
-> with the question and the answer). To see the picture download question, open a page with large
-> photos (for example a Wikimedia Commons file page): the owl shows an orange dot and the panel asks
-> "This page has N high-resolution pictures. Download them?". Nothing is downloaded until you click;
-> files are saved with chrome.downloads to Downloads/soroagent/pictures/<site>/. A Task ("latest
-> news from rediff.com", the Task chip) may open the site in an inactive background tab to read it,
-> then closes it.
+> with the question and the answer). Nothing is downloaded unless the user exports or turns on the
+> automatic backup in Settings.
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest
@@ -172,16 +191,14 @@ npm run vendor   # optional: downloads the vendored libraries again and verifies
 ### Notes to reviewer (paste)
 
 > soroagent is an AI reading assistant that uses an AI model the user chooses (no soroagent servers).
-> To test: install Ollama (https://ollama.com), run `ollama pull qwen2.5:7b`, and soroagent finds it
-> on first run. Open an article and click the owl in the page corner (or press Alt+Shift+O). The
-> panel's ⋯ menu has "Switch to the side panel", which opens the same UI in Firefox's sidebar.
+> To test: on first run, choose a cloud AI and paste this spending-capped test key: **<TEST KEY HERE>**;
+> or install Ollama (https://ollama.com), run `ollama pull qwen2.5:7b`, and soroagent finds it on
+> first run. Open an article and click the owl in the page corner (or press Alt+Shift+O). The panel's
+> ⋯ menu has "Switch to the side panel", which opens the same UI in Firefox's sidebar.
 >
 > After each answer the panel shows two follow-up questions (a second, short request to the same AI
-> with the question and the answer). On a page with large photos (for example a Wikimedia Commons
-> file page) the owl shows an orange dot and the panel asks whether to download them; nothing is
-> downloaded until you click, and files are saved with browser.downloads to
-> Downloads/soroagent/pictures/<site>/. A Task ("latest news from rediff.com") may open the site in
-> an inactive background tab to read it, then closes it.
+> with the question and the answer). Nothing is downloaded unless the user exports or turns on the
+> automatic backup in Settings.
 >
 > Our code is not minified or bundled; scripts/build.mjs only copies files and writes the manifest.
 > Third-party libraries, unmodified (README, license and SHA-256 in each vendor/ folder; `npm run
@@ -210,12 +227,9 @@ only when the user chooses a feature that needs it:
 | Feature | Data | Category |
 |---|---|---|
 | A cloud AI (the user's own API key) | Page text, questions, answers (for follow-up questions) | `websiteContent` |
-| Research, Tasks without a named site, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
+| Research, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
 | Sync (Google Drive, WebDAV, Gist) | The library, encrypted end to end | `websiteContent`, `browsingActivity` |
 | "Copy diagnostic report" (opens a GitHub issue) | Scrubbed error log | `technicalAndInteraction` |
-
-Downloading a page's pictures (on the user's click) and reading a Task's site are requests to those
-sites themselves, like the user opening them, not transmission to soroagent or a third party.
 
 With Ollama or another local model, nothing is transmitted, so `"none"` is true for that setup but not
 for the add-on as a whole. Recommended: keep `required: ["none"]` and declare
@@ -238,15 +252,17 @@ Firefox 140+ is required for this, which is now `strict_min_version`.
 
 | Risk | Status |
 |---|---|
+| Reviewer can't test the core feature | Provide the capped test key in the reviewer notes (to do). |
 | Remote code / `eval` | None. Only packaged JS and WebAssembly (`'wasm-unsafe-eval'`). |
 | Modified or unverifiable third-party libraries | Unmodified, pinned, reproducible (`npm run vendor`), tested. |
 | Files too large for AMO's linter (`FILE_TOO_LARGE`) | WebLLM (6.8 MB) is left out of the Firefox build. |
-| Unused permissions | None (checked each one; `activeTab` removed). |
+| Unused permissions | None (checked each one; `activeTab` and `downloads.ui` removed). |
 | Header modification | One narrowly scoped rule, documented above. |
 | Obfuscation | None. |
-| Undisclosed data handling | Privacy policy and in-product text; Firefox declaration needs the update above. |
+| Undisclosed data handling | Privacy policy and in-product text; no browsing log; Firefox declaration needs the update above. |
 | Description too long (Chrome, 132) | 132 characters; a test keeps it within the limit. |
 | Missing licenses for bundled code | Shipped in both builds. |
 | Broken features for reviewers (OAuth in Testing mode, store ID) | Publish the OAuth consent screen; add the store ID redirect. |
-| Single purpose (Chrome) | Extras (tasks, web answers, follow-ups, picture downloads) all serve reading and keeping pages; the single-purpose text names picture saving, and the reviewer notes explain each. |
-| Unexpected downloads or tabs | Pictures download only on a click in the panel, to a named folder; a Task's background tab is inactive and closed after reading. Both are in the reviewer notes and the privacy policy. |
+| Single purpose (Chrome) | Every feature serves reading and keeping pages: summaries, questions, web answers, research, the library, sync. Tasks and picture downloads were removed to keep it that way. |
+| Unexpected downloads, tabs or tracking | None: the backup is opt-in and visible, no background tabs, no reading log. |
+| Extension detectable by websites | The one web-accessible page uses `use_dynamic_url`. |

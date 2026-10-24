@@ -6,10 +6,11 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 6;
+  const SCHEMA_VERSION = 7;
   const FORMAT = 'soroagent-backup';
-  // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced).
-  const RETIRED_PREFIXES = ['stats:', 'xstats:'];
+  // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced),
+  // the Stats page's reading log and the recent Tasks (both retired 2026-10-24).
+  const RETIRED_PREFIXES = ['stats:', 'xstats:', 'readingLog', 'recentTasks'];
   // The automatic backup, relative to the browser's Downloads folder (overwritten each time).
   const BACKUP_FILE = 'soroagent/soroagent-backup.json';
   const BACKUP_FILE_PATTERN = 'soroagent-backup[^/\\\\]*\\.json$';
@@ -59,6 +60,14 @@
 
   // v6: the floating owl is the default again (2.30–2.31 made the side panel the default).
   MIGRATIONS[6] = (all) => (all.settings ? { settings: { ...all.settings, openIn: 'page', showLauncher: true } } : {});
+
+  // v7: the automatic backup becomes opt-in (it was on by default, saving to Downloads unasked), and
+  // the settings of retired features (Stats' reading log, the pictures offer) go.
+  MIGRATIONS[7] = (all) => {
+    if (!all.settings) return {};
+    const { readingLog, offerPictures, pictureNeverSites, ...settings } = all.settings;
+    return { settings: { ...settings, autoBackup: false } };
+  };
 
   /** Pure: keys of retired features to delete. */
   const planRemovals = (all) => Object.keys(all).filter((k) => RETIRED_PREFIXES.some((p) => k.startsWith(p)));

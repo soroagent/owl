@@ -46,9 +46,9 @@
 
   /**
    * opts: { ext, runChat({ messages, model, signal, onToken, onThinking, json }) → text, errorPayload(err), getSettings,
-   *         readTab(url, signal) → page (tasks: read a page that needs JavaScript in a background tab) }
+   * }
    */
-  function createJobRunner({ ext, runChat, errorPayload, getSettings, readTab = null }) {
+  function createJobRunner({ ext, runChat, errorPayload, getSettings }) {
     const jobs = new Map(); // id -> { record, controller, ports: Set }
     let keepAlive = 0;
 
@@ -112,7 +112,6 @@
       try {
         let final = spec.final;
         if (record.kind === 'research') final = await prepareResearch(job, spec, progress);
-        else if (record.kind === 'task') final = await prepareTask(job, spec, progress);
         // Long content: notes on each part first, then one summary of all the notes.
         const notes = [];
         for (let i = 0; i < (spec.notes || []).length; i++) {
@@ -194,59 +193,6 @@
       return fillPlaceholder(fillPlaceholder(spec.final, SOURCES_PLACEHOLDER, soroagent.formatSources(sources)), QUERY_PLACEHOLDER, query);
     }
 
-    // Tasks ("latest news from rediff"): plan which page to open, read it (without cookies; in a
-    // background tab when it needs JavaScript), and hand it with its links to the report prompt.
-    async function prepareTask(job, spec, progress) {
-      const { record } = job;
-      const signal = job.controller.signal;
-      progress('Working out where to look…');
-      let plan = {};
-      try {
-        plan = soroagent.parseJsonLoose(await runChat({ messages: spec.planMessages, model: record.model, signal, json: true })) || {};
-      } catch (err) {
-        if (err && err.name === 'AbortError') throw err;
-      }
-      const settings = await getSettings();
-      let { url, typed } = soroagent.taskTarget(spec.task, plan);
-      if (!url) {
-        const query = String(plan.search || spec.task).replace(/\s+/g, ' ').trim().slice(0, 120);
-        progress(`Searching the web for “${query}”…`);
-        const { results } = await soroagent.searchWeb(query, { engine: settings.researchEngine, searxUrl: settings.searxUrl, signal });
-        const hit = results.find((r) => soroagent.isPublicUrl(r.url));
-        if (!hit) throw Object.assign(new Error('Couldn’t work out which site to open.'), { hint: 'Name the site, for example “latest news from rediff.com”.' });
-        url = hit.url;
-      }
-      const host = new URL(url).hostname.replace(/^www\./, '');
-      progress(`Reading ${host}…`);
-      let page = null;
-      try {
-        page = await soroagent.readSite(url, { signal, publicOnly: !typed });
-      } catch (err) {
-        if (err && err.name === 'AbortError') throw err;
-      }
-      if ((!page || page.text.length < 800) && readTab) {
-        progress(`Opening ${host} in a background tab (it needs JavaScript)…`);
-        page = (await readTab(url, signal)) || page;
-      }
-      if (!page || !page.text) throw Object.assign(new Error(`Couldn’t read ${host}.`), { hint: 'The site may block automated reading. Open it and use Summarize instead.' });
-      record.targetUrl = page.url || url;
-      record.targetTitle = page.title || host;
-      record.sources = [{ title: record.targetTitle, url: record.targetUrl }];
-      broadcast(job, { type: 'sources', query: '', sources: record.sources });
-      // The page text, condensed to fit, then its links (so the report can link each item).
-      const limit = soroagent.pageCharLimit(settings);
-      const links = (page.links || []).slice(0, 40).map((l) => `- [${l.text.replace(/[[\]]/g, '')}](${l.url})`).join('\n');
-      const linkRoom = links ? Math.min(links.length + 30, Math.floor(limit * 0.4)) : 0;
-      const body = soroagent.condenseText(page.text, Math.max(1500, limit - linkRoom), { title: page.title }).text;
-      const text = links ? `${body}\n\nLINKS ON THE PAGE:\n${links}`.slice(0, limit + 400) : body;
-      progress(`Writing the report from ${host}…`);
-      const P = soroagent.JOB_PLACEHOLDERS;
-      let final = fillPlaceholder(spec.final, P.pageTitle, record.targetTitle);
-      final = fillPlaceholder(final, P.pageUrl, record.targetUrl);
-      final = fillPlaceholder(final, P.goal, String(plan.goal || spec.task).slice(0, 300));
-      return fillPlaceholder(final, P.pageText, text);
-    }
-
     async function autoSave(record, spec) {
       let meta = soroagent.parseSnippetMeta('', record.pageTitle || record.label);
       // The archivist keeps one vocabulary: the model sees the library's existing tags and reuses
@@ -269,8 +215,8 @@
         kind: 'summary',
         source: 'summary',
         text: record.text,
-        url: record.targetUrl || record.url, // a task's result belongs to the site it read
-        pageTitle: record.targetTitle || record.pageTitle,
+        url: record.url,
+        pageTitle: record.pageTitle,
         site: record.site,
         model: record.model,
         summaryId: record.id,

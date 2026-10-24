@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.40.1 and later.
+Arc and Firefox, version 2.41 and later.
 
 ## The short version
 
@@ -37,17 +37,12 @@ soroagent stores the following **only in your browser's extension storage on you
 - **Your AI API keys**, if you add any. They are encrypted (AES-256) with a key the browser keeps and
   cannot export. They are never included in backups or sync, and Settings only ever shows their last
   four characters.
-- **A reading log:** for each page you actively read for at least 10 seconds, its site, its title, the
-  day and hour, and how long you were active on it (the tab in front and you using it). It powers the
-  Stats page (the topics you read most, average read time, when you read). It keeps a year
-  at most and is **never synced, backed up or sent anywhere**. It skips the pages listed below and
-  private windows. Turn it off or clear it in Settings → Your library.
 - **A diagnostic log** of soroagent's own errors (the last 50), kept in memory only while the browser is
   open. Web addresses, host names, page text, emails, keys and file paths are removed before anything
   is logged. See section 6.
 
-soroagent does not read your browser's history. Apart from the reading log above (site, title and
-time only, never page content, and never leaving your computer), it reads a page's content only:
+soroagent does not collect your browsing history or read your browser's history. It reads a page's
+content only:
 
 - when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, Screenshot);
 - when **automatic preparing** is on (section 3) and the side panel is open on the page, or you have
@@ -55,11 +50,11 @@ time only, never page content, and never leaving your computer), it reads a page
 - if you turn on **passive capture**, when you have actually read a page (time spent and how far you
   scrolled). Passive capture is off by default.
 
-Automatic preparing, passive capture and the reading log never run on mail, chat, banking, sign-in,
+Automatic preparing and passive capture never run on mail, chat, banking, sign-in,
 checkout, account or settings pages, search results, AI chat sites or local pages. On adult sites
 (including any page that labels itself adult), betting and ad-redirect sites, unlicensed streaming
-sites and railway booking (IRCTC), soroagent also suggests no questions and offers no downloads:
-it reads nothing there unless you ask it something yourself.
+sites and railway booking (IRCTC), soroagent also suggests no questions: it reads nothing there
+unless you ask it something yourself.
 
 ## 3. What leaves your computer
 
@@ -74,9 +69,7 @@ soroagent sends data over the network only in these cases, and only to the desti
 | Your library is indexed for search | The text of your notes | The embedding model you use: a local Ollama model, or your OpenAI, Gemini or Mistral key. |
 | You click **Research** | Your research topic | A web search engine (DuckDuckGo, Brave Search or Bing, or a SearXNG server you set), then the top result pages are opened and read, as if you had visited them. Addresses on your computer or local network are never fetched. |
 | You ask something **the page doesn't answer** | A short search query for your question | The same search engine, then the top result pages are read, as for Research. On by default; turn it off in Settings → On the page to get a button instead. |
-| You run a **Task** ("latest news from rediff.com") | Your task (to the AI you chose, to plan it); a request for the page it needs; if no site is named, a web search for it | The AI you chose, as above; the site the task is about, read without your cookies; the search engine, as for Research. If the site only shows its content with JavaScript, soroagent opens it in a background tab, which loads like any tab you open (with your cookies for that site), reads it and closes it. The page's text and links then go to your AI to write the report. |
 | You open a **PDF** in the side panel, or choose "Summarize this PDF with soroagent" | A request for the PDF file | The site the PDF is on, as your browser would make to show it. It is read on your computer. |
-| You click **Download** on the pictures question | A request for each picture you chose | The site that serves the picture, as your browser's own "Save image as" would make it (with your browser's cookies for that site). Finding the pictures happens on the page, in your browser; nothing is sent to ask the question. |
 | First-run setup | A request to `127.0.0.1:11434` to see whether Ollama is running | Your own computer only. |
 | You choose an AI that runs **in the browser** | Nothing of yours | The model is downloaded once: Chrome's built-in AI by Chrome itself, from Google; the in-browser model (Qwen2.5-1.5B, about 880 MB) from Hugging Face (`huggingface.co/mlc-ai`). The in-browser model is not offered in Firefox. |
 | You turn on **sync** | Your library, history and preferences, encrypted with your passphrase | The storage you pick: your Google Drive (section 4), a WebDAV server you name, or a private GitHub Gist under your account. |
@@ -144,16 +137,12 @@ data in Google Drive → Settings → Manage apps → soroagent → Delete hidde
 
 ## 5. Files soroagent writes on your computer
 
-- **Automatic backup:** by default, a backup of your library and settings (never your API keys) is
-  kept in your Downloads folder under `soroagent/`, so you can restore it after a reinstall. It is
-  rewritten a few minutes after your library changes (at most every 30 minutes). In Chrome, the
-  download indicator is hidden while this file is saved so it doesn't pop up each time. Turn the
-  backup off in Settings → Backup & restore.
+- **Automatic backup** (off unless you turn it on): a backup of your library and settings (never your
+  API keys) kept in your Downloads folder under `soroagent/`, so you can restore it after a reinstall.
+  It is rewritten a few minutes after your library changes (at most every 30 minutes), and each save
+  shows in your browser's downloads like any other. Settings → Library → Backup & restore.
 - **Markdown folder** (optional): if you choose a folder, such as an Obsidian vault, soroagent writes
   your notes there as `.md` files. In Firefox these go to `Downloads/soroagent/notes`.
-- **Pictures** you choose to download from a page are saved to your Downloads folder under
-  `soroagent/pictures/<site>/`. soroagent asks first (Settings → On the page turns the question off) and
-  keeps no record of them.
 - **Exports** you start yourself (Markdown or JSON) are saved where your browser saves downloads.
 
 ## 6. Diagnostics
@@ -172,9 +161,7 @@ which copies the report and opens a pre-filled GitHub issue for you to read and 
   search, PDFs and your sync storage.
 - **Storage** and **unlimited storage:** to keep your library, settings and search index in your
   browser.
-- **Downloads:** for the automatic backup, exports, the Firefox Markdown folder and pictures you choose
-  to download from a page; in Chrome also to
-  hide the download indicator during the automatic backup.
+- **Downloads:** for the automatic backup (if you turn it on), exports and the Firefox Markdown folder.
 - **Identity:** to open Google's own sign-in window when you connect Google Drive.
 - **Side panel** (Chrome) / **sidebar** (Firefox): to open soroagent beside the page if you choose to.
 - **Declarative net request** (Chrome) / **web request** (Firefox): to set the `Origin` header on
@@ -187,7 +174,7 @@ which copies the report and opens a pre-filled GitHub issue for you to read and 
 
 - You can view, search, export and delete any note on the Snippets page, and export or delete
   everything in Settings → Backup & restore.
-- Automatic preparing, suggested questions, follow-up questions, web answers, the reading log, passive capture, the automatic backup and
+- Automatic preparing, suggested questions, follow-up questions, web answers, passive capture, the automatic backup and
   sync can each be turned off in Settings.
 - Uninstalling soroagent deletes everything it stored in that browser. Backups in your Downloads
   folder, Markdown files and any sync file stay until you delete them.

@@ -29,7 +29,7 @@ test('the Chrome service worker loads the same scripts as Firefox, in order', ()
 });
 
 test('pages only load scripts that exist', () => {
-  for (const page of ['options', 'snippets', 'patterns', 'onboard', 'sidepanel', 'offscreen']) {
+  for (const page of ['options', 'snippets', 'onboard', 'sidepanel', 'offscreen']) {
     const html = readFileSync(join(ext, 'pages', `${page}.html`), 'utf8');
     for (const [, src] of html.matchAll(/<script src="([^"]+)"/g)) {
       assert.ok(existsSync(join(ext, 'pages', src)), `${page}.html -> ${src}`);
@@ -153,9 +153,9 @@ test('store builds: third-party licenses ship; the Firefox build has no WebLLM (
   assert.ok(chrome.description.length <= 132);
 });
 
-test('the extension pages share one header: logo with the version, and three tabs with icons', async () => {
+test('the extension pages share one header: logo with the version, and two tabs with icons', async () => {
   const { readFileSync } = await import('node:fs');
-  const headers = ['snippets', 'patterns', 'options'].map((page) => {
+  const headers = ['snippets', 'options'].map((page) => {
     const html = readFileSync(new URL(`../extension/pages/${page}.html`, import.meta.url), 'utf8');
     const m = html.match(/<header class="app-header">[\s\S]*?<\/header>/);
     assert.ok(m, `${page}.html has the shared header`);
@@ -164,6 +164,6 @@ test('the extension pages share one header: logo with the version, and three tab
   });
   assert.equal(new Set(headers).size, 1, 'identical apart from the current tab');
   const tabs = [...headers[0].matchAll(/<a href="[^"]+">(<svg class="icon"[^]*?<\/svg>)([^<]+)<\/a>/g)];
-  assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'Stats', 'Settings'], 'three tabs, each with an icon');
+  assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'Settings'], 'two tabs, each with an icon');
   assert.match(headers[0], /<sup class="app-version" id="appVersion"><\/sup>/, 'the version sits next to the logo');
 });

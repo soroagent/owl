@@ -233,54 +233,5 @@
     return final;
   }
 
-  // ---------------------------------------------------------------------------
-  // Tasks: "latest news from rediff.com" and the like (see jobs.js prepareTask)
-  // ---------------------------------------------------------------------------
-
-  /** Pure: the anchors in an HTML string as [{ href, text }]. */
-  function anchorsIn(html) {
-    const out = [];
-    const re = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    let m;
-    while ((m = re.exec(String(html)))) out.push({ href: decodeEntities(m[1]), text: stripTags(m[2]) });
-    return out;
-  }
-
-  const TLD = 'com|in|org|net|io|co|ai|dev|news|uk|us|de|fr|jp|au|ca|info|tv|me|app|gov|edu';
-  const NAMED = new RegExp(`\\b((?:https?:\\/\\/)?(?:[a-z0-9-]+\\.)+(?:${TLD})\\b(?:\\/[^\\s,;)]*)?)`, 'i');
-
-  /**
-   * Pure: the page to open for a task. A site the user named ("rediff.com") wins over a different
-   * one the model picked; otherwise the model's page. typed: the address came from the user (so it
-   * may be on their own network). Returns { url, typed } (url '' when neither).
-   */
-  function taskTarget(task, plan = {}) {
-    const bare = (h) => h.replace(/^www\./, '').toLowerCase();
-    const m = String(task || '').match(NAMED);
-    let fromUser = null;
-    try {
-      fromUser = m ? new URL(/^https?:/i.test(m[1]) ? m[1] : `https://${m[1]}`) : null;
-    } catch {
-      fromUser = null;
-    }
-    let planned = null;
-    try {
-      planned = /^https?:\/\//i.test(String(plan.url || '')) ? new URL(plan.url) : null;
-    } catch {
-      planned = null;
-    }
-    // A typed address with a path ("github.com/trending") is exactly what the user wants.
-    if (fromUser && (fromUser.pathname !== '/' || !planned || !bare(planned.hostname).endsWith(bare(fromUser.hostname)))) return { url: fromUser.href, typed: true };
-    if (planned) return { url: planned.href, typed: Boolean(fromUser) };
-    return { url: '', typed: false };
-  }
-
-  /** Reads a page for a task without cookies: { title, url, text, links }. */
-  async function readSite(url, { signal, publicOnly = true } = {}) {
-    const html = await fetchText(url, { signal, publicOnly, timeoutMs: 15000 });
-    const page = htmlToText(html, 60000);
-    return { title: page.title, url, text: page.text, links: soroagent.pickLinks(anchorsIn(html), url) };
-  }
-
-  Object.assign(soroagent, { anchorsIn, taskTarget, readSite, isPublicUrl, parseDuckDuckGoLite, parseBrave, parseBing, parseSearx, htmlToText, formatSources, decodeEntities, searchWeb, gatherSources });
+  Object.assign(soroagent, { isPublicUrl, parseDuckDuckGoLite, parseBrave, parseBing, parseSearx, htmlToText, formatSources, decodeEntities, searchWeb, gatherSources });
 })(globalThis);
