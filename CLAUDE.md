@@ -57,8 +57,8 @@ extension/
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
   pages/             sidepanel (the default UI: Chrome side panel / Firefox sidebar), options (Settings),
                      onboard (first run; ?sync = sync setup), snippets (library + summary history),
-                     patterns (Browsing pattern),
-                     libchat (Ask your library), offscreen (Chrome: backup blobs + the WebLLM engine)
+                     patterns (Stats),
+                     offscreen (Chrome: backup blobs + the WebLLM engine)
   vendor/            vendored libraries, each with a README (source, version, SHA-256) and LICENSE:
                      web-llm (WebLLM 0.2.86 + Qwen2.5-1.5B library), pdfjs (pdf.js 6.4.299),
                      readability (Mozilla Readability 0.6.0, a content script)
@@ -79,7 +79,7 @@ selection, page, deliverable, read, screenshot), `summary:<id>` (summary history
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
 `backupState`, `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
-`readingLog` (Browsing pattern; local only). `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
+`readingLog` (Stats; local only). `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
 Settings worth knowing (`shared/config.js` → `DEFAULT_SETTINGS`): how soroagent appears is three
 modes over two settings, `S.APPEARANCES` / `S.appearanceOf()`: owl (default: `openIn: 'page'`,
@@ -222,14 +222,20 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   already asked, shown as a "Keep exploring" group under it. A new question aborts one being written.
   `S.parseWebRequest` also takes a `[[search:]]` marker at the end of a partial answer (`shown` = the
   words before it).
-- **Extension pages** (2026-10-24, the owner's call): three tabs only, Snippets · Browsing pattern ·
-  Settings, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px wide, 60 px
-  high, outside each page's `main`, `scrollbar-gutter: stable`) so nothing moves when switching.
+- **Extension pages** (2026-10-24, the owner's call): three tabs only, Snippets · Stats ·
+  Settings, each with an icon, in one shared header (`.app-header` in `pages.css`: same markup, 1240 px
+  wide, 60 px high, outside each page's `main`, `scrollbar-gutter: stable`, no bold on the current
+  tab) so nothing moves when switching; the version is a superscript by the logo (`appheader.js`
+  reads the manifest). Icons are one colour everywhere, mint (`--icon` on pages, `--brand` in the
+  panels; the ⋯/× controls and red error icons excepted); section headings are dark green
+  (`--heading`, a light green in dark mode). Settings is four groups with a jump row: **AI** (Model,
+  Generation, While you read, Research, Prompts), **Appearance** (How soroagent appears, The owl
+  button), **Library** (Your library, Sync, Backup & restore `#backups`), **Help** (Troubleshooting).
   The summary history page is gone: Snippets lists snippets plus the summary jobs (`summary:<id>`)
   that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
   snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
   is a snippet like any other); Screenshots stays a toggle. `open:history` opens Snippets.
-- **Browsing pattern** (`pages/patterns.html`, a tab of the extension pages' header; a
+- **Stats** (`pages/patterns.html`, was "Browsing pattern"; a tab of the extension pages' header; a
   silent add-on: **not in the README**, the owner's call 2026-10-24; it is in PRIVACY.md, Settings
   and the FAQ answer, as the privacy rules require). `capture.js` already measures active time on
   every page; with `readingLog` on (default) it sends `reading:log` {host, title, ms, visit} when the
@@ -273,8 +279,8 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 - **Suggested questions without preparing** (`pageQuestions`): if preparing is off or failed, opening
   the panel asks for questions from the page text directly. Standard questions are the last fallback.
 - **Library:** everything saved is labelled (title, summary, tags) by the model, indexed in
-  `library.js`, related notes show on matching pages, and "Ask your library" answers with `[S#]`
-  citations from `knowledge.js` formatting.
+  `library.js`, and related notes show on matching pages (cited [N#] in the panel's chat, from
+  `knowledge.js` formatting).
 - **Sync:** one encrypted document (`soroagent-sync.json`), gzip + AES-GCM with a PBKDF2 key from
   the passphrase; merged per item, newest wins, tombstones for deletions. Settings sync except each
   browser's AI connection and keys; screenshots stay local. Google Drive uses only the
@@ -330,7 +336,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).

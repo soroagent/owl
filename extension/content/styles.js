@@ -193,7 +193,8 @@ header {
   border: 1px solid var(--border); border-radius: 999px; background: var(--bg); font-size: 12px; font-weight: 550;
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
-.chip svg { width: 14px; height: 14px; color: var(--accent); }
+.chip svg { width: 14px; height: 14px; color: var(--brand); } /* icons are mint everywhere */
+.icon-btn:not(.menu-btn):not(.close-btn) svg, .card-title svg { color: var(--brand); }
 .chip:hover:not(:disabled) { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
 
 /* Home: the opening screen over the conversation, which stays underneath */

@@ -1,5 +1,5 @@
 // One answer from the model (local or cloud, whichever is set up) for soroagent's own pages:
-// research topics and "Ask your library" on the snippets pages, prompt optimizing in settings.
+// research topics on the Snippets page, prompt optimizing in settings.
 (function (root) {
   'use strict';
 

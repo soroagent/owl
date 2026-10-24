@@ -58,16 +58,6 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Related notes.** On the page you're reading, the panel shows *"📚 3 of your saved notes relate to this page"*. **Use in chat** brings them into the conversation, cited as [N1], [N2]…
 - **Screenshots** of what you see go to their own gallery in your snippets.
 
-### Ask your library
-A chat console at the bottom of the Snippets page (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd>). Ask follow-up questions over the past week, month, three months or all time, or focus on the open note with **About this note**:
-- *What have I learned about this topic over the past month?*
-- *Where do my saved sources disagree?*
-- *What evidence supports this argument?*
-- *What should I read next?*
-- *What conclusions can I draw from these sources?*
-
-Answers come in two parts, **From your sources** (every claim cited [S1], [S2]…) and **My interpretation**, with the notes used listed underneath. One click instead creates a **Research brief**, **Technical decision**, **Study guide** or **Draft**, which you can save, copy or download.
-
 ### Your notes, everywhere
 - **Markdown folder (Obsidian, Logseq…).** The archivist keeps a clean `.md` file with YAML frontmatter for every note in a folder you choose, such as your Obsidian vault or Logseq `pages` folder:
 
@@ -113,12 +103,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.38.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.39.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.38.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.38.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.38.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.38.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.39.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.39.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.39.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.39.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -157,9 +147,9 @@ This creates `dist/chrome` and `dist/firefox`.
 | Where | How |
 |---|---|
 | Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and Screenshot, the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
-| Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> opens Ask your library on the snippets page. We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
+| Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Take a screenshot* |
-| Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Ask your library**, **Send feedback** and **Settings**. |
+| Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Send feedback** and **Settings**. |
 
 Your data carries over to every update. The Chrome build has a fixed extension ID (`jomghmmgdlajfonjihmagbhomimadpcg`), so a newer version loaded from any folder keeps the same storage, and stored data is upgraded automatically.
 
@@ -180,7 +170,7 @@ Your data carries over to every update. The Chrome build has a fixed extension I
                  │                or in the browser: Gemini Nano, or WebLLM in the offscreen document)
                  │           ──► library index (embeddings + BM25), Markdown folder, encrypted sync
                  ▼
-          extension pages (snippets + Ask your library, settings)
+          extension pages (snippets, settings)
 ```
 
 - **Model requests:** all of them come from the background worker, so pages' security policies don't block them. Three wire formats cover every provider: Ollama, OpenAI chat completions and Anthropic Messages. Reasoning models run with thinking off for speed, and `<think>` output is removed.
@@ -202,7 +192,7 @@ extension/
                 jobs.js (summaries, auto-filing) · library.js (search) · mdexport.js (Markdown folder) · sync.js · research.js
                 autobackup.js · secrets.js (encrypted keys) · recommend.js (local model ranking) · sw.js (Chrome entry)
   content/      assistant.js (the panel) · launcher.js (the owl) · capture.js (passive capture) · extract.js · faq.js · styles.js
-  pages/        sidepanel · snippets (library, summary history + libchat.js console) · options (settings) · onboard (first run) · offscreen
+  pages/        sidepanel · snippets (library and summary history) · options (settings) · onboard (first run) · offscreen
   prompts/      prompt texts per site, with a fine-tuning guide
   sites/        site profiles: X, Reddit, Stack Overflow, Hacker News, GitHub, YouTube, Wikipedia
   shared/       config · prompts · markdown · snippets · knowledge (BM25, related notes) · backup · ask · brand

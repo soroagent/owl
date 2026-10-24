@@ -111,8 +111,8 @@
 </head>
 <body>
 <header class="app-header"><div class="app-header-in">
-  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
-  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html" aria-current="page">Snippets</a><a href="patterns.html">Browsing pattern</a><a href="options.html">Settings</a></nav>
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="patterns.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg>Stats</a><a href="options.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
 </div></header>
 <main>
   <p class="library-line" id="libraryLine"></p>
@@ -133,7 +133,7 @@
         <button class="btn small" id="exportMd" type="button">Export as Markdown</button>
         <button class="btn small" id="exportJson" type="button">Export as JSON</button>
         <label class="btn small">Import JSON<input type="file" id="import" accept="application/json,.json" hidden></label>
-        <a class="btn small" href="options.html#backup">Backup &amp; restore</a>
+        <a class="btn small" href="options.html#backups">Backup &amp; restore</a>
         <button class="btn small danger" id="clear" type="button">Delete all</button>
       </div>
     </details>
@@ -146,6 +146,7 @@
 </main>
 <footer class="site-foot">tech is art<span class="spark">.</span> © 2026 <a href="https://soroagent.com" target="_blank" rel="noopener">soroagent.com</a> · <a class="feedback-link" href="https://soroagent.com/feedback" target="_blank" rel="noopener">Share feedback</a></footer>
 <script src="../shared/config.js"></script>
+<script src="appheader.js"></script>
 <script src="../shared/markdown.js"></script>
 <script src="../shared/prompts.js"></script>
 <script src="../prompts/default.js"></script>
@@ -163,7 +164,6 @@
 <script src="../shared/ask.js"></script>
 <script src="../shared/timeline.js"></script>
 <script src="../shared/knowledge.js"></script>
-<script src="libchat.js"></script>
 <script src="snippets.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Browsing pattern page: reading stats from the reading log (shared/patterns.js) plus the library's
+// Stats page (pages/patterns.html): reading stats from the reading log (shared/patterns.js) plus the library's
 // own numbers. Everything is read from this browser's storage; nothing is sent anywhere.
 (function () {
   'use strict';

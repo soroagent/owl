@@ -79,8 +79,6 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `notes` | Long content is summarized in parts: notes per part, then `summarize` merges them | Markdown |
 | `ask` | A question typed in the panel. `system` carries the page; `user` is the question | Markdown |
 | `save` | Labels each auto-saved summary (and saved selections): title, summary and tags | JSON `{ "title", "summary", "tags" }` |
-| `synthesize` | **Ask your library**: answers from the user's saved notes. `{{content}}` is the numbered notes ([S1]…), `{{question}}` the question, `{{context}}` the time range. Must separate *From your sources* from *My interpretation* | Markdown |
-| `deliverable` | **Ask your library → Create**: a research brief, decision record, study guide or draft from the notes. `{{question}}` says what to make, `{{context}}` gives its format | Markdown |
 | `questions` | Suggested questions on the panel's opening screen, written for the page (`{{context}}` = what kind of page it is). Sent in quick mode: no long thinking | JSON `{ "questions": [] }` |
 | `followUps` | Two follow-up questions under each answer (`{{question}}` = what was asked, `{{content}}` = the answer). Quick mode | JSON `{ "questions": [] }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |

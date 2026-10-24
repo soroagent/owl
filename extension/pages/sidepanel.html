@@ -31,7 +31,8 @@
     .actions { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
     .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
     .chip:hover { border-color: var(--accent); }
-    .chip svg { width: 14px; height: 14px; }
+    .chip svg { width: 14px; height: 14px; color: var(--brand); } /* icons are mint everywhere */
+    .icon-btn:not(#moreBtn) svg { color: var(--brand); }
     .chip:disabled { opacity: .5; cursor: default; }
     .page { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--fg-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .page b { color: var(--fg); font-weight: 600; }
@@ -110,7 +111,6 @@
     <button type="button" role="menuitem" data-cmd="owl">Switch to the floating owl</button>
     <button type="button" role="menuitem" data-cmd="page">Open the panel on the page</button>
     <button type="button" role="menuitem" data-cmd="snippets">Snippets</button>
-    <button type="button" role="menuitem" data-cmd="notes">Ask your library</button>
     <button type="button" role="menuitem" data-cmd="settings">Settings</button>
   </div>
 </header>

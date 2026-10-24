@@ -1,4 +1,4 @@
-// Browsing pattern: what you read, how long and when, from the reading log soroagent keeps on this
+// Stats (pages/patterns.html): what you read, how long and when, from the reading log soroagent keeps on this
 // device (storage.local "readingLog": one entry per page and day with its site, title and active
 // reading time; capture.js measures it, background.js "reading:log" adds it). Never synced, backed up
 // or sent anywhere. Everything here is pure and unit tested; pages/patterns.js draws it.

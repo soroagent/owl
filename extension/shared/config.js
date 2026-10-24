@@ -51,7 +51,7 @@
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
     followUps: true, // two follow-up questions under each answer, written by your AI from that answer
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)
-    readingLog: true, // active reading time per page (site + title), on this device only, for the Browsing pattern page
+    readingLog: true, // active reading time per page (site + title), on this device only, for the Stats page
     offerPictures: true, // ask in the panel whether to download a page's high-resolution pictures
     pictureNeverSites: [], // hosts where "Never on this site" was chosen for that question
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens

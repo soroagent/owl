@@ -74,7 +74,7 @@
   };
 
   // Reading log (Settings → "Keep a reading log", on): the active time on each page, with its site and
-  // title, kept on this device for the Browsing pattern page (shared/patterns.js). Never synced or
+  // title, kept on this device for the Stats page (shared/patterns.js). Never synced or
   // sent anywhere; skipped on the pages capture never touches (mail, banking, sign-in…) and in private
   // windows. Sent in parts (when leaving, hiding the tab, and every minute) as time since the last part.
   const LOG_MIN_MS = 10000; // under 10 s is a glance, not a read

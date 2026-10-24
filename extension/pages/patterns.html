@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Browsing pattern · soroagent</title>
+  <title>Stats · soroagent</title>
   <link rel="stylesheet" href="pages.css">
   <style>
     body { overflow-y: scroll; }
@@ -21,7 +21,7 @@
     .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px; }
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
     .grid2 .panel { margin-bottom: 0; }
-    .panel h2 { font-size: 14px; margin: 0 0 2px; }
+    .panel h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 0 0 2px; color: var(--heading); }
     .panel .sub { font-size: 12px; color: var(--fg-muted); margin: 0 0 12px; }
     .empty-note { color: var(--fg-muted); font-size: 13px; margin: 6px 0; }
     /* Ranked bars: label, bar, value. One hue (magnitude), thin, rounded at the data end. */
@@ -47,8 +47,8 @@
 </head>
 <body>
 <header class="app-header"><div class="app-header-in">
-  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
-  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html">Snippets</a><a href="patterns.html" aria-current="page">Browsing pattern</a><a href="options.html">Settings</a></nav>
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="patterns.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg>Stats</a><a href="options.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
 </div></header>
 <main>
 
@@ -70,20 +70,21 @@
   <div class="tiles" id="tiles"></div>
 
   <div class="grid2">
-    <section class="panel"><h2>Topics you read most</h2><p class="sub">From the titles of pages you read, by reading time</p><div class="rank" id="topics"></div></section>
-    <section class="panel"><h2>Sites</h2><p class="sub">Where your reading time goes</p><div class="rank" id="sites"></div></section>
+    <section class="panel"><h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/></svg>Topics you read most</h2><p class="sub">From the titles of pages you read, by reading time</p><div class="rank" id="topics"></div></section>
+    <section class="panel"><h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg>Sites</h2><p class="sub">Where your reading time goes</p><div class="rank" id="sites"></div></section>
   </div>
 
-  <section class="panel"><h2>Reading by day</h2><p class="sub" id="daySub">Active reading time</p><div class="cols" id="days" role="img"></div><div class="axis" id="dayAxis"></div></section>
-  <section class="panel"><h2>Time of day</h2><p class="sub">When you read</p><div class="cols" id="hours" role="img"></div><div class="axis"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></section>
+  <section class="panel"><h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Reading by day</h2><p class="sub" id="daySub">Active reading time</p><div class="cols" id="days" role="img"></div><div class="axis" id="dayAxis"></div></section>
+  <section class="panel"><h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Time of day</h2><p class="sub">When you read</p><div class="cols" id="hours" role="img"></div><div class="axis"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></section>
 
-  <section class="panel"><h2>Your library</h2><p class="sub" id="libSub">Saved in this period</p><div class="tiles" id="libTiles" style="margin-bottom:8px"></div><div class="tags" id="tags"></div></section>
+  <section class="panel"><h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Your library</h2><p class="sub" id="libSub">Saved in this period</p><div class="tiles" id="libTiles" style="margin-bottom:8px"></div><div class="tags" id="tags"></div></section>
 
   <p class="foot-note"><span>Reading time counts only while the tab is in front and you're active on it. Kept on this computer only: never synced, backed up or sent anywhere.</span><a href="options.html#library">Turn off or clear</a></p>
 </main>
 <div class="tip" id="tip" hidden></div>
 <footer class="site-foot">tech is art<span class="spark">.</span> © 2026 <a href="https://soroagent.com" target="_blank" rel="noopener">soroagent.com</a></footer>
 <script src="../shared/config.js"></script>
+<script src="appheader.js"></script>
 <script src="../shared/patterns.js"></script>
 <script src="patterns.js"></script>
 </body>

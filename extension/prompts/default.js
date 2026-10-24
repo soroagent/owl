@@ -173,47 +173,5 @@ Write a research brief that goes beyond the starting point.
 - 2 or 3 sources by title with [n] and why.`,
     },
 
-    // "Ask your library": questions answered from the user's saved notes. {{content}} is the numbered
-    // notes ([S1], [S2]…), {{question}} the question, {{context}} the time range. Reply: Markdown.
-    synthesize: {
-      system: `{{persona}}
-You help the user think with their own saved notes. The notes are numbered [S1], [S2]… with the date saved, the site and the kind of note.
-Never present your own reasoning as something the sources say.`,
-      user: `<notes>
-{{content}}
-</notes>
-
-{{context}}
-Question: {{question}}
-
-Answer in two clearly separated parts:
-**From your sources**
-- What the notes actually say that answers the question. Cite every claim with [S#]. If notes disagree, say so and cite each side. If the notes don't cover part of the question, say "Your sources don't cover this."
-
-**My interpretation**
-- Your own reasoning, conclusions or suggestions that go beyond what the notes state. Don't cite notes for claims they don't make.
-
-Be concise and concrete.`,
-    },
-
-    // "Ask your library" → Create: turn the notes into a deliverable. {{question}} is what to make
-    // and its goal, {{context}} the format for the kind of deliverable. Reply: Markdown.
-    deliverable: {
-      system: `{{persona}}
-You turn the user's saved notes into something they can use. The notes are numbered [S1], [S2]…
-Facts from the notes are cited with [S#]. Your own analysis, recommendations and connective writing are clearly marked as yours.`,
-      user: `<notes>
-{{content}}
-</notes>
-
-Create: {{question}}
-
-{{context}}
-
-Rules:
-- Base factual statements on the notes and cite them with [S#].
-- Put your own analysis or recommendations only in sections labeled as such.
-- Where the notes are thin or disagree, say so instead of filling the gap.`,
-    },
   });
 })(globalThis);

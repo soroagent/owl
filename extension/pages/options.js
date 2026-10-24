@@ -156,7 +156,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     return values;
   }
 
-  // The reading log behind the Browsing pattern page: how much there is, and a way to clear it.
+  // The reading log behind the Stats page: how much there is, and a way to clear it.
   async function showReadingLog() {
     const { readingLog = [] } = await ext.storage.local.get('readingLog');
     $('readingLogMsg').textContent = readingLog.length ? `${readingLog.length} pages logged` : 'Empty';

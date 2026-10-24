@@ -9,7 +9,16 @@
     button.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
     main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
     section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
-    section h2 { font-size: 15px; margin: 0 0 4px; }
+    section h3 { font-size: 15px; margin: 0 0 4px; color: var(--heading); }
+    section h4 { font-size: 14px; margin: 16px 0 4px; color: var(--heading); }
+    /* Groups: AI, Appearance, Library, Help, each with its cards. */
+    .group { margin-bottom: 26px; scroll-margin-top: 12px; }
+    .group-title { display: flex; align-items: center; gap: 9px; font-size: 18px; letter-spacing: -0.01em; margin: 0 0 10px 2px; color: var(--heading); }
+    .group-title svg.icon { width: 20px; height: 20px; }
+    .jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; }
+    .jump a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); text-decoration: none; font-size: 13px; font-weight: 550; }
+    .jump a:hover { border-color: var(--icon); }
+    section { scroll-margin-top: 12px; }
     section > p { margin: 0 0 14px; color: var(--fg-muted); font-size: 13px; }
     .field { display: grid; gap: 5px; margin-bottom: 14px; }
     .field > span { font-weight: 550; font-size: 13px; }
@@ -57,8 +66,8 @@
 </head>
 <body>
 <header class="app-header"><div class="app-header-in">
-  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span></a>
-  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html">Snippets</a><a href="patterns.html">Browsing pattern</a><a href="options.html" aria-current="page">Settings</a></nav>
+  <a class="brand" href="snippets.html"><picture><source srcset="../icons/dark/icon-48.png" media="(prefers-color-scheme: dark)"><img src="../icons/icon-48.png" alt=""></picture><span class="wordmark">soro<span>agent</span></span><sup class="app-version" id="appVersion"></sup></a>
+  <nav class="app-tabs" aria-label="soroagent"><a href="snippets.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Snippets</a><a href="patterns.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg>Stats</a><a href="options.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9"/><path d="M17 6h3"/><circle cx="15" cy="6" r="2"/><path d="M4 12h3"/><path d="M11 12h9"/><circle cx="9" cy="12" r="2"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="17" cy="18" r="2"/></svg>Settings</a></nav>
 </div></header>
 <main>
   <div class="welcome-back" id="restoreOffer" hidden role="region" aria-label="Restore your data">
@@ -74,8 +83,12 @@
   </div>
 
   <form id="form">
+    <nav class="jump" aria-label="Settings sections"><a href="#g-ai"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>AI</a><a href="#g-appearance"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 9v11"/></svg>Appearance</a><a href="#g-data"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4v16H5z"/><path d="M11 4h4v16h-4z"/><path d="m16.5 5.2 3.8-1 3.2 14.6-3.8 1z" transform="translate(-2 0)"/></svg>Library</a><a href="#g-help"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/></svg>Help</a></nav>
+
+    <div class="group" id="g-ai">
+      <h2 class="group-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>AI</h2>
     <section>
-      <h2>Model</h2>
+      <h3>Model</h3>
       <p>Choose where soroagent's AI runs.</p>
       <div class="sources" role="radiogroup" aria-label="Where the model runs">
         <label class="source"><input type="radio" name="source" value="local">
@@ -148,9 +161,8 @@
         <small id="modelHint">Smaller models (3–8B) answer faster; larger ones summarize and filter better.</small>
       </label>
     </section>
-
     <section>
-      <h2>Generation</h2>
+      <h3>Generation</h3>
       <p>Defaults suit most models.</p>
       <div class="grid">
         <label class="field"><span>Temperature</span>
@@ -170,21 +182,9 @@
         <span>Let reasoning models think first<small>Better answers from models like Qwen3 or DeepSeek-R1, but much slower.</small></span>
       </label>
     </section>
-
-    <section>
-      <h2>On the page</h2>
-      <p>How soroagent appears. You can also switch from the ⋯ menu in the panel. The toolbar button and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac) open it in every mode. <button class="btn small" type="button" id="shortcuts">Change shortcuts</button></p>
-      <div class="sources" role="radiogroup" aria-label="How soroagent appears" id="appearanceGroup">
-        <label class="source"><input type="radio" name="appearance" value="owl">
-          <span><b>Floating owl <em class="default-pill">Default</em></b><small>A small owl in the corner of every page; click it and the panel opens on the page, next to what you're reading.</small></span>
-        </label>
-        <label class="source" id="appearanceSidepanel"><input type="radio" name="appearance" value="sidepanel">
-          <span><b>Side panel</b><small>Opens beside the page instead of on it, so no website can change how it looks, and stays open as you switch tabs. No owl on pages.</small></span>
-        </label>
-        <label class="source"><input type="radio" name="appearance" value="quiet">
-          <span><b>Quiet</b><small>No owl on pages. The toolbar button or the shortcut opens the floating panel when you want it.</small></span>
-        </label>
-      </div>
+    <section id="reading">
+      <h3>While you read</h3>
+      <p>What your AI does for you on the page.</p>
       <label class="check"><input type="checkbox" id="webFallback">
         <span>Search the web when the page doesn't have the answer<small>Ask something the page doesn't cover (say, a company's revenue) and soroagent searches the web, reads the top results and answers with sources, the way Research does. The search goes to the engine chosen under Research. When off, you get a button to do it.</small></span>
       </label>
@@ -200,6 +200,66 @@
       <label class="check"><input type="checkbox" id="pageQuestions">
         <span>Suggest questions written for each page when you open soroagent<small>If automatic preparing is off, your AI reads the page when you open soroagent and suggests questions that fit it. Same defaults as above. When off, you see standard questions and a "Suggest questions for this page" link.</small></span>
       </label>
+    </section>
+    <section>
+      <h3>Research</h3>
+      <p><b>Research</b> searches the web for a snippet's topic, reads the top results and writes a cited brief. The search query goes to the search engine below; the page you're reading doesn't.</p>
+      <div class="grid">
+        <label class="field"><span>Search engine</span>
+          <select id="researchEngine">
+            <option value="auto">Automatic: DuckDuckGo, then Brave Search, then Bing</option>
+            <option value="duckduckgo">DuckDuckGo first</option>
+            <option value="brave">Brave Search first</option>
+            <option value="searxng">My SearXNG server (self-hosted, most private)</option>
+          </select>
+        </label>
+        <label class="field"><span>SearXNG URL <small>(only for SearXNG)</small></span>
+          <input type="text" id="searxUrl" spellcheck="false" placeholder="http://127.0.0.1:8888">
+        </label>
+      </div>
+    </section>
+    <section id="prompts">
+      <h3>Prompts</h3>
+      <p>The system prompt tells soroagent how to read and write on a kind of site. X, Reddit, YouTube, GitHub, Hacker News, Wikipedia, LinkedIn, Amazon, Stack Overflow and major news sites have their own, already tuned. Rewrite any of them, or let your model optimize it for you.</p>
+      <div class="grid">
+        <label class="field"><span>Site</span>
+          <select id="promptSite"></select>
+          <small id="promptHosts"></small>
+        </label>
+      </div>
+      <label class="field"><span>System prompt <small id="promptBadge" class="badge" hidden>Customized</small></span>
+        <textarea id="promptText" rows="7" spellcheck="true"></textarea>
+        <small>Site-specific formatting (for example how X posts are summarized) still applies on top. Saved with the button below.</small>
+      </label>
+      <div class="row">
+        <button class="btn" type="button" id="optimizePrompt"><span aria-hidden="true">✦</span> Optimize with AI</button>
+        <button class="btn small" type="button" id="undoPrompt" hidden>Undo</button>
+        <button class="btn small" type="button" id="resetPrompt">Reset to built-in</button>
+        <span class="muted" id="promptStatus" aria-live="polite"></span>
+      </div>
+    </section>
+    </div>
+
+    <div class="group" id="g-appearance">
+      <h2 class="group-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 9v11"/></svg>Appearance</h2>
+    <section id="appearance">
+      <h3>How soroagent appears</h3>
+      <p>You can also switch from the ⋯ menu in the panel. The toolbar button and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd> on a Mac) open it in every mode. <button class="btn small" type="button" id="shortcuts">Change shortcuts</button></p>
+      <div class="sources" role="radiogroup" aria-label="How soroagent appears" id="appearanceGroup">
+        <label class="source"><input type="radio" name="appearance" value="owl">
+          <span><b>Floating owl <em class="default-pill">Default</em></b><small>A small owl in the corner of every page; click it and the panel opens on the page, next to what you're reading.</small></span>
+        </label>
+        <label class="source" id="appearanceSidepanel"><input type="radio" name="appearance" value="sidepanel">
+          <span><b>Side panel</b><small>Opens beside the page instead of on it, so no website can change how it looks, and stays open as you switch tabs. No owl on pages.</small></span>
+        </label>
+        <label class="source"><input type="radio" name="appearance" value="quiet">
+          <span><b>Quiet</b><small>No owl on pages. The toolbar button or the shortcut opens the floating panel when you want it.</small></span>
+        </label>
+      </div>
+    </section>
+    <section id="owl">
+      <h3>The owl button</h3>
+      <p>Where the floating owl sits, and the sites where it stays hidden.</p>
       <label class="field"><span>Button position</span>
         <select id="launcherPosition">
           <option value="auto">Automatic — find a spot that doesn't cover the page's buttons</option>
@@ -218,9 +278,12 @@
         <div class="sites" id="sites"></div>
       </div>
     </section>
+    </div>
 
+    <div class="group" id="g-data">
+      <h2 class="group-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4v16H5z"/><path d="M11 4h4v16h-4z"/><path d="m16.5 5.2 3.8-1 3.2 14.6-3.8 1z" transform="translate(-2 0)"/></svg>Library</h2>
     <section id="library">
-      <h2>Your library</h2>
+      <h3>Your library</h3>
       <p>soroagent files everything you summarize into a searchable personal library. It grows more useful the longer you use it.</p>
       <div class="grid">
         <label class="field"><span>Passive capture</span>
@@ -241,7 +304,7 @@
         <textarea id="captureExclude" rows="3" spellcheck="false" placeholder="example.com"></textarea>
       </label>
       <label class="check"><input type="checkbox" id="readingLog">
-        <span>Keep a reading log<small>How long you actively read each page (its site and title only), kept on this computer for your <a href="patterns.html">browsing pattern</a>: the topics you read most, average read time and when you read. Never synced, backed up or sent anywhere. Skips the same pages as passive capture and private windows.</small></span>
+        <span>Keep a reading log<small>How long you actively read each page (its site and title only), kept on this computer for <a href="patterns.html">Stats</a>: the topics you read most, average read time and when you read. Never synced, backed up or sent anywhere. Skips the same pages as passive capture and private windows.</small></span>
       </label>
       <div class="row" style="margin:-4px 0 12px 28px"><button class="btn small" type="button" id="clearReadingLog">Clear reading log</button><span class="muted" id="readingLogMsg"></span></div>
       <div class="field"><span>Markdown folder (Obsidian, Logseq…)</span>
@@ -265,9 +328,8 @@
         <button class="btn small" type="button" id="reindex">Index now</button>
       </div>
     </section>
-
     <section id="sync">
-      <h2>Sync across browsers</h2>
+      <h3>Sync across browsers</h3>
       <p>Keep one library in every browser where soroagent is installed (Chrome, Firefox, Edge, Brave, on any computer). soroagent has no servers, so the shared copy lives in <b>your own Google Drive</b> (in a hidden folder only soroagent can see), <b>encrypted with your passphrase</b> before it leaves this browser. Notes, history, research and preferences sync; each browser keeps its own AI connection and keys; screenshots stay on each device.</p>
       <div id="syncOff">
         <div class="grid">
@@ -294,48 +356,8 @@
         <div class="row" style="margin-top:10px"><button class="btn small primary" type="button" id="syncReconnect" hidden>Connect Google Drive again</button><button class="btn small" type="button" id="syncNow">Sync now</button><button class="btn small danger" type="button" id="syncStop">Stop syncing in this browser</button></div>
       </div>
     </section>
-
-    <section id="prompts">
-      <h2>Prompts</h2>
-      <p>The system prompt tells soroagent how to read and write on a kind of site. X, Reddit, YouTube, GitHub, Hacker News, Wikipedia, LinkedIn, Amazon, Stack Overflow and major news sites have their own, already tuned. Rewrite any of them, or let your model optimize it for you.</p>
-      <div class="grid">
-        <label class="field"><span>Site</span>
-          <select id="promptSite"></select>
-          <small id="promptHosts"></small>
-        </label>
-      </div>
-      <label class="field"><span>System prompt <small id="promptBadge" class="badge" hidden>Customized</small></span>
-        <textarea id="promptText" rows="7" spellcheck="true"></textarea>
-        <small>Site-specific formatting (for example how X posts are summarized) still applies on top. Saved with the button below.</small>
-      </label>
-      <div class="row">
-        <button class="btn" type="button" id="optimizePrompt"><span aria-hidden="true">✦</span> Optimize with AI</button>
-        <button class="btn small" type="button" id="undoPrompt" hidden>Undo</button>
-        <button class="btn small" type="button" id="resetPrompt">Reset to built-in</button>
-        <span class="muted" id="promptStatus" aria-live="polite"></span>
-      </div>
-    </section>
-
-    <section>
-      <h2>Research</h2>
-      <p><b>Research</b> searches the web for a snippet's topic, reads the top results and writes a cited brief. The search query goes to the search engine below; the page you're reading doesn't.</p>
-      <div class="grid">
-        <label class="field"><span>Search engine</span>
-          <select id="researchEngine">
-            <option value="auto">Automatic: DuckDuckGo, then Brave Search, then Bing</option>
-            <option value="duckduckgo">DuckDuckGo first</option>
-            <option value="brave">Brave Search first</option>
-            <option value="searxng">My SearXNG server (self-hosted, most private)</option>
-          </select>
-        </label>
-        <label class="field"><span>SearXNG URL <small>(only for SearXNG)</small></span>
-          <input type="text" id="searxUrl" spellcheck="false" placeholder="http://127.0.0.1:8888">
-        </label>
-      </div>
-    </section>
-
-    <section>
-      <h2>Backup &amp; restore</h2>
+    <section id="backups">
+      <h3>Backup &amp; restore</h3>
       <p>Everything soroagent keeps (snippets, screenshots, summary history and settings) stays on this computer and carries over to every new version automatically. API keys are never included in backups.</p>
       <label class="check"><input type="checkbox" id="autoBackup">
         <span>Back up automatically to my Downloads folder<small>soroagent keeps <code>Downloads/soroagent/soroagent-backup.json</code> up to date (a few minutes after changes, at most every 30 minutes). If you ever reinstall soroagent, it finds this file and offers to restore it.</small></span>
@@ -351,9 +373,12 @@
         <span class="muted" id="backupStatus" role="status"></span>
       </div>
     </section>
+    </div>
 
+    <div class="group" id="g-help">
+      <h2 class="group-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/></svg>Help</h2>
     <section>
-      <h2>Troubleshooting</h2>
+      <h3>Troubleshooting</h3>
       <p>If the connection test fails:</p>
       <details>
         <summary>Ollama isn't running</summary>
@@ -377,7 +402,7 @@
         <p>Start the app's local server and use its URL ending in <code>/v1</code>, for example <code>http://127.0.0.1:1234/v1</code> for LM Studio. In LM Studio, load a chat model and turn on “Enable CORS” if requests fail.</p>
       </details>
 
-      <h3 id="report">Report a problem</h3>
+      <h4 id="report">Report a problem</h4>
       <p>soroagent keeps a short log of its own errors (the last 50) while the browser is open: crashes, site readers that found nothing, replies from the AI it couldn't read, and storage upgrades. Web addresses, page text, emails and keys are removed before anything is logged, and it's never sent anywhere. The button copies a report and opens a new GitHub issue with it filled in, so you can check every line before you submit.</p>
       <div class="row">
         <button class="btn" type="button" id="diagCopy">Copy diagnostic report</button>
@@ -389,6 +414,7 @@
         <pre id="diagText"></pre>
       </details>
     </section>
+    </div>
 
     <div class="savebar">
       <span class="muted" id="saved" role="status"></span>
@@ -398,6 +424,7 @@
 </main>
 <footer class="site-foot">tech is art<span class="spark">.</span> © 2026 <a href="https://soroagent.com" target="_blank" rel="noopener">soroagent.com</a> · <a class="feedback-link" href="https://soroagent.com/feedback" target="_blank" rel="noopener">Share feedback</a></footer>
 <script src="../shared/config.js"></script>
+<script src="appheader.js"></script>
 <script src="../shared/markdown.js"></script>
 <script src="../shared/prompts.js"></script>
 <script src="../prompts/default.js"></script>

@@ -153,7 +153,7 @@ test('store builds: third-party licenses ship; the Firefox build has no WebLLM (
   assert.ok(chrome.description.length <= 132);
 });
 
-test('the extension pages share one header with the same three tabs', async () => {
+test('the extension pages share one header: logo with the version, and three tabs with icons', async () => {
   const { readFileSync } = await import('node:fs');
   const headers = ['snippets', 'patterns', 'options'].map((page) => {
     const html = readFileSync(new URL(`../extension/pages/${page}.html`, import.meta.url), 'utf8');
@@ -163,5 +163,7 @@ test('the extension pages share one header with the same three tabs', async () =
     return m[0].replace(/ aria-current="page"/, '');
   });
   assert.equal(new Set(headers).size, 1, 'identical apart from the current tab');
-  assert.deepEqual([...headers[0].matchAll(/<a href="[^"]+">([^<]+)<\/a>/g)].map((m) => m[1]), ['Snippets', 'Browsing pattern', 'Settings']);
+  const tabs = [...headers[0].matchAll(/<a href="[^"]+">(<svg class="icon"[^]*?<\/svg>)([^<]+)<\/a>/g)];
+  assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'Stats', 'Settings'], 'three tabs, each with an icon');
+  assert.match(headers[0], /<sup class="app-version" id="appVersion"><\/sup>/, 'the version sits next to the logo');
 });

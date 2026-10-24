@@ -83,7 +83,6 @@
         <button class="icon-btn close-btn" type="button" aria-label="Close soroagent">${ICONS.close}</button>
         <div class="menu" role="menu" hidden>
           <button type="button" role="menuitem" data-cmd="snippets">Snippets</button>
-          <button type="button" role="menuitem" data-cmd="notes">Ask your library</button>
           <button type="button" role="menuitem" data-cmd="to-sidepanel">Switch to the side panel</button>
           <button type="button" role="menuitem" data-cmd="clear">Clear conversation</button>
           <button type="button" role="menuitem" data-cmd="reset-position" hidden>Reset button position</button>
@@ -1745,9 +1744,7 @@
         open.addEventListener('click', () => sendMessage({ type: 'open:snippets', id: note.id }));
         return el('li', {}, [el('span', { className: 'n', textContent: `N${i + 1}` }), open, el('small', { textContent: new Date(note.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) })]);
       }));
-      const deeper = el('button', { type: 'button', className: 'link', textContent: 'Ask your library about this →' });
-      deeper.addEventListener('click', () => sendMessage({ type: 'open:notes', topic: document.title.slice(0, 120) }));
-      nodes.push(list, deeper);
+      nodes.push(list);
     }
     bar.replaceChildren(...nodes);
   }
@@ -2378,7 +2375,6 @@
     const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
     els.menu.hidden = true;
     if (cmd === 'snippets') sendMessage({ type: 'open:snippets' });
-    else if (cmd === 'notes') sendMessage({ type: 'open:notes' });
     else if (cmd === 'feedback') window.open(S.feedbackUrl('menu'), '_blank', 'noopener');
     else if (cmd === 'settings') sendMessage({ type: 'open:options' });
     else if (cmd === 'to-sidepanel') {

@@ -433,7 +433,7 @@
       await S.saveSettings({ syncOffer: { snoozedAt: count, times: (offer.times || 0) + 1 } });
       return { ok: true };
     },
-    // Reading log for the Browsing pattern page: added one part at a time, in order (tabs report at once).
+    // Reading log for the Stats page: added one part at a time, in order (tabs report at once).
     'reading:log': (msg, sender) => {
       if (!sender || sender.id !== ext.runtime.id || !sender.tab || sender.tab.incognito) return { ok: false };
       readingQueue = readingQueue.then(async () => {
@@ -558,8 +558,6 @@
       else ext.downloads.showDefaultFolder();
       return { ok: true };
     },
-    // "Ask your library", optionally starting with a topic.
-    'open:notes': (msg) => ext.tabs.create({ url: ext.runtime.getURL(`pages/snippets.html${msg && msg.topic ? `?ask=${encodeURIComponent(String(msg.topic).slice(0, 120))}` : '?chat'}`) }),
     'library:search': async (msg) => {
       const res = await library.search(String(msg.query || '').slice(0, 4000), { limit: Math.min(50, Number(msg.limit) || 12), since: Number(msg.since) || 0, excludeUrl: msg.excludeUrl || '' });
       return { ok: true, ...res };
@@ -717,7 +715,6 @@
   // Right-click on the toolbar owl.
   const ACTION_MENU_ITEMS = [
     { id: 'soroagent-open-snippets', title: 'Snippets', open: () => handlers['open:snippets']({}) },
-    { id: 'soroagent-open-notes', title: 'Ask your library', open: () => handlers['open:notes']({}) },
     { id: 'soroagent-feedback', title: 'Send feedback', open: () => ext.tabs.create({ url: S.feedbackUrl('toolbar') }) },
     { id: 'soroagent-open-settings', title: 'Settings', open: () => ext.runtime.openOptionsPage() },
   ];

@@ -1,6 +1,6 @@
 // Your saved notes as knowledge: find the notes related to a page or a question (locally, no
 // model needed), and present them to the model as numbered sources it must cite. Pure functions,
-// unit tested; used by the panel (related notes) and the "Ask your library" page.
+// unit tested; used by the panel (related notes) and library search.
 (function (root) {
   'use strict';
 

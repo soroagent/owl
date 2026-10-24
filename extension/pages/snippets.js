@@ -517,7 +517,6 @@
   function select(id) {
     selectedId = id;
     render();
-    if (chat) chat.refresh();
     if (id && window.innerWidth > 860) $('reader').scrollTop = 0;
   }
 
@@ -699,12 +698,5 @@
     pending = setTimeout(load, 300); // running summaries save every ~1.5 s
   });
 
-  // "Ask your library": the chat console at the bottom of the page; it can focus on the open note.
-  const chat = S.mountLibraryChat({
-    getFocus: () => snippets.find((s) => s.id === selectedId && kindOf(s) !== 'screenshot') || null,
-    placeholder: 'Ask your library… (Ctrl/⌘ K)',
-  });
-  if (new URLSearchParams(location.search).has('chat')) chat.open();
-
-  load().then(() => chat.refresh());
+  load();
 })();
