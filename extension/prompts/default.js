@@ -87,6 +87,25 @@ Each question: at most 14 words, can be answered from the page or a quick web se
 Return JSON: {"questions": ["...", "...", "...", "..."]}`,
     },
 
+    // "Tech only" (and any other focus): the page filtered down to one topic, for feeds and long videos
+    // that are too much to read. {{question}} says what the topic covers. Reply: Markdown.
+    focus: {
+      system: `{{persona}}
+
+You filter a page down to one topic for a busy reader, so they don't have to go through everything. Report only what the page says; skip everything off-topic without mentioning it.`,
+      user: `{{page}}
+
+This is {{context}}
+
+The topic: {{question}}
+
+List only the parts of this page about that topic, as one flat bulleted list with no headings, most important first. Each item appears exactly once: what it is and why it matters, in one line, starting with a few bold words naming it.
+- Posts, comments or items numbered [1], [2]…: end each bullet with its number in brackets, like [3], and the @handle when there is one.
+- A video transcript: end each bullet with the time it starts, in brackets, like [12:34].
+- Leave out ads and promoted posts.
+If nothing on the page is about the topic, reply only: Nothing tech-related here.`,
+    },
+
     // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
     // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
     // Reply: JSON (keep this shape).

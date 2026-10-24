@@ -225,6 +225,14 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
   snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
   is a snippet like any other); Screenshots stays a toggle. `open:history` opens Snippets.
+- **Tech only** (chip in both panels, `assistant:sp-focus` for the side panel): `focusRequest()` in
+  `assistant.js` builds the `focus` prompt from all loaded X posts (`preparedContent()`, which now
+  also returns their `urls`), a feed's loaded items, or the page (YouTube: transcript via
+  `ensureSite(true)`); `{{question}}` is `S.FOCUS_TOPICS.tech`. The reply cites [n] and [m:ss];
+  `S.linkFocusRefs` turns them into post links and `&t=…s` video links and drops a bullet that only
+  repeats posts already listed (small models do). A flat list on purpose: with headings, 3B models
+  copied the topic's parts as headings and listed posts twice. Other topics can be added to
+  `FOCUS_TOPICS`.
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).

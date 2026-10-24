@@ -167,3 +167,15 @@ test('the extension pages share one header: logo with the version, and two tabs 
   assert.deepEqual(tabs.map((m) => m[2]), ['Snippets', 'Settings'], 'two tabs, each with an icon');
   assert.match(headers[0], /<sup class="app-version" id="appVersion"><\/sup>/, 'the version sits next to the logo');
 });
+
+test('extension pages only look up elements their HTML has', async () => {
+  const { readFileSync } = await import('node:fs');
+  const read = (f) => readFileSync(new URL(`../extension/pages/${f}`, import.meta.url), 'utf8');
+  for (const page of ['sidepanel', 'options', 'snippets', 'onboard']) {
+    const html = read(`${page}.html`);
+    const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+    const used = new Set([...read(`${page}.js`).matchAll(/\$\('([A-Za-z][\w-]*)'\)/g)].map((m) => m[1]));
+    const missing = [...used].filter((id) => !ids.has(id));
+    assert.deepEqual(missing, [], `${page}.js looks up ids that ${page}.html doesn't have`);
+  }
+});

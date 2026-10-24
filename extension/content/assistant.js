@@ -34,6 +34,7 @@
     check: svg('<path d="M20 6 9 17l-5-5"/>'),
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
     refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+    tech: svg('<rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -93,6 +94,7 @@
       <div class="actions">
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
         <button class="chip" type="button" data-action="save" title="Save this page to your library">${ICONS.save}<span>Save</span></button>
+        <button class="chip" type="button" data-action="tech" title="Only the tech: the posts, videos or parts of this page about technology">${ICONS.tech}<span>Tech only</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
       <div class="related" hidden></div>
@@ -671,8 +673,8 @@
   function updateControls() {
     const busy = Boolean(state.busy);
     const ready = state.status === 'ready';
-    // Only Summarize needs the model; the other buttons always work.
-    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize'].includes(chip.dataset.action) && (busy || !ready);
+    // Only Summarize and Tech only need the model; the other buttons always work.
+    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'tech'].includes(chip.dataset.action) && (busy || !ready);
     els.input.disabled = !ready;
     els.send.disabled = !busy && !ready;
     els.send.classList.toggle('stop', busy);
@@ -1270,6 +1272,7 @@
         context: `${pageInfo().context || ''} These are the ${list.length} ${noun} loaded on the page so far.`.trim(),
         count: list.length,
         ids: new Set(all.map((p) => p.id)),
+        urls: list.map((p) => p.url || ''),
         label: `Summarize ${list.length} loaded ${noun}`,
         kind: 'items',
       };
@@ -1424,6 +1427,49 @@
   }
 
   // Messages for a question about this page, for the side panel (it keeps its own history).
+  // "Tech only": the page filtered down to tech (the focus prompt). On X, every post loaded so far;
+  // on feeds with items (Reddit…), the loaded items; elsewhere the page (a YouTube video with its
+  // transcript). The reply's [n] and [m:ss] references become links (S.linkFocusRefs).
+  function focusRequest(topic = 'tech') {
+    const site = items();
+    let page;
+    let context;
+    let urls = [];
+    const content = isX() ? preparedContent() : null;
+    if (content) {
+      ({ page, context } = content);
+      urls = content.urls || [];
+    } else if (site && site.visible(document, siteOptions()).length) {
+      const posts = site.visible(document, siteOptions());
+      const text = site.format(posts, { start: 1 });
+      page = { title: document.title, url: location.href, text: text.slice(0, maxChars()), truncated: text.length > maxChars() };
+      context = `${pageInfo().context || ''} These are the ${posts.length} ${site.noun || 'items'} loaded on the page.`.trim();
+      urls = posts.map((p) => p.url || p.link || '');
+    } else {
+      page = sitePage();
+      context = pageInfo().context || '';
+    }
+    if (!page || !page.text || page.text.length < 80) return null;
+    const messages = S.buildMessages('focus', S.pageVars(page, { context, question: S.FOCUS_TOPICS[topic] }), sitePrompts());
+    const videoUrl = /youtube\.com$/.test(location.hostname.replace(/^www\.|^m\./, '')) && /^\/watch/.test(location.pathname) ? location.href.replace(/[&?]t=\d+s?/, '') : '';
+    return { messages, urls, videoUrl };
+  }
+
+  function techOnly() {
+    return runTask(async (signal) => {
+      await ensureSite(true); // YouTube: read the transcript
+      const req = focusRequest('tech');
+      addUserMessage('Tech only');
+      if (!req) return append(card({ icon: 'tech', title: 'Nothing to read here yet.', body: 'Scroll to load posts, or open a page with text, then try again.' }));
+      const reply = addAssistantMessage('Picking out the tech…');
+      const text = await runChat({ messages: req.messages, signal, onToken: reply.push, onThinking: reply.thinking });
+      const linked = S.linkFocusRefs(S.stripThinking(text), req);
+      reply.finish(linked);
+      state.history.push({ role: 'user', content: 'Show me only the tech-related parts of this page.' }, { role: 'assistant', content: linked });
+      state.history = state.history.slice(-12);
+    });
+  }
+
   function askMessages(question, history = []) {
     const content = isX() ? preparedContent() : null;
     const page = content ? content.page : currentContext();
@@ -2116,6 +2162,7 @@
     if (!chip) return;
     const action = chip.dataset.action;
     if (action === 'summarize') summarize();
+    else if (action === 'tech') techOnly();
     else if (action === 'screenshot') takeScreenshot();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
@@ -2238,6 +2285,11 @@
           if (topic && !msg.aboutPage) return { ok: true, topic, host: location.hostname.replace(/^www\./, '') };
           await ensureSite(true);
           return { ok: true, messages: askMessages(String(msg.question || ''), msg.history || []) };
+        }
+        if (msg.type === 'assistant:sp-focus') {
+          await ensureSite(true);
+          const req = focusRequest(msg.topic || 'tech');
+          return req ? { ok: true, ...req } : { ok: false, error: 'Nothing to read here yet. Scroll to load posts, then try again.' };
         }
         if (msg.type === 'assistant:sp-save') return { ok: true, ...(await savePageData({ label: true })) };
         if (msg.type === 'assistant:sp-refresh') {

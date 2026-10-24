@@ -185,7 +185,7 @@
     const readable = Boolean((state.snap && state.snap.readable) || (pdf && pdf.status === 'ready' && pdf.text));
     const ready = Boolean(state.ai && state.ai.ok);
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);
-    $('task').disabled = !ready || Boolean(state.busy);
+    $('tech').disabled = !readable || !ready || Boolean(state.busy);
     $('save').disabled = !state.snap && !(pdf && pdf.status === 'ready');
     $('shot').disabled = !state.tabId;
     $('input').disabled = !ready || !readable;
@@ -529,6 +529,28 @@
     }
   }
 
+  // "Tech only": the page filtered down to tech by the focus prompt; the content script builds it
+  // (all loaded X posts, a YouTube transcript…), and [n] / [m:ss] in the reply become links.
+  function techOnly() {
+    return run(async (signal) => {
+      const pdf = currentPdf();
+      let req;
+      if (pdf) {
+        if (pdf.status !== 'ready' || !pdf.text) throw new Error(pdf.status === 'reading' ? 'Still reading the PDF…' : 'This PDF has no text soroagent could read.');
+        req = { ok: true, urls: [], videoUrl: '', messages: S.buildMessages('focus', S.pageVars(await pdfPage(pdf), { context: pdfContext(pdf), question: S.FOCUS_TOPICS.tech }), {}) };
+      } else req = await toTab({ type: 'assistant:sp-focus', topic: 'tech' });
+      if (!req || !req.ok) throw new Error((req && req.error) || 'Couldn’t read this page.');
+      addUser('Tech only');
+      const reply = addAssistant('Picking out the tech…');
+      const text = await streamChat(req.messages, reply, signal);
+      const linked = S.linkFocusRefs(S.stripThinking(text), req);
+      reply.finish(linked);
+      const t = thread();
+      t.history.push({ role: 'user', content: 'Show me only the tech-related parts of this page.' }, { role: 'assistant', content: linked });
+      t.history = t.history.slice(-12);
+    });
+  }
+
   function ask(question, { aboutPage = false, echo = true } = {}) {
     return run(async (signal) => {
       if (echo) addUser(question);
@@ -617,6 +639,7 @@
   // ---------------------------------------------------------------------------
 
   $('summarize').addEventListener('click', () => summarize());
+  $('tech').addEventListener('click', () => techOnly());
   $('save').addEventListener('click', async () => {
     const pdf = currentPdf();
     const res = pdf ? await savePdf(pdf).catch((err) => ({ ok: false, error: err.message })) : await toTab({ type: 'assistant:sp-save' }).catch((err) => ({ ok: false, error: err.message }));

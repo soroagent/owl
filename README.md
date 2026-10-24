@@ -30,6 +30,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **YouTube transcripts.** When you summarize or ask about a video, soroagent reads its timed transcript (from YouTube's own transcript panel, which it opens and closes again), so answers cover what's said, with timestamps.
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
+- **Tech only** cuts a page down to the technology in it, when there's too much to go through: on X, every post that has loaded; on a YouTube video, the moments in its transcript; on Reddit, the loaded posts; anywhere else, the page. You get one line per item, and each links to its post or jumps to that moment in the video.
 - **Questions that fit the site.** Suggested questions always come in the same four slots, **Gist · Understand · Check · Next**, and each site fills them its own way: timestamps on YouTube, the consensus on Reddit, critical reviews and bank offers on Amazon and Flipkart, the match situation on Cricbuzz and ESPNcricinfo, red flags on eBay and Telegram, the background and the other side on any news site. They're written in the page's language, so a Hindi news page gets Hindi questions. Templates cover YouTube, X, Reddit, Wikipedia, Amazon (.com and .in), LinkedIn, Pinterest, Netflix, JioHotstar, Apple, ESPN, GitHub, eBay, Roblox, Quora, AliExpress, Spotify, Flipkart, Myntra, IMDb, BookMyShow, Physics Wallah, Moneycontrol, Yahoo Finance, Justdial and Telegram; other pages get the general four.
 - **Keep exploring.** The suggested questions stay at the top of the conversation (the ones you've asked are ticked), so you can scroll up and pick another. Under each answer, two follow-up questions written from that answer take you deeper or somewhere related.
 - **Ask** anything about the page. If the page doesn't have the answer (ask a news article for a company's revenue), soroagent searches the web, reads the top results and answers with numbered sources instead of "the text doesn't say". Turn it into a one-click button in Settings → On the page.
@@ -101,12 +102,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.41.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.42.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.41.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.41.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.41.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.41.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.42.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.42.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.42.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.42.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

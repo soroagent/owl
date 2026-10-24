@@ -61,6 +61,9 @@ in Settings → AI → While you read):
   (Gist, Understand, Check, Next) that follow a template for the site (`shared/templates.js`), written
   by the user's AI. After each answer it asks the same AI for two follow-up questions, sending only
   the question and the answer.
+- **Tech only.** A button that filters the page down to its technology items (all loaded posts on X,
+  the transcript of a YouTube video, the page elsewhere), sent to the user's AI on click like
+  Summarize; each item links back to its post or video moment.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,

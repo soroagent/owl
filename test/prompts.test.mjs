@@ -138,3 +138,19 @@ test('follow-up questions: at most 2, written from the answer, never one already
   assert.deepEqual(S.pickFollowUps(reply, ['Where do snowy owls nest?']), ['Why do lemming cycles drive owl irruptions?', 'How do tundra nests survive Arctic foxes?']);
   assert.deepEqual(S.pickFollowUps('not json', []), []);
 });
+
+test('Tech only: the focus prompt asks for the topic, and its references become links', () => {
+  const [, user] = S.buildMessages('focus', S.pageVars({ title: 'Home / X', url: 'https://x.com/home', text: '[1] @a\nNew GPU launched\n\n[2] @b\nGreat pasta recipe' }, { context: 'These are the 2 posts loaded.', question: S.FOCUS_TOPICS.tech }), {});
+  assert.match(user.content, /The topic: technology and the tech industry/);
+  assert.match(user.content, /\[3\]/);
+  assert.match(user.content, /Nothing tech-related here\./);
+  const linked = S.linkFocusRefs('- GPU launch [1]\n- Chip demo [12:34] and [1:02:03]\n- Unknown [7]\n- Already linked [2](https://e.com)', { urls: ['https://x.com/a/status/1', 'https://x.com/b/status/2'], videoUrl: 'https://www.youtube.com/watch?v=abc' });
+  assert.match(linked, /\[post 1\]\(https:\/\/x\.com\/a\/status\/1\)/);
+  assert.match(linked, /\[12:34\]\(https:\/\/www\.youtube\.com\/watch\?v=abc&t=754s\)/);
+  assert.match(linked, /\[1:02:03\]\(https:\/\/www\.youtube\.com\/watch\?v=abc&t=3723s\)/);
+  assert.match(linked, /Unknown \[7\]$/m, 'a number with no item stays as it is');
+  assert.match(linked, /\[2\]\(https:\/\/e\.com\)/, 'existing links are left alone');
+  assert.equal(S.linkFocusRefs('at [12:34]', {}), 'at [12:34]', 'timestamps link only on a video');
+  assert.equal(S.linkFocusRefs('[1]', { urls: ['javascript:alert(1)'] }), '[1]', 'only web links');
+  assert.equal(S.linkFocusRefs('- **GPT** launch [1]\n- **Rust** [2]\n- Faster responses [1]\n- Text without refs', {}), '- **GPT** launch [1]\n- **Rust** [2]\n- Text without refs', 'a post listed twice keeps its first bullet');
+});

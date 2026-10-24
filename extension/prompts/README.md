@@ -81,6 +81,7 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `save` | Labels each auto-saved summary (and saved selections): title, summary and tags | JSON `{ "title", "summary", "tags" }` |
 | `questions` | Suggested questions on the panel's opening screen: one per slot (Gist, Understand, Check, Next) from the site's template in `shared/templates.js`, in the page's language (`{{context}}` = what kind of page it is, `{{slots}}` = the slot patterns). Sent in quick mode: no long thinking | JSON `{ "questions": [] }`, 4 in slot order |
 | `followUps` | Two follow-up questions under each answer (`{{question}}` = what was asked, `{{content}}` = the answer). Quick mode | JSON `{ "questions": [] }` |
+| `focus` | **Tech only**: the page filtered to one topic (`{{question}}` = what the topic covers, from `FOCUS_TOPICS` in `shared/prompts.js`); items cited [n], video moments [m:ss], both made clickable | Markdown |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
 | `research` | **Research**, step 2: the cited brief. `{{question}}` is the query, `{{content}}` the numbered web sources, `{{context}}` what the user already read | Markdown |

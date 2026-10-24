@@ -18,7 +18,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'researchTopics', 'researchQuery', 'research']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'focus', 'researchTopics', 'researchQuery', 'research']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question', 'slots']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -259,6 +259,43 @@
     return parseQuestions(text).filter((q) => !seen.has(q.toLowerCase().replace(/[?.!\s]+$/, ''))).slice(0, 2);
   }
 
+  // "Tech only": what counts as tech when the page is filtered down to it ({{question}} of the focus prompt).
+  const FOCUS_TOPICS = Object.freeze({
+    tech: 'technology and the tech industry (for example software, AI, apps, gadgets, chips, security, science and engineering, tech companies, launches and funding)',
+  });
+
+  /**
+   * Pure: the focus reply with its references made clickable: [n] → that post or item (urls[n-1]),
+   * and [m:ss] / [h:mm:ss] → that moment of the video (videoUrl gets ?t=…s). A bullet that only
+   * repeats posts already listed is dropped.
+   */
+  function linkFocusRefs(text, { urls = [], videoUrl = '' } = {}) {
+    // Small models sometimes list a post twice: keep the first bullet for each [n].
+    const seen = new Set();
+    const lines = String(text || '').split('\n').filter((line) => {
+      const refs = /^\s*[-*•]\s/.test(line) ? [...line.matchAll(/\[(\d{1,3})\](?!\()/g)].map((m) => m[1]) : [];
+      if (refs.length && refs.every((n) => seen.has(n))) return false;
+      refs.forEach((n) => seen.add(n));
+      return true;
+    });
+    let out = lines.join('\n').replace(/\[(\d{1,3})\](?!\()/g, (m, n) => {
+      const url = urls[Number(n) - 1];
+      return url && /^https?:\/\//i.test(url) ? `[post ${n}](${url})` : m;
+    });
+    if (videoUrl) {
+      out = out.replace(/\[((?:\d{1,2}:)?\d{1,2}:\d{2})\](?!\()/g, (m, t) => {
+        try {
+          const u = new URL(videoUrl);
+          u.searchParams.set('t', `${t.split(':').map(Number).reduce((a, b) => a * 60 + b, 0)}s`);
+          return `[${t}](${u.href})`;
+        } catch {
+          return m;
+        }
+      });
+    }
+    return out;
+  }
+
   /** Pure: suggested questions from the model's JSON reply (3 to 4 short, distinct questions). */
   function parseQuestions(text) {
     const json = parseJsonLoose(text) || {};
@@ -334,6 +371,8 @@
     parseTopics,
     pageKind,
     parseQuestions,
+    FOCUS_TOPICS,
+    linkFocusRefs,
     followUpVars,
     pickFollowUps,
     parseWebRequest,
