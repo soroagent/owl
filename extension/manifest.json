@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "soroagent",
   "short_name": "soroagent",
-  "version": "2.42.1",
+  "version": "2.43.0",
   "description": "Summarize, ask about and save any web page or PDF into a private library, using AI on your computer, in the browser or your own key.",
   "permissions": [
     "storage",
@@ -69,6 +69,7 @@
         "content/launcher.js",
         "content/capture.js",
         "content/faq.js",
+        "content/feedfilter.js",
         "content/assistant.js"
       ],
       "run_at": "document_idle"

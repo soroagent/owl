@@ -18,7 +18,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'focus', 'researchTopics', 'researchQuery', 'research']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'focus', 'techSort', 'researchTopics', 'researchQuery', 'research']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question', 'slots']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 

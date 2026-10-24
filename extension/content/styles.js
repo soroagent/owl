@@ -371,5 +371,6 @@ header {
   // Applied to the page itself (outside the shadow root): site filters such as X's "Verified only".
   soroagent.PAGE_CSS = `
 [data-soroagent-filtered] { display: none !important; }
+[data-soroagent-offtopic] { display: none !important; }
 `;
 })(globalThis);

@@ -131,6 +131,7 @@
     const snap = state.snap;
     const page = $('page');
     page.replaceChildren();
+    $('techFilter').hidden = true;
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -155,6 +156,14 @@
     }
     if (snap.site.label || (snap.site.id && snap.site.id !== 'default')) page.append(el('b', { textContent: `${snap.site.label || snap.site.name} · ` }));
     page.append(snap.title || snap.url);
+    // Feeds: "Hide non-tech" hides the posts or videos that aren't about tech, on the page itself.
+    const tf = snap.techFilter;
+    $('techFilter').hidden = !tf;
+    if (tf) {
+      $('techFilter').setAttribute('aria-pressed', String(tf.on));
+      $('techFilter').textContent = tf.on ? `Hiding non-tech${tf.hidden ? ` · ${tf.hidden}` : ''}` : 'Hide non-tech';
+      $('techFilter').title = tf.on ? `Show all ${tf.label} again` : `Hide the ${tf.label} that aren't about tech (your AI sorts them as they load)`;
+    }
     page.title = snap.title || '';
     $('input').placeholder = snap.site.noun ? `Ask about these ${snap.site.noun}…` : 'Ask about this page…';
     // Questions: prepared from the page's summary, being prepared, or the standard ones.
@@ -640,6 +649,10 @@
 
   $('summarize').addEventListener('click', () => summarize());
   $('tech').addEventListener('click', () => techOnly());
+  $('techFilter').addEventListener('click', async () => {
+    const on = $('techFilter').getAttribute('aria-pressed') !== 'true';
+    await toTab({ type: 'assistant:sp-techfilter', on }).catch(() => {});
+  });
   $('save').addEventListener('click', async () => {
     const pdf = currentPdf();
     const res = pdf ? await savePdf(pdf).catch((err) => ({ ok: false, error: err.message })) : await toTab({ type: 'assistant:sp-save' }).catch((err) => ({ ok: false, error: err.message }));

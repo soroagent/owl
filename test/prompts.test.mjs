@@ -156,3 +156,23 @@ test('Tech only: the focus prompt asks for the topic, and its references become 
   assert.equal(S.linkFocusRefs('- **GPU** [1]\n- **AI funding** (no post)', { urls: ['https://x.com/a/status/1'] }), '- **GPU** [post 1](https://x.com/a/status/1)', 'on a feed, a bullet citing no post is dropped');
   assert.equal(S.linkFocusRefs('- **Chip** at [1:00]', { videoUrl: '' }), '- **Chip** at [1:00]', 'pages without items keep every bullet');
 });
+
+test('Hide non-tech: feeds it works on, and reading the AI\'s verdict', async () => {
+  await import('../extension/content/feedfilter.js');
+  const F = globalThis.soroagent.feedFilter;
+  const at = (url) => new URL(url);
+  assert.equal(F.feedFor(at('https://x.com/home')), 'x');
+  assert.equal(F.feedFor(at('https://x.com/search?q=ai')), 'x');
+  assert.equal(F.feedFor(at('https://x.com/sama/status/1849012345678901234')), '', 'a single post and its replies is not a feed to filter');
+  assert.equal(F.feedFor(at('https://www.reddit.com/r/programming/')), 'reddit');
+  assert.equal(F.feedFor(at('https://www.reddit.com/r/programming/comments/abc/x/')), '');
+  assert.equal(F.feedFor(at('https://www.youtube.com/')), 'youtube');
+  assert.equal(F.feedFor(at('https://www.youtube.com/results?search_query=rust')), 'youtube');
+  assert.equal(F.feedFor(at('https://en.wikipedia.org/wiki/Owl')), '');
+  assert.deepEqual([...F.parseTopicIds('{"tech": [1, 3, 9, "2", -1]}', 4)].sort(), [1, 2, 3]);
+  assert.deepEqual([...F.parseTopicIds('```json\n{"tech": []}\n```', 4)], []);
+  assert.equal(F.parseTopicIds('Items 1 and 3 are tech.', 4), null, 'unreadable: null, so nothing gets hidden');
+  const [, user] = S.buildMessages('techSort', { question: S.FOCUS_TOPICS.tech, content: '[1] @a New GPU\n[2] @b Pasta' }, {});
+  assert.match(user.content, /\[2\] @b Pasta/);
+  assert.match(user.content, /"tech": \[/);
+});

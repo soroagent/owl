@@ -233,6 +233,16 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   repeats posts already listed (small models do). A flat list on purpose: with headings, 3B models
   copied the topic's parts as headings and listed posts twice. Other topics can be added to
   `FOCUS_TOPICS`.
+- **Hide non-tech** (`techFilter`: feed ids where it's on, default none): `content/feedfilter.js`
+  knows the feeds (`FEEDS`: X except `/status/` pages, Reddit except threads, YouTube lists) and
+  their post elements, keys and text; hiding is the `data-soroagent-offtopic` attribute +
+  `PAGE_CSS`, like X's "Verified only". `syncTechFilter()` in `assistant.js` (start, navigation,
+  settings) runs a MutationObserver; `scanTech()` applies known verdicts and sends up to 25 unsorted
+  posts to the `techSort` prompt (quick, JSON `{"tech": [n]}`, `parseTopicIds`). Unsorted or
+  unreadable stays visible; an AI failure pauses new batches for 2 min. Verdicts are kept per key
+  (3,000 max), so nothing is sent twice. Toggles: the floating panel's site bar and the side panel's
+  `#techFilter` (`assistant:sp-techfilter`); the snapshot reports `{ on, hidden }`. Never on
+  `neverRead` pages. The `tech` state is declared near `state` (read early by the site bar).
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).

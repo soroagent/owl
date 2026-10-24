@@ -106,6 +106,19 @@ List only the parts of this page about that topic, as one flat bulleted list wit
 If nothing on the page is about the topic, reply only: Nothing tech-related here.`,
     },
 
+    // "Hide non-tech": which feed items (posts, video titles) are about the topic, so the rest can be
+    // hidden on the page. {{question}} is the topic, {{content}} the numbered items. Quick mode.
+    // Reply: JSON (keep this shape).
+    techSort: {
+      system: `You sort feed items by topic. Reply with JSON only.`,
+      user: `The topic: {{question}}
+
+Items:
+{{content}}
+
+Which items are mainly about the topic? Count an item only if the topic is its main subject, not a passing mention (a football score shared from a phone app is not about technology). Return JSON: {"tech": [the numbers of the matching items]}, an empty list if none match.`,
+    },
+
     // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
     // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
     // Reply: JSON (keep this shape).

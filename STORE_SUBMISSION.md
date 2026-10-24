@@ -64,6 +64,9 @@ in Settings → AI → While you read):
 - **Tech only.** A button that filters the page down to its technology items (all loaded posts on X,
   the transcript of a YouTube video, the page elsewhere), sent to the user's AI on click like
   Summarize; each item links back to its post or video moment.
+- **Hide non-tech.** On X, Reddit and YouTube video lists, a switch (off by default, per site) that
+  sends the loaded posts' text (or video titles) to the user's AI in batches and hides the ones that
+  aren't about tech on the page (an attribute and one CSS rule; switching off restores the page).
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
@@ -117,7 +120,8 @@ Tick these data types:
 
 - **Website content**: page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
-  or in-browser AI by default). After an answer, the question and the answer go to the same AI to
+  or in-browser AI by default; and, while the user has "Hide non-tech" on for X, Reddit or YouTube,
+  the loaded posts' text or video titles, to sort them). After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and

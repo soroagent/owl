@@ -181,6 +181,9 @@
     summaries: new Map(), // content fingerprint -> earlier summary, for repeat Summarize on unchanged content
     feed: null, // batches gathered by scrolling: { url, optionsKey, seen, endY, done, exhausted }
   };
+  // Hide non-tech's state (see "Hide non-tech" below); here because the site bar and snapshot read it early.
+  const tech = { feed: '', verdicts: new Map(), busy: false, timer: 0, observer: null, pausedUntil: 0 };
+  const techFeed = () => (S.feedFilter ? S.feedFilter.feedFor(location) : '');
 
   const launcherCtl = S.createLauncherController({
     host,
@@ -1404,12 +1407,13 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
+      techFilter: techFeed() ? { on: (state.settings.techFilter || []).includes(techFeed()), label: S.feedFilter.FEEDS[techFeed()].label, hidden: tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0 } : null,
       standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
     };
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}`;
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -2090,6 +2094,107 @@
       });
       els.siteBar.append(toggle);
     }
+    // "Hide non-tech" on feeds (X, Reddit, YouTube lists): the AI sorts the posts, the rest are hidden.
+    if (techFeed()) {
+      const on = (state.settings.techFilter || []).includes(techFeed());
+      const toggle = el('button', { type: 'button', className: 'toggle tech-toggle', title: `Hide the ${S.feedFilter.FEEDS[techFeed()].label} that aren't about tech. Your AI sorts them as they load; turn off to show everything again.` }, ['Hide non-tech', el('span', { className: 'tech-count' })]);
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.addEventListener('click', () => setTechFilter(!on));
+      els.siteBar.append(toggle);
+      renderTechCount();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hide non-tech (content/feedfilter.js finds the posts; the techSort prompt sorts them). On while
+  // the reader has it on for this feed; posts are sent to the AI in batches of 25 as they load, each
+  // verdict is kept (nothing is asked twice), and anything not yet sorted, or that the AI couldn't
+  // sort, stays visible. Never on pages soroagent doesn't read.
+  // ---------------------------------------------------------------------------
+
+
+  function setTechFilter(on) {
+    const feed = techFeed();
+    if (!feed) return;
+    const list = new Set(state.settings.techFilter || []);
+    if (on) list.add(feed);
+    else list.delete(feed);
+    S.saveSettings({ techFilter: [...list] });
+  }
+
+  function techFilterActive() {
+    const feed = techFeed();
+    if (!feed || !(state.settings.techFilter || []).includes(feed) || !state.settings.onboarded) return '';
+    if (S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) })) return '';
+    return feed;
+  }
+
+  // Started, stopped or moved to another feed: on settings changes, navigation and start.
+  function syncTechFilter() {
+    const feed = techFilterActive();
+    if (!feed) {
+      if (tech.observer) tech.observer.disconnect();
+      tech.observer = null;
+      tech.feed = '';
+      S.feedFilter && S.feedFilter.showAll();
+      renderTechCount();
+      return;
+    }
+    tech.feed = feed;
+    if (!tech.observer) {
+      tech.observer = new MutationObserver(() => scheduleTechScan());
+      tech.observer.observe(document.body, { childList: true, subtree: true });
+    }
+    scheduleTechScan(0);
+  }
+
+  function scheduleTechScan(delay = 700) {
+    if (tech.timer) return; // one pending scan at a time (feeds change constantly)
+    tech.timer = setTimeout(() => {
+      tech.timer = 0;
+      scanTech();
+    }, delay);
+  }
+
+  async function scanTech() {
+    if (!tech.feed) return;
+    const unknown = [];
+    const keys = new Set();
+    for (const card of S.feedFilter.feedCards(tech.feed)) {
+      const verdict = tech.verdicts.get(card.key);
+      if (verdict === undefined) {
+        if (!keys.has(card.key)) unknown.push(card);
+        keys.add(card.key);
+      } else S.feedFilter.setHidden(card.el, !verdict);
+    }
+    renderTechCount();
+    if (!unknown.length || tech.busy || Date.now() < tech.pausedUntil) return;
+    tech.busy = true;
+    const batch = unknown.slice(0, 25);
+    try {
+      const content = batch.map((c, i) => `[${i + 1}] ${c.text}`).join('\n');
+      const reply = await runChat({ messages: S.buildMessages('techSort', { question: S.FOCUS_TOPICS.tech, content }, {}), json: true, quick: true });
+      const ids = S.feedFilter.parseTopicIds(S.stripThinking(reply), batch.length);
+      if (!ids) report('llm', 'tech-sort-unreadable', 'The AI\'s reply to sort posts wasn\'t readable', { where: 'techSort' });
+      batch.forEach((c, i) => tech.verdicts.set(c.key, ids ? ids.has(i + 1) : true)); // unreadable: keep them visible
+    } catch (err) {
+      // The AI isn't reachable: keep these visible and try new posts again in two minutes.
+      batch.forEach((c) => tech.verdicts.set(c.key, true));
+      tech.pausedUntil = Date.now() + 120000;
+      report('llm', 'tech-sort-failed', err.message, { code: err.code || '' });
+    } finally {
+      tech.busy = false;
+      if (tech.verdicts.size > 3000) tech.verdicts.delete(tech.verdicts.keys().next().value);
+      scheduleTechScan(0);
+    }
+  }
+
+  function renderTechCount() {
+    notifySidePanel();
+    const count = els.siteBar.querySelector('.tech-count');
+    if (!count) return;
+    const hidden = tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0;
+    count.textContent = hidden ? ` · ${hidden} hidden` : '';
   }
 
   function applySiteOptions() {
@@ -2112,6 +2217,7 @@
     }
     state.pageContext = null;
     renderSiteBar();
+    syncTechFilter();
     showPendingSummaries();
     watchX();
     schedulePrepare();
@@ -2291,6 +2397,10 @@
           const req = focusRequest(msg.topic || 'tech');
           return req ? { ok: true, ...req } : { ok: false, error: 'Nothing to read here yet. Scroll to load posts, then try again.' };
         }
+        if (msg.type === 'assistant:sp-techfilter') {
+          setTechFilter(Boolean(msg.on));
+          return { ok: true };
+        }
         if (msg.type === 'assistant:sp-save') return { ok: true, ...(await savePageData({ label: true })) };
         if (msg.type === 'assistant:sp-refresh') {
           await preparePage({ explicit: true });
@@ -2322,6 +2432,10 @@
       applySiteOptions();
       renderSiteBar();
     }
+    if (String(before.techFilter) !== String(state.settings.techFilter) || before.onboarded !== state.settings.onboarded) {
+      syncTechFilter();
+      renderSiteBar();
+    }
     const keys = ['source', 'baseUrl', 'provider', 'apiKey', 'cloudProvider', 'customBaseUrl'];
     if (keys.some((k) => before[k] !== state.settings[k]) && isOpen()) connect();
   });
@@ -2343,6 +2457,7 @@
     showPendingSummaries();
     watchX();
     schedulePrepare();
+    syncTechFilter();
   });
   updateControls();
 })();
