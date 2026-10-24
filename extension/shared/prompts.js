@@ -11,6 +11,7 @@
 //   {{context}}      extra context from the site profile (e.g. "Search results for …")
 //   {{note}}         truncation note ("" when nothing was cut)
 //   {{question}}     the user's question (ask action only)
+//   {{slots}}        the four question slots for this site (questions action; shared/templates.js)
 // Pure functions: unit tested without a browser.
 (function (root) {
   'use strict';
@@ -18,7 +19,7 @@
   const soroagent = (root.soroagent = root.soroagent || {});
 
   const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'taskPlan', 'taskReport', 'save', 'questions', 'followUps', 'researchTopics', 'researchQuery', 'research']);
-  const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question']);
+  const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question', 'slots']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
   function checkActions(id, prompts) {

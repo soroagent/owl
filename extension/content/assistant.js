@@ -1311,7 +1311,10 @@
   // background of a news story, the solution in a thread… Shimmering placeholders show while they're
   // written; the standard questions stay if the model is offline, the page has little text, or the
   // reader turned this off. Kept per URL, so reopening the panel doesn't ask again.
-  const STANDARD_QUESTIONS = [...els.suggest.querySelectorAll('[data-ask]')].map((b) => ({ ask: b.dataset.ask, label: b.textContent }));
+  // The site's question template (shared/templates.js): four slots, Gist · Understand · Check · Next.
+  // Its plain questions are the standard ones, shown when the model doesn't write them.
+  const questionTemplate = () => S.questionTemplate(location.href, { kind: S.pageKind(pageMeta()).kind, article: pageInfo().type === 'article' });
+  const standardQuestions = () => S.plainQuestions(questionTemplate());
   const suggested = { url: '', cache: new Map(), runs: 0 };
 
   // The page's own description of itself: schema.org JSON-LD types and og:type.
@@ -1344,11 +1347,13 @@
 
   // offer: automatic questions are off (cloud AI): show a link that writes them on request.
   function renderQuestions(list, label = '', { offer = false } = {}) {
-    els.suggest.replaceChildren(...list.map((q) => el('button', { type: 'button', textContent: q.label || q })));
-    els.suggest.querySelectorAll('button').forEach((b, i) => {
-      b.dataset.ask = list[i].ask || list[i];
+    // Each question shows its slot (Gist, Understand, Check, Next) above it.
+    els.suggest.replaceChildren(...list.map((q) => {
+      const b = el('button', { type: 'button', className: q.slot ? 'slotted' : '' }, [q.slot ? el('span', { className: 'slot', textContent: q.slot }) : '', el('span', { className: 'q', textContent: q.label || q })]);
+      b.dataset.ask = q.ask || q;
       b.classList.toggle('asked', wasAsked(b.dataset.ask));
-    });
+      return b;
+    }));
     els.suggestHead.hidden = !label && !offer;
     els.suggestHead.querySelector('.suggest-label').textContent = label;
     const more = els.suggestHead.querySelector('.suggest-more');
@@ -1359,13 +1364,13 @@
   async function suggestQuestions(force = false) {
     const url = location.href;
     const prepareOn = S.autoOn(state.settings, 'preparePages');
-    if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(STANDARD_QUESTIONS, '', { offer: state.status === 'ready' });
+    if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(standardQuestions(), '', { offer: state.status === 'ready' });
     // Prepared on visit (from the page's summary): ready, being written, or started now.
     if (!force && prepareOn && preparable()) {
       if (prep.url === url && prep.status === 'done' && prep.questions.length >= 2) return renderQuestions(prep.questions, 'Suggested for this page');
       if (prep.url === url && prep.status === 'working') return showQuestionPlaceholders(isX() ? 'Reading the posts for questions…' : 'Reading the page for questions…');
       if (prep.url !== url || prep.status === 'idle') {
-        renderQuestions(STANDARD_QUESTIONS);
+        renderQuestions(standardQuestions());
         preparePage(); // the panel was opened before preparing started
         return;
       }
@@ -1375,23 +1380,24 @@
     if (state.status !== 'ready' || els.empty.hidden || state.busy) return;
     if (!force && suggested.url === url) return; // already writing them
     const page = sitePage(4000);
-    if (!page.text || page.text.length < 200) return renderQuestions(STANDARD_QUESTIONS);
+    if (!page.text || page.text.length < 200) return renderQuestions(standardQuestions());
     suggested.url = url;
     const run = ++suggested.runs;
     showQuestionPlaceholders('Reading the page for questions…');
     try {
       const kind = S.pageKind(pageMeta());
-      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(page, { context: kind.describe }), sitePrompts()), json: true, quick: true });
-      const questions = S.parseQuestions(S.stripThinking(reply));
+      const template = questionTemplate();
+      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(page, { context: kind.describe, slots: S.slotsText(template) }), sitePrompts()), json: true, quick: true });
       if (run !== suggested.runs) return; // the page changed meanwhile
-      if (questions.length < 2) throw new Error('No questions');
+      if (!S.parseQuestions(S.stripThinking(reply)).length) throw new Error('No questions');
+      const questions = S.parseSlotQuestions(S.stripThinking(reply), template);
       suggested.cache.set(url, questions);
       if (suggested.cache.size > 30) suggested.cache.delete(suggested.cache.keys().next().value);
       if (location.href === url) renderQuestions(questions, 'Suggested for this page');
     } catch (err) {
       if (run === suggested.runs) {
         suggested.url = '';
-        renderQuestions(STANDARD_QUESTIONS);
+        renderQuestions(standardQuestions());
       }
     }
   }
@@ -1507,10 +1513,11 @@
       if (!summary) throw new Error('Empty summary');
       prep.summary = summary;
       const kind = S.pageKind(pageMeta());
+      const template = questionTemplate();
       const fromSummary = { ...content.page, text: `Summary of the page:\n${summary}` };
-      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(fromSummary, { context: kind.describe }), prompts), json: true, quick: true });
+      const reply = await runChat({ messages: S.buildMessages('questions', S.pageVars(fromSummary, { context: kind.describe, slots: S.slotsText(template) }), prompts), json: true, quick: true });
       if (run !== prep.run) return;
-      prep.questions = S.parseQuestions(S.stripThinking(reply));
+      prep.questions = S.parseQuestions(S.stripThinking(reply)).length ? S.parseSlotQuestions(S.stripThinking(reply), template) : [];
       prep.status = 'done';
     } catch (err) {
       if (run !== prep.run) return;
@@ -1599,6 +1606,7 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
+      standard: standardQuestions(),
       pictures: picturesOffered() ? { count: pics.list.length, host: pageHost() } : null,
     };
   }

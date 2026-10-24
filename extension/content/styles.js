@@ -219,6 +219,11 @@ header {
 }
 .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
 .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+/* Template questions: the slot (Gist, Understand, Check, Next) above each question. */
+.suggest button.slotted { display: grid; gap: 1px; }
+.suggest button.slotted::before, .suggest button.slotted.asked::before { content: none; }
+.suggest .slot { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.suggest button.asked .slot::after { content: " ✓"; color: var(--ok); }
 .suggest button.asked, .follow-ups button.asked { color: var(--fg-muted); }
 .suggest button.asked::before, .follow-ups button.asked::before { content: "✓"; color: var(--ok); }
 /* Follow-up questions under an answer */

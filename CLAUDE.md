@@ -276,6 +276,15 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   collects every post seen on the URL (`xPosts`). The header's refresh button (X only) shows how many
   are new since the prepared summary and prepares again with all of them (most recent that fit
   `maxPageChars`). Other sites are static, so they get no watcher or button.
+- **Question templates** (`shared/templates.js`, approved by the owner 2026-10-24, 29 templates):
+  every set of suggested questions has four slots in order, Gist · Understand · Check · Next, shown
+  as a small label above each question. `S.questionTemplate(url, { kind, article })` picks the site
+  and page type (`matchTemplate`; any page `S.pageKind` calls news gets the news template, as do the
+  listed news hosts' articles); its slot patterns go into the `questions` prompt as `{{slots}}`
+  (questions in the page's language), and `S.parseSlotQuestions` keeps one question per slot,
+  falling back to that slot's plain question (also what's shown without a model). Change wording
+  there; `test/templates.test.mjs` has a sample URL for every template. Adult, betting, ad-redirect
+  and unlicensed-streaming sites were proposed for the built-in never-read list; not approved yet.
 - **Suggested questions without preparing** (`pageQuestions`): if preparing is off or failed, opening
   the panel asks for questions from the page text directly. Standard questions are the last fallback.
 - **Library:** everything saved is labelled (title, summary, tags) by the model, indexed in

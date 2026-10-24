@@ -46,6 +46,10 @@
     .suggest button { text-align: left; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
     .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
     .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .suggest button.slotted { display: grid; gap: 1px; }
+    .suggest button.slotted::before, .suggest button.slotted.asked::before { content: none; }
+    .suggest .slot { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+    .suggest button.asked .slot::after { content: " ✓"; color: var(--ok); }
     /* In a conversation the opening screen stays on top, compact: just the suggested questions. */
     main.chatting .home { margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     main.chatting .home img, main.chatting #homeNote { display: none; }
@@ -138,6 +142,7 @@
 <script src="../shared/config.js"></script>
 <script src="../shared/markdown.js"></script>
 <script src="../shared/prompts.js"></script>
+<script src="../shared/templates.js"></script>
 <script src="../prompts/default.js"></script>
 <script src="../shared/knowledge.js"></script>
 <script src="../shared/snippets.js"></script>

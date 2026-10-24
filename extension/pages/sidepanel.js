@@ -9,11 +9,9 @@
   S.watchPageErrors('side panel');
   const { ext } = S;
   const $ = (id) => document.getElementById(id);
-  const STANDARD = [
-    { ask: 'What are the key points of this page?', label: 'What are the key points?' },
-    { ask: "Explain this page simply, as if I'm new to the topic.", label: 'Explain it simply' },
-    { ask: 'What claims here need checking, and what might be missing?', label: 'What should I double-check?' },
-  ];
+  // Without the page's own (site-specific) standard questions, the generic template's (shared/templates.js).
+  const STANDARD = S.plainQuestions(S.questionTemplate(''));
+  const standardFor = () => (state.snap && state.snap.standard) || STANDARD;
   // Markup goes in through DOMParser (inert: no scripts run) and is moved over as nodes.
   function setHtml(node, html) {
     const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
@@ -117,8 +115,9 @@
 
   function renderQuestions(list, label = '') {
     $('suggestMore').hidden = true;
+    // Each question shows its slot (Gist, Understand, Check, Next) above it.
     $('suggest').replaceChildren(...list.map((q) => {
-      const b = el('button', { type: 'button', textContent: q.label || q });
+      const b = el('button', { type: 'button', className: q.slot ? 'slotted' : '' }, [q.slot ? el('span', { className: 'slot', textContent: q.slot }) : '', el('span', { textContent: q.label || q })]);
       b.dataset.ask = q.ask || q;
       b.classList.toggle('asked', thread().asked.has(askedKey(b.dataset.ask)));
       b.addEventListener('click', () => askFrom(b));
@@ -167,7 +166,7 @@
       $('suggestHead').hidden = false;
       $('suggestLabel').textContent = snap.site.id === 'x' ? 'Reading the posts for questions…' : 'Reading the page for questions…';
     } else {
-      renderQuestions(STANDARD);
+      renderQuestions(standardFor());
       // Automatic preparing is off (a cloud AI): write questions for this page on request.
       const offer = !snap.prepare.on && snap.prepare.allowed && snap.readable && Boolean(state.ai && state.ai.ok);
       $('suggestHead').hidden = !offer;
@@ -438,10 +437,11 @@
     if (!pdf || pdf.status !== 'ready' || !state.ai || !state.ai.ok) return;
     pdf.status = 'questions';
     if (tabId === state.tabId) renderPage();
-    const messages = S.buildMessages('questions', S.pageVars(await pdfPage(pdf), { context: `${pdfContext(pdf)} The reader wants the main argument or findings, the method, the evidence and its limits, and related work.` }), {});
+    const template = S.questionTemplate('');
+    const messages = S.buildMessages('questions', S.pageVars(await pdfPage(pdf), { context: `${pdfContext(pdf)} The reader wants the main argument or findings, the method, the evidence and its limits, and related work.`, slots: S.slotsText(template) }), {});
     const reply = { push() {}, status() {} };
     const text = await streamChat(messages, reply, new AbortController().signal, { json: true, quick: true }).catch(() => '');
-    pdf.questions = S.parseQuestions(S.stripThinking(text));
+    pdf.questions = S.parseQuestions(S.stripThinking(text)).length ? S.parseSlotQuestions(S.stripThinking(text), template) : [];
     pdf.status = 'ready';
     if (tabId === state.tabId) renderPage();
   }

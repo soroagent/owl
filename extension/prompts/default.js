@@ -94,19 +94,18 @@ Return JSON: {"title": "a specific title, max 80 chars", "summary": "1-2 sentenc
     },
 
     // Suggested questions on the panel's opening screen, written for this page. Asked with "quick"
-    // (no long thinking), so keep it short. {{context}} says what kind of page it is. Reply: JSON (keep this shape).
+    // (no long thinking), so keep it short. {{context}} says what kind of page it is; {{slots}} the site's
+    // four slots, Gist · Understand · Check · Next (shared/templates.js). Reply: JSON, 4 questions in slot order.
     questions: {
       system: `You suggest what a curious reader would ask next about the page they are on. Be fast and specific. Reply with JSON only.`,
       user: `{{page}}
 
 This is {{context}}
 
-Write 4 questions this reader would want to ask an assistant about this exact page, in their own voice (first person, plain words). Make them:
-1. one to quickly grasp it (a short summary or the bottom line),
-2. one to understand it better (how it works, the background, who is involved, or what a term means, whichever fits this page),
-3. one that checks or questions it (what is missing, how reliable it is, the downsides or the other side),
-4. one that goes further (related research, comparisons, what to read or do next).
-Each question: at most 12 words, names concrete things from the page (product, people, places, terms), and can be answered from the page or a quick web search. No generic questions, no yes/no questions.
+Write 4 questions this reader would want to ask an assistant about this exact page, in their own voice (first person, plain words), one for each slot below and in the same order. Use each slot's question as the pattern: keep its purpose, and replace the [brackets] with the concrete names, products, people, places or terms from the page.
+{{slots}}
+
+Each question: at most 14 words, can be answered from the page or a quick web search, no yes/no questions unless the pattern is one. Write them in the language the page is written in.
 Return JSON: {"questions": ["...", "...", "...", "..."]}`,
     },
 

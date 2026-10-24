@@ -79,7 +79,7 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `notes` | Long content is summarized in parts: notes per part, then `summarize` merges them | Markdown |
 | `ask` | A question typed in the panel. `system` carries the page; `user` is the question | Markdown |
 | `save` | Labels each auto-saved summary (and saved selections): title, summary and tags | JSON `{ "title", "summary", "tags" }` |
-| `questions` | Suggested questions on the panel's opening screen, written for the page (`{{context}}` = what kind of page it is). Sent in quick mode: no long thinking | JSON `{ "questions": [] }` |
+| `questions` | Suggested questions on the panel's opening screen: one per slot (Gist, Understand, Check, Next) from the site's template in `shared/templates.js`, in the page's language (`{{context}}` = what kind of page it is, `{{slots}}` = the slot patterns). Sent in quick mode: no long thinking | JSON `{ "questions": [] }`, 4 in slot order |
 | `followUps` | Two follow-up questions under each answer (`{{question}}` = what was asked, `{{content}}` = the answer). Quick mode | JSON `{ "questions": [] }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
@@ -99,6 +99,7 @@ You can reword anything, but **keep the JSON field names** in the `save` prompt 
 | `{{context}}` | What the page is, from the site profile, for example `These are top posts from X search results for the query "local llm".` |
 | `{{note}}` | The truncation note on its own, or empty |
 | `{{question}}` | The user's question (`ask` only) |
+| `{{slots}}` | The four question slots for the site and page type, Gist · Understand · Check · Next (`questions` only; edit them in `shared/templates.js`) |
 
 ## Add prompts for a new site
 
