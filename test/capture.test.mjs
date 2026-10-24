@@ -34,3 +34,20 @@ test('sensitive and low-value pages are never captured', () => {
   assert.equal(captureAllowed(article, ['blog.example.com']).ok, false, "the reader's own exclusions");
   assert.equal(captureAllowed({ ...article, url: 'https://news.example.com/a' }, ['example.com']).ok, false, 'subdomains too');
 });
+
+test('adult, betting, ad-redirect, unlicensed streaming and railway booking sites are never read', () => {
+  const { captureAllowed, neverRead, isAdultPage } = S.capture;
+  for (const url of ['https://xhamster.com/videos/x', 'https://m.xhamster46.desi/', 'https://www.eporner.com/', 'https://parimatchs1.com/en/live', 'https://a197.click/r?x=1', 'https://kisskh.is/Drama/x', 'https://www.irctc.co.in/nget/train-search', 'https://dinotube.com/', 'https://superchatlive.com/', 'https://qorno.com/', 'https://faphouse2.com/', 'https://xhaccess.com/']) {
+    assert.ok(neverRead(url), url);
+    assert.equal(captureAllowed({ url, textLength: 5000 }).ok, false, url);
+  }
+  assert.ok(!neverRead('https://www.wikipedia.org/wiki/Owl'));
+  // Any site that labels itself adult (the RTA label), wherever it is.
+  assert.ok(neverRead('https://unknown.example/', { adult: true }));
+  assert.equal(captureAllowed({ url: 'https://unknown.example/post', textLength: 5000, adult: true }).reason, 'adult page');
+  const doc = (content) => ({ querySelector: () => (content === null ? null : { getAttribute: () => content }) });
+  assert.ok(isAdultPage(doc('RTA-5042-1996-1400-1577-RTA')));
+  assert.ok(isAdultPage(doc('adult')));
+  assert.ok(!isAdultPage(doc('general')));
+  assert.ok(!isAdultPage(doc(null)));
+});

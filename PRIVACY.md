@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.37 and later.
+Arc and Firefox, version 2.40.1 and later.
 
 ## The short version
 
@@ -56,7 +56,10 @@ time only, never page content, and never leaving your computer), it reads a page
   scrolled). Passive capture is off by default.
 
 Automatic preparing, passive capture and the reading log never run on mail, chat, banking, sign-in,
-checkout, account or settings pages, search results, AI chat sites or local pages.
+checkout, account or settings pages, search results, AI chat sites or local pages. On adult sites
+(including any page that labels itself adult), betting and ad-redirect sites, unlicensed streaming
+sites and railway booking (IRCTC), soroagent also suggests no questions and offers no downloads:
+it reads nothing there unless you ask it something yourself.
 
 ## 3. What leaves your computer
 

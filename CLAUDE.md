@@ -283,8 +283,12 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   listed news hosts' articles); its slot patterns go into the `questions` prompt as `{{slots}}`
   (questions in the page's language), and `S.parseSlotQuestions` keeps one question per slot,
   falling back to that slot's plain question (also what's shown without a model). Change wording
-  there; `test/templates.test.mjs` has a sample URL for every template. Adult, betting, ad-redirect
-  and unlicensed-streaming sites were proposed for the built-in never-read list; not approved yet.
+  there; `test/templates.test.mjs` has a sample URL for every template.
+- **Never read** (owner's call 2026-10-24): `NEVER_READ` in `content/capture.js` (adult sites,
+  a betting mirror, an ad redirect, unlicensed streaming, irctc.co.in) plus any page with the adult
+  label (`isAdultPage`: the RTA meta tag or rating "adult"). Part of `DEFAULT_EXCLUDED`, so no
+  preparing, capture, pictures offer or reading log; `suggestQuestions` and the snapshot also show
+  no questions there (`neverRead`). The reader can still ask something explicitly.
 - **Suggested questions without preparing** (`pageQuestions`): if preparing is off or failed, opening
   the panel asks for questions from the page text directly. Standard questions are the last fallback.
 - **Library:** everything saved is labelled (title, summary, tags) by the model, indexed in

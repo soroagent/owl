@@ -104,12 +104,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.40.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.40.1**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.40.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.40.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.40.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.40.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.40.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.40.1.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.40.1.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.40.1.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

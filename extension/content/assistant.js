@@ -1363,6 +1363,8 @@
 
   async function suggestQuestions(force = false) {
     const url = location.href;
+    // Sites soroagent never reads (adult, betting…): no suggested questions at all.
+    if (S.capture && S.capture.neverRead(url, { adult: S.capture.isAdultPage(document) })) return renderQuestions([], '');
     const prepareOn = S.autoOn(state.settings, 'preparePages');
     if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(standardQuestions(), '', { offer: state.status === 'ready' });
     // Prepared on visit (from the page's summary): ready, being written, or started now.
@@ -1429,7 +1431,7 @@
     if (isPdfDocument()) return false; // the browser's PDF viewer: the side panel reads the file itself
     if (!S.capture || !S.capture.captureAllowed) return true;
     const hasPassword = Boolean(document.querySelector('input[type="password"]'));
-    return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity }, state.settings.captureExclude || []).ok;
+    return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity, adult: S.capture.isAdultPage(document) }, state.settings.captureExclude || []).ok;
   }
 
   function collectXPosts() {
@@ -1606,7 +1608,7 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
-      standard: standardQuestions(),
+      standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
       pictures: picturesOffered() ? { count: pics.list.length, host: pageHost() } : null,
     };
   }

@@ -9,12 +9,20 @@
   const soroagent = (root.soroagent = root.soroagent || {});
   if (soroagent.capture || !root.document || !/^https?:$/.test(root.location.protocol)) return;
 
-  // Never captured: mail, chat, banking, AI chats, search results, local pages.
+  // Never read at all (owner's call 2026-10-24): adult, betting, ad-redirect, unlicensed streaming and
+  // railway booking sites. No suggested questions, preparing, capture, pictures offer or reading log;
+  // pages with the standard adult label (RTA) get the same treatment wherever they are.
+  const NEVER_READ = [
+    'xhamster.com', 'xhamster46.desi', 'xhaccess.com', 'qorno.com', 'eporner.com', 'faphouse2.com', 'dinotube.com', 'superchatlive.com',
+    'parimatchs1.com', 'a197.click', 'kisskh.is', 'irctc.co.in',
+  ];
+  // Never captured: mail, chat, banking, AI chats, search results, local pages (and NEVER_READ).
   const DEFAULT_EXCLUDED = [
     'mail.google.com', 'outlook.live.com', 'outlook.office.com', 'mail.yahoo.com', 'proton.me', 'web.whatsapp.com', 'messages.google.com',
     'web.telegram.org', 'discord.com', 'slack.com', 'teams.microsoft.com', 'calendar.google.com', 'docs.google.com', 'drive.google.com',
     'paypal.com', 'chatgpt.com', 'chat.openai.com', 'claude.ai', 'gemini.google.com', 'copilot.microsoft.com', 'perplexity.ai',
     'localhost', '127.0.0.1',
+    ...NEVER_READ,
   ];
   const SENSITIVE_PATH = /\/(login|log-in|signin|sign-in|signup|sign-up|register|checkout|cart|basket|account|accounts|settings|preferences|password|admin|oauth|auth|billing|payment|inbox|messages)(\/|$|\?)/i;
   const SENSITIVE_HOST = /(^|\.)(accounts|login|auth|signin|secure|banking|bank|mybank|onlinebanking|wallet)\./i;
@@ -33,7 +41,7 @@
    * Pure: whether a page may be captured at all. page: { url, hasPassword, textLength, isFeed },
    * excluded: the reader's own list of sites. Returns { ok, reason }.
    */
-  function captureAllowed({ url, hasPassword = false, textLength = 0, isFeed = false }, excluded = []) {
+  function captureAllowed({ url, hasPassword = false, textLength = 0, isFeed = false, adult = false }, excluded = []) {
     let u;
     try {
       u = new URL(url);
@@ -42,12 +50,31 @@
     }
     const host = u.hostname.toLowerCase();
     if ([...DEFAULT_EXCLUDED, ...excluded].some((p) => hostMatches(host, p))) return { ok: false, reason: 'excluded site' };
+    if (adult) return { ok: false, reason: 'adult page' };
     if (SENSITIVE_HOST.test(`${host}.`) || SENSITIVE_PATH.test(u.pathname)) return { ok: false, reason: 'sensitive page' };
     if (SEARCH_PAGE.test(host) && /\/search|[?&]q=/.test(u.pathname + u.search)) return { ok: false, reason: 'search results' };
     if (hasPassword) return { ok: false, reason: 'has a password field' };
     if (isFeed) return { ok: false, reason: 'feed' };
     if (textLength < 1200) return { ok: false, reason: 'too little text' };
     return { ok: true, reason: '' };
+  }
+
+  /** Pure: whether soroagent must not read this page at all: a NEVER_READ site, or an adult-labelled page. */
+  function neverRead(url, { adult = false } = {}) {
+    if (adult) return true;
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return NEVER_READ.some((p) => hostMatches(host, p));
+    } catch {
+      return false;
+    }
+  }
+
+  /** Whether the page carries an adult label: the RTA meta tag sites use for parental filters, or rating "adult". */
+  function isAdultPage(doc) {
+    const meta = doc && doc.querySelector && doc.querySelector('meta[name="rating" i], meta[http-equiv="pics-label" i], meta[name="RATING"]');
+    const value = String((meta && meta.getAttribute('content')) || '');
+    return /RTA-5042-1996-1400-1577-RTA|^\s*(adult|mature|restricted)\s*$/i.test(value);
   }
 
   /** Pure: whether the reader has actually read the page. reading: { activeMs, depth, scrollable } */
@@ -84,7 +111,7 @@
     const ms = reading.activeMs - reading.logged;
     if (ms < 1000) return;
     const sensitive = reading.href === location.href && Boolean(document.querySelector('input[type="password"]'));
-    if (!captureAllowed({ url: reading.href, hasPassword: sensitive, textLength: Infinity }, settings.captureExclude || []).ok) return;
+    if (!captureAllowed({ url: reading.href, hasPassword: sensitive, textLength: Infinity, adult: isAdultPage(document) }, settings.captureExclude || []).ok) return;
     const visit = reading.logged === 0;
     reading.logged = reading.activeMs;
     let host = '';
@@ -115,7 +142,7 @@
       page = null;
     }
     if (!page || !page.text || page.text.length < 400) page = soroagent.extractPage(document, { maxChars: 8000 });
-    const allowed = captureAllowed({ url: location.href, hasPassword: Boolean(document.querySelector('input[type="password"]')), textLength: (page.text || '').length, isFeed }, settings.captureExclude || []);
+    const allowed = captureAllowed({ url: location.href, adult: isAdultPage(document), hasPassword: Boolean(document.querySelector('input[type="password"]')), textLength: (page.text || '').length, isFeed }, settings.captureExclude || []);
     if (!allowed.ok) return;
     // Already in the library (summarized, saved or captured before): nothing to add.
     const existing = await soroagent.snippetsForPage(location.href);
@@ -176,5 +203,5 @@
     if (area === 'local' && changes.settings) apply(changes.settings.newValue);
   });
 
-  soroagent.capture = { captureAllowed, hasBeenRead, DEFAULT_EXCLUDED };
+  soroagent.capture = { captureAllowed, hasBeenRead, neverRead, isAdultPage, DEFAULT_EXCLUDED, NEVER_READ };
 })(globalThis);
