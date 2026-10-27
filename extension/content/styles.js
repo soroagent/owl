@@ -75,6 +75,11 @@ svg { width: 18px; height: 18px; flex: none; }
 .launcher.open { box-shadow: 0 0 0 2px var(--brand), 0 8px 22px rgba(0, 0, 0, 0.2); }
 .launcher:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--brand), 0 8px 22px rgba(0, 0, 0, 0.2); }
 .launcher.dragging { transition: none; cursor: grabbing; }
+/* Something to offer on this page (X bookmarks): a small orange dot; the question waits in the panel. */
+.launcher.offer:not(.open)::before {
+  content: ""; position: absolute; top: 6px; right: 6px; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box;
+  background: var(--spark); border: 2px solid var(--owl-bg); z-index: 1;
+}
 .launcher.busy::after {
   content: ""; position: absolute; inset: -1px; border-radius: 50%;
   border: 2px solid transparent; border-top-color: var(--brand); border-right-color: var(--spark); animation: spin 0.9s linear infinite;
@@ -195,6 +200,9 @@ header {
 /* Home: the opening screen over the conversation, which stays underneath */
 .thread.home > :not(.empty) { display: none; }
 /* In a conversation, the opening screen stays on top as a compact block of suggested questions. */
+.home-offer { width: 100%; text-align: left; }
+.home-offer:empty { display: none; }
+.home-offer .card { margin: 4px 0 8px; }
 .thread.chatting > .empty { margin: 0; padding: 2px 12px 14px; border-bottom: 1px solid var(--border); }
 .thread.chatting > .empty .empty-mark, .thread.chatting > .empty .empty-note, .thread.chatting > .empty .empty-hint { display: none; }
 .thread.chatting > .empty strong { font-size: 13.5px; }

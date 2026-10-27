@@ -235,6 +235,16 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `flushDwell()` (leave, hide, every minute; ≥5 s; never incognito or excluded pages) sends
   `pkg:dwell` only if `snippetsForPage` finds the page saved; the background adds it with
   `S.addDwell` (≤1 h per report). Local only: not synced or backed up; "Delete all" clears it.
+- **X bookmarks → PKG** (`xBookmarksOffer`, on; `shared/xbookmarks.js`): on `x.com/i/bookmarks`
+  (and `/i/history`) `syncBookmarksOffer()` puts a dot on the owl and, once per browser session,
+  opens the floating panel with the question at the top of the opening screen (`.home-offer`); the
+  side panel shows it from the snapshot (`bookmarks`) and answers via `assistant:sp-bookmarks`
+  (start / stop / later / never). `importBookmarks()` scrolls to the end collecting X's posts as
+  they render (X drops off-screen ones), stops after 8 idle steps, 5,000 posts or 20 min, or after
+  30 already-saved in a row on a re-sync; tags new ones with the `tagBatch` prompt in batches of
+  `BATCH` = 5 (3B models: 22/40 sensible at 20, 40/40 at 5); saves with `importSnippets`
+  (`dedupeKey` `xbookmark:<id>`, newest first) and `xBookmarksSync` `{ at, total }`. Stop saves what
+  was found. The handle falls back to the post's address (`bookmarkHandle`).
 - **Tech only** (chip in both panels, `assistant:sp-focus` for the side panel): `focusRequest()` in
   `assistant.js` builds the `focus` prompt from all loaded X posts (`preparedContent()`, which now
   also returns their `urls`), a feed's loaded items, or the page (YouTube: transcript via

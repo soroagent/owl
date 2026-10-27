@@ -132,6 +132,7 @@
     const page = $('page');
     page.replaceChildren();
     $('techFilter').hidden = true;
+    renderBookmarks(snap && snap.bookmarks);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -187,6 +188,22 @@
     $('newCount').hidden = !snap.newPosts || p.status === 'working';
     $('newCount').textContent = snap.newPosts > 99 ? '99+' : String(snap.newPosts || '');
     $('refresh').title = snap.newPosts ? `${snap.newPosts} new posts loaded since the summary: refresh` : 'Refresh the summary with the posts loaded now';
+  }
+
+  // X bookmarks → PKG: the same question as the floating panel; the page does the scrolling and saving.
+  function renderBookmarks(b) {
+    if (!b || (!b.offer && !b.running && !b.result)) return $('bookmarksBox').replaceChildren();
+    const send = (op) => toTab({ type: 'assistant:sp-bookmarks', op }).catch(() => {});
+    let node;
+    if (b.running) node = card({ title: b.progress || 'Saving your bookmarks…', body: 'Keep the X tab open while it scrolls.', actions: [{ label: 'Stop and save what was found', onClick: () => send('stop') }] });
+    else if (b.offer) {
+      node = card({
+        title: 'Save your X bookmarks to your PKG?',
+        body: 'soroagent scrolls through your bookmarks to the end and saves each one as a snippet, with topics from your AI. Next time only new ones are added.',
+        actions: [{ label: 'Save all bookmarks', onClick: () => send('start') }, { label: 'Not now', onClick: () => send('later') }, { label: "Don't ask again", onClick: () => send('never') }],
+      });
+    } else node = card({ kind: 'ok', title: b.result, actions: [{ label: 'Open PKG', onClick: () => ext.runtime.sendMessage({ type: 'open:pkg' }) }] });
+    $('bookmarksBox').replaceChildren(node);
   }
 
   function setEnabled() {

@@ -119,6 +119,20 @@ Items:
 Which items are mainly about the topic? Count an item only if the topic is its main subject, not a passing mention (a football score shared from a phone app is not about technology). Return JSON: {"tech": [the numbers of the matching items]}, an empty list if none match.`,
     },
 
+    // X bookmarks into the PKG: topic tags for a batch of saved posts (5 at a time), so they join the knowledge graph.
+    // {{content}} is the numbered posts, {{context}} the tags already in the user's PKG. Quick mode.
+    // Reply: JSON (keep this shape).
+    tagBatch: {
+      system: `You file saved posts into a personal knowledge base by topic. Reply with JSON only.`,
+      user: `Posts:
+{{content}}
+
+Tags already in the user's knowledge base: {{context}}
+
+Give each post 1 to 3 short topic tags (lowercase, one or two words, hyphenated, like "ai-agents" or "rust"). Reuse the existing tags whenever they fit; add a new tag only for a genuinely new topic. Topics, not formats: no "thread", "tweet" or "news".
+Return JSON: {"tags": {"1": ["…"], "2": ["…"]}}`,
+    },
+
     // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
     // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
     // Reply: JSON (keep this shape).

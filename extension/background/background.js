@@ -368,6 +368,7 @@
       return { ok: true, keys: await secrets.describe() };
     },
     // `id` opens the snippets page on that snippet.
+    'open:pkg': () => ext.tabs.create({ url: ext.runtime.getURL('pages/pkg.html') }),
     'open:snippets': (msg) => {
       const hash = msg && msg.id ? `#${encodeURIComponent(msg.id)}` : msg && msg.view ? `#view=${encodeURIComponent(msg.view)}` : '';
       return ext.tabs.create({ url: ext.runtime.getURL(`pages/snippets.html${hash}`) });

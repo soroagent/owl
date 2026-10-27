@@ -49,6 +49,8 @@
     .suggest { display: grid; gap: 6px; width: 100%; max-width: 320px; }
     .suggest button { text-align: left; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
     .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
+    #bookmarksBox { width: 100%; text-align: left; }
+    #bookmarksBox:empty { display: none; }
     .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
     .suggest button.slotted { display: grid; gap: 1px; }
     .suggest button.slotted::before, .suggest button.slotted.asked::before { content: none; }
@@ -119,6 +121,7 @@
     <img src="../icons/icon-128.png" alt="">
     <strong>How can I help with this page?</strong>
     <span id="homeNote"></span>
+    <div id="bookmarksBox"></div>
     <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span><button class="link" type="button" id="suggestMore" hidden>Suggest questions for this page</button></div>
     <div class="suggest" id="suggest" role="group" aria-label="Suggested questions"></div>
   </div>

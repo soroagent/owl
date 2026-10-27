@@ -83,6 +83,7 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `followUps` | Two follow-up questions under each answer (`{{question}}` = what was asked, `{{content}}` = the answer). Quick mode | JSON `{ "questions": [] }` |
 | `focus` | **Tech only**: the page filtered to one topic (`{{question}}` = what the topic covers, from `FOCUS_TOPICS` in `shared/prompts.js`); items cited [n], video moments [m:ss], both made clickable | Markdown |
 | `techSort` | **Hide non-tech** on feeds: which of the numbered items in `{{content}}` are about `{{question}}` (the topic). Quick mode | JSON `{ "tech": [] }` (item numbers) |
+| `tagBatch` | **X bookmarks** saved to the PKG: 1–3 topic tags per numbered post in `{{content}}`, reusing the tags in `{{context}}`. Quick mode | JSON `{ "tags": { "1": [] } }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
 | `research` | **Research**, step 2: the cited brief. `{{question}}` is the query, `{{content}}` the numbered web sources, `{{context}}` what the user already read | Markdown |

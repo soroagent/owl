@@ -101,6 +101,7 @@
           <span class="empty-mark">${OWL_MARK}</span>
           <strong>How can I help with this page?</strong>
           <span class="empty-note">Runs on the model served at your local URL. Nothing leaves your machine.</span>
+          <div class="home-offer"></div>
           <div class="suggest-head" hidden><span class="suggest-label"></span><button type="button" class="suggest-more">New questions</button></div>
           <div class="suggest" role="group" aria-label="Suggested questions">
             <button type="button" data-ask="What are the key points of this page?">What are the key points?</button>
@@ -182,6 +183,10 @@
   // Hide non-tech's state (see "Hide non-tech" below); here because the site bar and snapshot read it early.
   const tech = { feed: '', verdicts: new Map(), busy: false, timer: 0, observer: null, pausedUntil: 0 };
   const techFeed = () => (S.feedFilter ? S.feedFilter.feedFor(location) : '');
+  // X bookmarks' state (see "X bookmarks → PKG" below); here because the snapshot reads it early.
+  const bm = { url: '', asked: false, node: null, run: null, progress: '', result: '' };
+  const onBookmarks = () => Boolean(S.xBookmarks && S.xBookmarks.isBookmarksPage(location));
+  const bookmarksOffered = () => onBookmarks() && state.settings.xBookmarksOffer !== false && !bm.asked && !bm.run;
 
   const launcherCtl = S.createLauncherController({
     host,
@@ -607,6 +612,161 @@
       pre: fix.command,
       actions: [copy, { label: 'Retry', onClick: () => connect() }],
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // X bookmarks → PKG (shared/xbookmarks.js). On X's bookmarks page the owl offers to save them all:
+  // it scrolls to the end collecting every post (X keeps only the ones near the screen in the page),
+  // asks the AI for topic tags in batches of 5 (3B models mix posts up in bigger batches: 22 of 40
+  // tagged sensibly at 20, 40 of 40 at 5), and saves each as a snippet. Next time only new
+  // bookmarks are added: scrolling stops after 30 in a row that were saved before.
+  // ---------------------------------------------------------------------------
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // On start, navigation and settings changes: the owl's dot, and the question.
+  function syncBookmarksOffer() {
+    if (bm.url !== location.href) Object.assign(bm, { url: location.href, asked: false, node: null, result: '' });
+    const offered = bookmarksOffered();
+    els.launcher.classList.toggle('offer', offered);
+    if (!offered) {
+      if (bm.node && !bm.run) bm.node.remove();
+      notifySidePanel();
+      return;
+    }
+    // The first time in a browser session, open the floating panel so the question is seen.
+    let seen = true;
+    try {
+      seen = sessionStorage.getItem('soroagent.bookmarksOffer') === '1';
+      sessionStorage.setItem('soroagent.bookmarksOffer', '1');
+    } catch {
+      // no session storage: don't open it by itself
+    }
+    if (!isOpen() && !seen && state.settings.onboarded && S.appearanceOf(state.settings) === 'owl') openPanel({ focus: false });
+    if (isOpen()) offerBookmarks();
+    notifySidePanel();
+  }
+
+  async function offerBookmarks() {
+    if (!bookmarksOffered() || (bm.node && bm.node.isConnected)) return;
+    const { xBookmarksSync: last } = await ext.storage.local.get('xBookmarksSync');
+    if (!bookmarksOffered() || (bm.node && bm.node.isConnected)) return;
+    const answer = () => {
+      bm.asked = true;
+      els.launcher.classList.remove('offer');
+      if (bm.node) bm.node.remove();
+      notifySidePanel();
+    };
+    bm.node = card({
+      kind: 'bookmarks-offer',
+      icon: 'save',
+      title: last ? 'Add your new X bookmarks to your PKG?' : 'Save your X bookmarks to your PKG?',
+      body: last
+        ? `Last time ${last.total} were saved (${new Date(last.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}). soroagent scrolls through your bookmarks and adds the new ones as snippets.`
+        : 'soroagent scrolls through your bookmarks to the end and saves each one as a snippet, with topics from your AI, so they join your knowledge graph. Keep this tab open while it runs.',
+      actions: [
+        { label: last ? 'Add new bookmarks' : 'Save all bookmarks', onClick: () => (answer(), importBookmarks()) },
+        { label: 'Not now', onClick: answer },
+        { label: "Don't ask again", onClick: () => (answer(), S.saveSettings({ xBookmarksOffer: false })) },
+      ],
+    });
+    // On the opening screen, above the suggested questions, when nothing's been said yet.
+    if (!els.empty.hidden && !els.thread.classList.contains('chatting')) {
+      els.empty.querySelector('.home-offer').append(bm.node);
+      els.thread.scrollTop = 0;
+    } else append(bm.node);
+  }
+
+  function bookmarkProgress(text, ui) {
+    bm.progress = text;
+    if (ui) ui.update(text);
+    notifySidePanel();
+  }
+
+  async function importBookmarks() {
+    if (bm.run || !onBookmarks()) return;
+    const controller = new AbortController();
+    bm.run = controller;
+    bm.result = '';
+    const signal = controller.signal;
+    const B = S.xBookmarks;
+    const site = S.siteFor(location);
+    const visible = site.items && site.items.visible;
+    const ui = isOpen() ? progressCard('save', 'Getting ready…') : null;
+    if (ui) {
+      const stop = el('button', { type: 'button', className: 'btn-stop', textContent: 'Stop and save what was found' });
+      stop.addEventListener('click', () => controller.abort());
+      ui.node.append(el('div', { className: 'card-actions' }, [stop]));
+    }
+    try {
+      const known = new Set((await S.listSnippets()).map((s) => s.dedupeKey).filter((k) => k && k.startsWith(B.PREFIX)));
+      const found = new Map();
+      let idle = 0;
+      let knownRun = 0;
+      const started = Date.now();
+      window.scrollTo(0, 0);
+      await wait(1200);
+      while (!signal.aborted && visible) {
+        const before = found.size;
+        for (const post of visible(document, {})) {
+          if (!post.id || !post.url || found.has(post.id)) continue;
+          found.set(post.id, post);
+          knownRun = known.has(B.bookmarkKey(post)) ? knownRun + 1 : 0;
+        }
+        const fresh = [...found.values()].filter((p) => !known.has(B.bookmarkKey(p))).length;
+        bookmarkProgress(`Scrolling through your bookmarks: ${found.size} found${known.size ? `, ${fresh} new` : ''}…`, ui);
+        if (known.size && knownRun >= 30) break; // reached the ones saved last time
+        idle = found.size === before ? idle + 1 : 0;
+        if (idle >= 8 || found.size >= 5000 || Date.now() - started > 20 * 60000) break; // the end (or a sane limit)
+        const height = document.documentElement.scrollHeight;
+        window.scrollBy(0, Math.max(500, window.innerHeight * 0.9));
+        for (let waited = 0; waited < 3000 && document.documentElement.scrollHeight === height; waited += 300) await wait(300);
+        await wait(350);
+      }
+      const fresh = [...found.values()].filter((p) => !known.has(B.bookmarkKey(p)));
+      // Topics, so they join the graph (skipped without an AI; stopping keeps what's tagged so far).
+      const tags = fresh.map(() => []);
+      if (fresh.length && state.settings.onboarded) {
+        const vocabulary = S.tagVocabulary(await S.listSnippets(), 40);
+        try {
+          for (let i = 0; i < fresh.length; i += B.BATCH) {
+            if (signal.aborted) break;
+            bookmarkProgress(`Adding topics: ${i} of ${fresh.length}…`, ui);
+            const batch = fresh.slice(i, i + B.BATCH);
+            const content = batch.map((p, n) => `[${n + 1}] ${B.bookmarkHandle(p)}: ${String(p.text || '[media]').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n');
+            const reply = await runChat({ messages: S.buildMessages('tagBatch', { content, context: vocabulary.map((v) => v.tag).join(', ') || 'none yet' }, {}), json: true, quick: true, signal });
+            B.parseTagBatch(S.stripThinking(reply), batch.length).forEach((t, n) => (tags[i + n] = S.canonicalTags(t, vocabulary)));
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') report('llm', 'bookmark-tags-failed', err.message, { code: err.code || '' });
+        }
+      }
+      const now = Date.now();
+      const items = fresh.map((p, i) => B.bookmarkSnippet(p, { now: new Date(now - i).toISOString(), tags: tags[i] })); // newest bookmark first
+      if (items.length) await S.importSnippets(items);
+      await ext.storage.local.set({ xBookmarksSync: { at: new Date().toISOString(), total: known.size + items.length } });
+      window.scrollTo(0, 0);
+      const tagged = tags.filter((t) => t.length).length;
+      bm.result = items.length
+        ? `Saved ${items.length} bookmark${items.length === 1 ? '' : 's'} to your PKG${known.size ? ` (${known.size} were already there)` : ''}${tagged < items.length ? `; ${items.length - tagged} without topics` : ''}.`
+        : found.size ? 'No new bookmarks: everything here is already in your PKG.' : 'No bookmarks found on this page.';
+      if (ui) ui.node.remove();
+      append(card({
+        kind: 'ok',
+        icon: 'check',
+        title: bm.result,
+        body: signal.aborted ? 'Stopped early: the bookmarks found so far are saved. Run it again to continue.' : '',
+        actions: items.length ? [{ label: 'Open PKG', onClick: () => sendMessage({ type: 'open:pkg' }) }, { label: 'Open snippets', onClick: () => sendMessage({ type: 'open:snippets' }) }] : [],
+      }));
+    } catch (err) {
+      if (ui) ui.node.remove();
+      bm.result = `Couldn't save the bookmarks: ${err.message}`;
+      showError(err, '', false);
+    } finally {
+      bm.run = null;
+      bm.progress = '';
+      notifySidePanel();
+    }
   }
 
   // Once the library holds 5 things worth keeping, offer sync (once; "Not now" waits for more).
@@ -1405,13 +1565,14 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
+      bookmarks: onBookmarks() ? { offer: bookmarksOffered(), running: Boolean(bm.run), progress: bm.progress, result: bm.result } : null,
       techFilter: techFeed() ? { on: (state.settings.techFilter || []).includes(techFeed()), label: S.feedFilter.FEEDS[techFeed()].label, hidden: tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0 } : null,
       standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
     };
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}`;
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}|${bookmarksOffered()}|${bm.progress}|${bm.result}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -2173,6 +2334,7 @@
     state.pageContext = null;
     renderSiteBar();
     syncTechFilter();
+    syncBookmarksOffer();
     showPendingSummaries();
     watchX();
     schedulePrepare();
@@ -2190,6 +2352,7 @@
       els.panel.hidden = false;
       els.launcher.classList.add('open');
       renderSiteBar();
+      offerBookmarks();
       launcherCtl.placePanel();
       findRelated();
       if (state.status !== 'ready') connect();
@@ -2348,6 +2511,18 @@
           const req = focusRequest(msg.topic || 'tech');
           return req ? { ok: true, ...req } : { ok: false, error: 'Nothing to read here yet. Scroll to load posts, then try again.' };
         }
+        if (msg.type === 'assistant:sp-bookmarks') {
+          if (msg.op === 'start') importBookmarks();
+          else if (msg.op === 'stop' && bm.run) bm.run.abort();
+          else if (msg.op === 'later' || msg.op === 'never') {
+            bm.asked = true;
+            els.launcher.classList.remove('offer');
+            if (bm.node) bm.node.remove();
+            if (msg.op === 'never') await S.saveSettings({ xBookmarksOffer: false });
+            notifySidePanel();
+          }
+          return { ok: true };
+        }
         if (msg.type === 'assistant:sp-techfilter') {
           setTechFilter(Boolean(msg.on));
           return { ok: true };
@@ -2383,6 +2558,7 @@
       applySiteOptions();
       renderSiteBar();
     }
+    if (before.xBookmarksOffer !== state.settings.xBookmarksOffer) syncBookmarksOffer();
     if (String(before.techFilter) !== String(state.settings.techFilter) || before.onboarded !== state.settings.onboarded) {
       syncTechFilter();
       renderSiteBar();
@@ -2409,6 +2585,7 @@
     watchX();
     schedulePrepare();
     syncTechFilter();
+    syncBookmarksOffer();
   });
   updateControls();
 })();

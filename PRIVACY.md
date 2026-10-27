@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.44 and later.
+Arc and Firefox, version 2.45 and later.
 
 ## The short version
 
@@ -67,7 +67,7 @@ soroagent sends data over the network only in these cases, and only to the desti
 
 | When | What is sent | To whom |
 |---|---|---|
-| You summarize, ask, research, use **Tech only** or save (for its title and tags) | The page text and your question | The AI you chose. **In the browser** (Chrome's built-in Gemini Nano, or the in-browser model) or **a local model server** (Ollama, LM Studio, llama.cpp, Jan): it stays on your computer. **A cloud AI** with your own key (Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, or a custom address you enter): it goes to that provider, whose privacy policy applies. |
+| You summarize, ask, research, use **Tech only**, save (for its title and tags) or save your **X bookmarks** (their text, in batches of 5, for topic tags) | The page text and your question | The AI you chose. **In the browser** (Chrome's built-in Gemini Nano, or the in-browser model) or **a local model server** (Ollama, LM Studio, llama.cpp, Jan): it stays on your computer. **A cloud AI** with your own key (Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, or a custom address you enter): it goes to that provider, whose privacy policy applies. |
 | **Automatic preparing**: the side panel is open on a page, or you've read it for 15 seconds | The page text (on X, the posts loaded so far), to prepare a summary and the questions you're likely to have | The AI you chose, as above. **On by default only with an AI in the browser or on your computer; off by default with a cloud key.** Nothing is saved unless you act. Turn it off in Settings → On the page. |
 | You get an answer or a summary (**follow-up questions**) | Your question and the answer you got (not the page again), to write two follow-up questions | The AI you chose, as above. On by default; turn it off in Settings → On the page. |
 | You open soroagent on a page (suggested questions), when automatic preparing is off but suggested questions are on | The start of the page text | The AI you chose, as above. Same defaults; Settings → On the page. |

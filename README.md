@@ -58,6 +58,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Search by meaning.** Finds notes about the same idea even when the words differ, and still finds exact names. It uses a free local embedding model (`ollama pull nomic-embed-text`) or your OpenAI, Gemini or Mistral key; vectors stay on your device. Without one, it searches by words.
 - **Related notes.** On the page you're reading, the panel shows *"📚 3 of your saved notes relate to this page"*. **Use in chat** brings them into the conversation, cited as [N1], [N2]…
 - **PKG, your personal knowledge graph.** The PKG tab draws your snippets as a small graph of topics: each topic is sized by how many snippets you have on it and how long you've actually spent reading those pages, and lines join topics that share snippets. Click a topic for its snippets, sources and connected topics; the side list shows where your knowledge is, strongest first. Reading time is counted only on pages you've saved, and stays on your computer.
+- **Your X bookmarks, in your PKG.** Open your bookmarks on X and the owl offers to save them all: it scrolls to the end, saves each bookmark as a snippet (author, text and link) and has your AI add topics, so they join your knowledge graph. Next time it adds only the new ones. Turn the offer off in Settings → PKG.
 
 ### Your notes, everywhere
 - **Markdown folder (Obsidian, Logseq…).** The archivist keeps a clean `.md` file with YAML frontmatter for every note in a folder you choose, such as your Obsidian vault or Logseq `pages` folder:
@@ -103,12 +104,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.44.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.45.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.44.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.44.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.44.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.44.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.45.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.45.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.45.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.45.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

@@ -67,6 +67,9 @@ in Settings → AI → While you read):
 - **Hide non-tech.** On X, Reddit and YouTube video lists, a switch (off by default, per site) that
   sends the loaded posts' text (or video titles) to the user's AI in batches and hides the ones that
   aren't about tech on the page (an attribute and one CSS rule; switching off restores the page).
+- **X bookmarks into the PKG.** On X's bookmarks page the panel asks whether to save them; only on
+  "Save all bookmarks" does soroagent scroll the page to the end, collect the posts and save them as
+  snippets, sending their text to the user's AI in batches of 5 for topic tags. Off in Settings → PKG.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
