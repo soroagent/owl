@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.44.0 on 2026-10-24.
+against version 2.46.0 on 2026-10-27.
 
 ## Before you submit
 
@@ -12,11 +12,13 @@ against version 2.44.0 on 2026-10-24.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-24 (v2.41.0) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-27 (v2.46.0) |
 | ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
 | ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
 | ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
 | ✅ | Fewer features to justify against "single purpose": Tasks (background tabs) and the pictures download offer were removed in 2.41 | 2026-10-24 |
+| ✅ | Nothing is posted, liked or sent on the user's behalf: Reply ideas (2.46) only suggest text; the user copies it, or puts it in the site's open reply box, and posts it themselves | 2026-10-27 |
+| ✅ | The X bookmarks import scrolls only the user's own bookmarks page, only after they click "Save all bookmarks", in their own tab and login; Stop ends it | 2026-10-27 |
 | ✅ | The first-run page that shows inside the panel is web-accessible with `use_dynamic_url: true`, so websites can't use it to detect soroagent | 2026-10-24 |
 | ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Updated 2026-10-24 |
 | ✅ | Third-party licenses ship in both builds | Tested |
@@ -70,6 +72,12 @@ in Settings → AI → While you read):
 - **X bookmarks into the PKG.** On X's bookmarks page the panel asks whether to save them; only on
   "Save all bookmarks" does soroagent scroll the page to the end, collect the posts and save them as
   snippets, sending their text to the user's AI in batches of 5 for topic tags. Off in Settings → PKG.
+- **Reply ideas on X and LinkedIn.** A Reply button (on X and LinkedIn only; on a post's own page also
+  "Suggest a reply to <author>" at the top of the panel) sends that one post, with its author's name,
+  handle or LinkedIn headline (and on X the author's thread and the replies already shown), to the
+  user's AI on click, and shows three replies written for that author. soroagent never posts: Copy
+  puts a reply on the clipboard, and "Put in reply box" types it into the site's reply box if it's
+  open; the user edits and posts it themselves. Nothing about the post is stored.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
@@ -124,7 +132,8 @@ Tick these data types:
 - **Website content**: page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
   or in-browser AI by default; and, while the user has "Hide non-tech" on for X, Reddit or YouTube,
-  the loaded posts' text or video titles, to sort them). After an answer, the question and the answer go to the same AI to
+  the loaded posts' text or video titles, to sort them). Reply ideas send one post with its author's
+  public name and headline, on click. After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and
@@ -153,6 +162,12 @@ purpose, not used for creditworthiness or lending.
 > After each answer the panel shows two follow-up questions (a second, short request to the same AI
 > with the question and the answer). Nothing is downloaded unless the user exports or turns on the
 > automatic backup in Settings.
+>
+> On X and LinkedIn there is a Reply button: it suggests three replies to a post (open a public post,
+> e.g. any x.com/<user>/status/<id> page, and click "Suggest a reply to …"). soroagent never posts;
+> the user copies a reply or puts it in the site's reply box and posts it themselves. On X's
+> bookmarks page (needs an X account) it offers to save the bookmarks; it scrolls that page only
+> after the user clicks "Save all bookmarks".
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest
@@ -209,7 +224,8 @@ npm run vendor   # optional: downloads the vendored libraries again and verifies
 >
 > After each answer the panel shows two follow-up questions (a second, short request to the same AI
 > with the question and the answer). Nothing is downloaded unless the user exports or turns on the
-> automatic backup in Settings.
+> automatic backup in Settings. On X and LinkedIn a Reply button suggests three replies to a post;
+> soroagent never posts anything, the user copies one or puts it in the site's reply box.
 >
 > Our code is not minified or bundled; scripts/build.mjs only copies files and writes the manifest.
 > Third-party libraries, unmodified (README, license and SHA-256 in each vendor/ folder; `npm run
@@ -274,6 +290,7 @@ Firefox 140+ is required for this, which is now `strict_min_version`.
 | Description too long (Chrome, 132) | 132 characters; a test keeps it within the limit. |
 | Missing licenses for bundled code | Shipped in both builds. |
 | Broken features for reviewers (OAuth in Testing mode, store ID) | Publish the OAuth consent screen; add the store ID redirect. |
-| Single purpose (Chrome) | Every feature serves reading and keeping pages: summaries, questions, web answers, research, the library, sync. Tasks and picture downloads were removed to keep it that way. |
+| Single purpose (Chrome) | Every feature serves reading and keeping pages: summaries, questions, web answers, research, the library, sync. Tasks and picture downloads were removed to keep it that way. Reply ideas (2.46) are the furthest from "reading": they are framed as responding to what you read, limited to X and LinkedIn, and on click only. If a reviewer objects, they are the first feature to drop. |
+| Acting on the user's behalf on other sites (spam, automation) | soroagent never posts, likes, follows or sends anything. Reply ideas only fill text the user posts themselves; the bookmarks import only scrolls the user's own bookmarks page after a click. |
 | Unexpected downloads, tabs or tracking | None: the backup is opt-in and visible, no background tabs, no reading log. |
 | Extension detectable by websites | The one web-accessible page uses `use_dynamic_url`. |

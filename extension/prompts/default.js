@@ -119,6 +119,23 @@ Items:
 Which items are mainly about the topic? Count an item only if the topic is its main subject, not a passing mention (a football score shared from a phone app is not about technology). Return JSON: {"tech": [the numbers of the matching items]}, an empty list if none match.`,
     },
 
+    // Reply ideas on X and LinkedIn: 3 replies the user could post, written for the post's author.
+    // {{content}} is the post with its author (name, handle or headline) and, on X, the thread and
+    // replies so far; {{context}} the platform's rules. Reply: JSON (keep this shape).
+    reply: {
+      system: `You help the user reply to a social media post. Write like a thoughtful person, not a brand: specific, natural and in the language of the post. No hashtags, no flattery openers ("Great post!", "Love this"), no emoji unless the author uses them. Reply with JSON only.`,
+      user: `{{content}}
+
+Suggest 3 different replies the user could post to this post, written for this author: fit who they are (their role and expertise), answer what they asked for if they asked something, and match how they write (formal or casual, playful or serious).
+1. "Add": builds on their point with a concrete point, example or angle of the user's own.
+2. "Ask": one genuine, specific question this author would want to answer.
+3. "Short": a brief reaction that still says something specific about the post.
+You know nothing about the user, so never write as if they had a job, team, result or experience ("we did…", "in my experience…"); where one would help, leave a blank in brackets for them to fill, like [your team] or [your example].
+{{context}}
+
+Return JSON: {"replies": [{"tone": "Add", "text": "…"}, {"tone": "Ask", "text": "…"}, {"tone": "Short", "text": "…"}]}`,
+    },
+
     // X bookmarks into the PKG: topic tags for a batch of saved posts (5 at a time), so they join the knowledge graph.
     // {{content}} is the numbered posts, {{context}} the tags already in the user's PKG. Quick mode.
     // Reply: JSON (keep this shape).

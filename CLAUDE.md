@@ -245,6 +245,18 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `BATCH` = 5 (3B models: 22/40 sensible at 20, 40/40 at 5); saves with `importSnippets`
   (`dedupeKey` `xbookmark:<id>`, newest first) and `xBookmarksSync` `{ at, total }`. Stop saves what
   was found. The handle falls back to the post's address (`bookmarkHandle`).
+- **Reply ideas** (X and LinkedIn; `shared/replies.js`, the `reply` prompt): the Reply chip (both
+  panels, hidden elsewhere) and, on a post's own page (`isPostPage`), "Suggest a reply to <who>" at
+  the top of the opening screen (`.reply-offer`, `syncReplyOffer()`; side panel `#replyOffer` from the
+  snapshot's `reply`). `replyTarget()` in `assistant.js`: on X the post matching the status id (its
+  later same-author posts are the thread, others the replies) else the one covering the middle of
+  the screen (`pickCentral`); on LinkedIn `linkedinPosts()` (several selectors, untested against the
+  real site, which needs a login), `linkedinFromMeta()` on post pages it can't parse. `formatTarget`
+  → `{{content}}`; `parseReplies` takes JSON, a list or numbered lines. Copy, or Put in reply box
+  (`fillReplyBox`: focus + `execCommand('insertText')` so X's and LinkedIn's editors notice; falls
+  back to copying). Never posts. The turn goes into the chat history so "shorter" etc. work. Side
+  panel: `assistant:sp-reply` (messages) and `assistant:sp-reply-fill`. The prompt forbids writing
+  as if the user had a job or experience (3B models did: "async has helped us…"); brackets instead.
 - **Tech only** (chip in both panels, `assistant:sp-focus` for the side panel): `focusRequest()` in
   `assistant.js` builds the `focus` prompt from all loaded X posts (`preparedContent()`, which now
   also returns their `urls`), a feed's loaded items, or the page (YouTube: transcript via

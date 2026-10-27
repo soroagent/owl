@@ -133,6 +133,11 @@
     page.replaceChildren();
     $('techFilter').hidden = true;
     renderBookmarks(snap && snap.bookmarks);
+    // X and LinkedIn: the Reply chip, and on a post's own page the offer at the top.
+    const rp = !currentPdf() && snap && snap.reply;
+    $('reply').hidden = !rp;
+    $('replyOffer').hidden = !(rp && rp.post);
+    $('replyOfferText').textContent = `Suggest a reply to ${(rp && rp.who) || 'this post'}`;
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -212,6 +217,8 @@
     const ready = Boolean(state.ai && state.ai.ok);
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);
     $('tech').disabled = !readable || !ready || Boolean(state.busy);
+    $('reply').disabled = !ready || Boolean(state.busy);
+    $('replyOffer').disabled = !ready || Boolean(state.busy);
     $('save').disabled = !state.snap && !(pdf && pdf.status === 'ready');
     $('input').disabled = !ready || !readable;
     $('send').disabled = !state.busy && (!ready || !readable);
@@ -576,6 +583,58 @@
     });
   }
 
+  // Reply ideas on X and LinkedIn: the page finds the post and builds the prompt (shared/replies.js);
+  // Copy works here, Put in reply box asks the page to fill the site's box (else it copies).
+  function replyIdeas() {
+    return run(async (signal) => {
+      const req = await toTab({ type: 'assistant:sp-reply' });
+      addUser(req && req.ok ? `Suggest a reply to ${req.who}` : 'Suggest a reply');
+      if (!req || !req.ok) throw new Error((req && req.error) || 'Couldn’t read this page.');
+      const node = append(el('div', { className: 'msg assistant pending', textContent: 'Writing replies…' }));
+      let list = [];
+      try {
+        list = S.replies.parseReplies(await streamChat(req.messages, { push() {}, status() {} }, signal, { json: true }));
+      } finally {
+        if (!list.length) node.remove();
+      }
+      if (!list.length) throw new Error('Your AI didn’t suggest any replies. Try again.');
+      const use = async (button, text, fill) => {
+        const label = button.textContent;
+        let done = '';
+        const res = fill ? await toTab({ type: 'assistant:sp-reply-fill', text }).catch(() => null) : null;
+        if (res && res.filled) done = 'In the reply box';
+        else {
+          try {
+            await navigator.clipboard.writeText(text);
+            done = fill ? 'Copied: open the reply box and paste' : 'Copied';
+          } catch {
+            done = 'Select the text and copy it';
+          }
+        }
+        button.textContent = done;
+        setTimeout(() => (button.textContent = label), 3000);
+      };
+      node.classList.remove('pending');
+      node.classList.add('replies');
+      node.replaceChildren(
+        el('p', { className: 'reply-for', textContent: `For ${req.who}${req.excerpt ? `: “${req.excerpt}”` : ''}` }),
+        ...list.map((r) => {
+          const copy = el('button', { type: 'button', textContent: 'Copy' });
+          const put = el('button', { type: 'button', textContent: 'Put in reply box' });
+          copy.addEventListener('click', () => use(copy, r.text, false));
+          put.addEventListener('click', () => use(put, r.text, true));
+          const count = el('span', { className: `reply-count${req.limit && r.text.length > req.limit ? ' over' : ''}`, textContent: req.limit ? `${r.text.length}/${req.limit}` : '' });
+          return el('div', { className: 'reply-idea' }, [...(r.tone ? [el('span', { className: 'reply-tone', textContent: r.tone })] : []), el('p', { textContent: r.text }), el('div', { className: 'reply-actions' }, [count, copy, put])]);
+        }),
+        el('p', { className: 'reply-note', textContent: 'Nothing is posted for you. To change one, ask below: “shorter”, “more casual”…' }),
+      );
+      scrollEnd();
+      const t = thread();
+      t.history.push({ role: 'user', content: `Suggest replies I could post to this post.\n\n${req.content}` }, { role: 'assistant', content: list.map((r, i) => `${i + 1}. ${r.tone ? `${r.tone}: ` : ''}${r.text}`).join('\n') });
+      t.history = t.history.slice(-12);
+    });
+  }
+
   function ask(question, { aboutPage = false, echo = true } = {}) {
     return run(async (signal) => {
       if (echo) addUser(question);
@@ -665,6 +724,8 @@
 
   $('summarize').addEventListener('click', () => summarize());
   $('tech').addEventListener('click', () => techOnly());
+  $('reply').addEventListener('click', () => replyIdeas());
+  $('replyOffer').addEventListener('click', () => replyIdeas());
   $('techFilter').addEventListener('click', async () => {
     const on = $('techFilter').getAttribute('aria-pressed') !== 'true';
     await toTab({ type: 'assistant:sp-techfilter', on }).catch(() => {});

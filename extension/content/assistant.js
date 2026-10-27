@@ -34,6 +34,7 @@
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
     refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
     tech: svg('<rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>'),
+    reply: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -93,6 +94,7 @@
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
         <button class="chip" type="button" data-action="save" title="Save this page to your PKG">${ICONS.save}<span>Save</span></button>
         <button class="chip" type="button" data-action="tech" title="Only the tech: the posts, videos or parts of this page about technology">${ICONS.tech}<span>Tech only</span></button>
+        <button class="chip" type="button" data-action="reply" title="Reply ideas for this post, written for the person who posted it" hidden>${ICONS.reply}<span>Reply</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
       <div class="related" hidden></div>
@@ -834,8 +836,8 @@
   function updateControls() {
     const busy = Boolean(state.busy);
     const ready = state.status === 'ready';
-    // Only Summarize and Tech only need the model; the other buttons always work.
-    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'tech'].includes(chip.dataset.action) && (busy || !ready);
+    // Only Summarize, Tech only and Reply need the model; the other buttons always work.
+    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'tech', 'reply'].includes(chip.dataset.action) && (busy || !ready);
     els.input.disabled = !ready;
     els.send.disabled = !busy && !ready;
     els.send.classList.toggle('stop', busy);
@@ -1565,6 +1567,7 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
+      reply: replyPlatform() ? { post: S.replies.isPostPage(location), who: (() => { const t = replyTarget(); return t ? S.replies.whoOf(t.post) : ''; })() } : null,
       bookmarks: onBookmarks() ? { offer: bookmarksOffered(), running: Boolean(bm.run), progress: bm.progress, result: bm.result } : null,
       techFilter: techFeed() ? { on: (state.settings.techFilter || []).includes(techFeed()), label: S.feedFilter.FEEDS[techFeed()].label, hidden: tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0 } : null,
       standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
@@ -1633,6 +1636,131 @@
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Reply ideas on X and LinkedIn (shared/replies.js): three replies the user could post, written for
+  // the post's author (who they are, what they asked, how they write). On a post's own page it's that
+  // post (on X with the author's thread and the replies so far); on a feed, the post in the middle of
+  // the screen. Nothing is posted: Copy, or Put in reply box when the site's box is open.
+  // ---------------------------------------------------------------------------
+
+  const replyPlatform = () => (S.replies ? S.replies.platformOf(location) : '');
+  let replyLast = null; // the last post replies were written for (Put in reply box finds its box)
+
+  /** The post to reply to: { platform, post, thread, replies }, or null. */
+  function replyTarget() {
+    const R = S.replies;
+    const platform = replyPlatform();
+    if (!platform) return null;
+    const central = (posts) => posts[R.pickCentral(posts.map((p) => (p.el ? p.el.getBoundingClientRect() : null)), window.innerHeight)] || null;
+    if (platform === 'x') {
+      const site = items();
+      const posts = site ? site.visible(document, {}) : [];
+      const id = R.statusId(location);
+      const i = id ? posts.findIndex((p) => p.id === id) : -1;
+      const post = i >= 0 ? posts[i] : central(posts);
+      if (!post) return null;
+      const later = i >= 0 ? posts.slice(i + 1) : [];
+      return { platform, post, thread: later.filter((p) => p.handle === post.handle), replies: later.filter((p) => p.handle !== post.handle) };
+    }
+    const posts = R.linkedinPosts(document);
+    const post = R.isPostPage(location) ? posts[0] || R.linkedinFromMeta(document) : central(posts);
+    return post ? { platform, post, thread: [], replies: [] } : null;
+  }
+
+  function replyRequest() {
+    const target = replyTarget();
+    if (!target) return null;
+    const R = S.replies;
+    const rules = R.PLATFORM[target.platform];
+    const content = R.formatTarget(target.post, target);
+    const oneLine = String(target.post.text || '').replace(/\s+/g, ' ');
+    replyLast = target;
+    return {
+      messages: S.buildMessages('reply', { content, context: `Platform: ${rules.label}. ${rules.rule}` }, sitePrompts()),
+      who: R.whoOf(target.post),
+      excerpt: oneLine.length > 90 ? `${oneLine.slice(0, 90).replace(/\s+\S*$/, '')}…` : oneLine,
+      platform: target.platform,
+      limit: target.platform === 'x' ? rules.limit : 0,
+      content,
+    };
+  }
+
+  // Copies, or puts the reply in the site's reply box; the button says which happened.
+  async function useReply(button, text, fill) {
+    const label = button.textContent;
+    let done = '';
+    if (fill && replyLast && S.replies.fillReplyBox(document, replyLast.platform, replyLast.post, text)) done = 'In the reply box';
+    else {
+      try {
+        await navigator.clipboard.writeText(text);
+        done = fill ? 'Copied: open the reply box and paste' : 'Copied';
+      } catch {
+        done = 'Select the text and copy it';
+      }
+    }
+    button.textContent = done;
+    setTimeout(() => (button.textContent = label), 3000);
+  }
+
+  function renderReplies(node, req, list) {
+    node.classList.add('replies');
+    node.replaceChildren(
+      el('p', { className: 'reply-for', textContent: `For ${req.who}${req.excerpt ? `: “${req.excerpt}”` : ''}` }),
+      ...list.map((r) => {
+        const copy = el('button', { type: 'button', textContent: 'Copy' });
+        const put = el('button', { type: 'button', textContent: 'Put in reply box' });
+        copy.addEventListener('click', () => useReply(copy, r.text, false));
+        put.addEventListener('click', () => useReply(put, r.text, true));
+        const meta = el('span', { className: `reply-count${req.limit && r.text.length > req.limit ? ' over' : ''}`, textContent: req.limit ? `${r.text.length}/${req.limit}` : '' });
+        return el('div', { className: 'reply-idea' }, [
+          ...(r.tone ? [el('span', { className: 'reply-tone', textContent: r.tone })] : []),
+          el('p', { textContent: r.text }),
+          el('div', { className: 'reply-actions' }, [meta, copy, put]),
+        ]);
+      }),
+      el('p', { className: 'reply-note', textContent: 'Nothing is posted for you. To change one, ask below: “shorter”, “more casual”…' }),
+    );
+    scrollToEnd(true);
+  }
+
+  function replyIdeas() {
+    return runTask(async (signal) => {
+      const req = replyRequest();
+      addUserMessage(req ? `Suggest a reply to ${req.who}` : 'Suggest a reply');
+      if (!req) return append(card({ icon: 'reply', title: 'No post to reply to here.', body: 'Open a post, or scroll so the post is in the middle of the screen, then try again.' }));
+      const node = append(el('div', { className: 'msg assistant' }));
+      setHtml(node, '<span class="typing">Writing replies…</span>');
+      let list = [];
+      try {
+        list = S.replies.parseReplies(await runChat({ messages: req.messages, json: true, signal }));
+      } finally {
+        if (!list.length) node.remove();
+      }
+      if (!list.length) throw new Error('Your AI didn’t suggest any replies. Try again.');
+      renderReplies(node, req, list);
+      state.history.push({ role: 'user', content: `Suggest replies I could post to this post.\n\n${req.content}` }, { role: 'assistant', content: list.map((r, i) => `${i + 1}. ${r.tone ? `${r.tone}: ` : ''}${r.text}`).join('\n') });
+      state.history = state.history.slice(-12);
+    });
+  }
+
+  // The Reply chip on X and LinkedIn, and on a post's own page an offer at the top of the opening screen.
+  function syncReplyOffer() {
+    const platform = replyPlatform();
+    els.actions.querySelector('[data-action="reply"]').hidden = !platform;
+    const box = els.empty.querySelector('.home-offer');
+    let offer = box.querySelector('.reply-offer');
+    if (!platform || !S.replies.isPostPage(location)) return offer && offer.remove();
+    if (!isOpen()) return;
+    const target = replyTarget();
+    if (!offer) {
+      offer = el('button', { type: 'button', className: 'reply-offer' });
+      offer.addEventListener('click', () => !state.busy && replyIdeas());
+      box.prepend(offer);
+    }
+    setHtml(offer, ICONS.reply);
+    offer.append(el('span', { textContent: `Suggest a reply to ${target ? S.replies.whoOf(target.post) : 'this post'}` }));
+  }
+
   function askMessages(question, history = []) {
     const content = isX() ? preparedContent() : null;
     const page = content ? content.page : currentContext();
@@ -1678,6 +1806,7 @@
         if (!isX()) return;
         collectXPosts();
         updateRefresh();
+        if (isOpen() && S.replies.isPostPage(location)) syncReplyOffer();
 
       }, 800);
     });
@@ -2335,6 +2464,7 @@
     renderSiteBar();
     syncTechFilter();
     syncBookmarksOffer();
+    syncReplyOffer();
     showPendingSummaries();
     watchX();
     schedulePrepare();
@@ -2353,6 +2483,7 @@
       els.launcher.classList.add('open');
       renderSiteBar();
       offerBookmarks();
+      syncReplyOffer();
       launcherCtl.placePanel();
       findRelated();
       if (state.status !== 'ready') connect();
@@ -2387,6 +2518,7 @@
     const action = chip.dataset.action;
     if (action === 'summarize') summarize();
     else if (action === 'tech') techOnly();
+    else if (action === 'reply') replyIdeas();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
   });
@@ -2523,6 +2655,13 @@
           }
           return { ok: true };
         }
+        if (msg.type === 'assistant:sp-reply') {
+          const req = replyRequest();
+          return req ? { ok: true, ...req } : { ok: false, error: 'No post to reply to here. Open a post, or scroll so it is in the middle of the screen.' };
+        }
+        if (msg.type === 'assistant:sp-reply-fill') {
+          return { ok: true, filled: Boolean(replyLast && S.replies.fillReplyBox(document, replyLast.platform, replyLast.post, String(msg.text || ''))) };
+        }
         if (msg.type === 'assistant:sp-techfilter') {
           setTechFilter(Boolean(msg.on));
           return { ok: true };
@@ -2586,6 +2725,7 @@
     schedulePrepare();
     syncTechFilter();
     syncBookmarksOffer();
+    syncReplyOffer();
   });
   updateControls();
 })();

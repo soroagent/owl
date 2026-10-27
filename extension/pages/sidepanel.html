@@ -51,6 +51,22 @@
     .suggest button::before { content: "→"; color: var(--spark); margin-right: 8px; }
     #bookmarksBox { width: 100%; text-align: left; }
     #bookmarksBox:empty { display: none; }
+    /* Reply ideas (X, LinkedIn) */
+    .reply-offer { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 10px; background: var(--accent-soft); color: var(--fg); font: inherit; font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
+    .reply-offer[hidden] { display: none; }
+    .reply-offer svg { width: 15px; height: 15px; flex: none; color: var(--brand); }
+    .reply-offer:hover { border-color: var(--accent); }
+    .msg.replies { display: grid; gap: 8px; }
+    .reply-for { margin: 0; font-size: 12px; color: var(--fg-muted); }
+    .reply-idea { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+    .reply-idea p { margin: 2px 0 6px; white-space: pre-wrap; }
+    .reply-tone { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+    .reply-actions { display: flex; align-items: center; gap: 6px; }
+    .reply-actions button { padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); font: inherit; font-size: 11.5px; cursor: pointer; }
+    .reply-actions button:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .reply-count { margin-right: auto; font-size: 11px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+    .reply-count.over { color: var(--spark-fg, #b45309); font-weight: 650; }
+    .reply-note { margin: 0; font-size: 11.5px; color: var(--fg-muted); }
     .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
     .suggest button.slotted { display: grid; gap: 1px; }
     .suggest button.slotted::before, .suggest button.slotted.asked::before { content: none; }
@@ -114,6 +130,7 @@
   <button class="chip" type="button" id="summarize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Summarize</button>
   <button class="chip" type="button" id="save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Save</button>
   <button class="chip" type="button" id="tech" title="Only the tech: the posts, videos or parts of this page about technology"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>Tech only</button>
+  <button class="chip" type="button" id="reply" title="Reply ideas for this post, written for the person who posted it" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/></svg>Reply</button>
 </div>
 <div class="page-row"><div class="page" id="page"></div><button class="feed-toggle" type="button" id="techFilter" aria-pressed="false" hidden>Hide non-tech</button></div>
 <main id="main">
@@ -122,6 +139,7 @@
     <strong>How can I help with this page?</strong>
     <span id="homeNote"></span>
     <div id="bookmarksBox"></div>
+    <button class="reply-offer" type="button" id="replyOffer" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/></svg><span id="replyOfferText">Suggest a reply to this post</span></button>
     <div class="suggest-head" id="suggestHead" hidden><span id="suggestLabel"></span><button class="link" type="button" id="suggestMore" hidden>Suggest questions for this page</button></div>
     <div class="suggest" id="suggest" role="group" aria-label="Suggested questions"></div>
   </div>
@@ -134,6 +152,7 @@
 <script src="../shared/markdown.js"></script>
 <script src="../shared/prompts.js"></script>
 <script src="../shared/templates.js"></script>
+<script src="../shared/replies.js"></script>
 <script src="../prompts/default.js"></script>
 <script src="../shared/knowledge.js"></script>
 <script src="../shared/snippets.js"></script>
