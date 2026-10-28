@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.48.0 on 2026-10-28.
+against version 2.50.0 on 2026-10-28.
 
 ## Before you submit
 
@@ -12,7 +12,7 @@ against version 2.48.0 on 2026-10-28.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-28 (v2.48.0) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-28 (v2.50.0) |
 | ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
 | ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
 | ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
