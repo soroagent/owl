@@ -210,6 +210,7 @@
       } catch {
         // Saved with the page title if labelling fails.
       }
+      meta.tags = soroagent.withSourceTags(meta.tags, spec.sourceTags); // e.g. linkedin-post
       const snippet = await soroagent.upsertSnippet({
         ...meta,
         kind: 'summary',

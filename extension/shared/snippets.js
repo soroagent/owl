@@ -104,10 +104,21 @@
   // Singular and plural forms count as the same tag.
   const tagStem = (tag) => normalizeTag(tag).split('-').map((w) => w.replace(/(ies)$/, 'y').replace(/(?<=[a-z]{3})s$/, '')).join('-');
 
+  // Tags that say where a snippet came from, so the library can be filtered by them. They are not
+  // topics: the AI never sees them as tags to reuse, the PKG graph leaves them out, and relabelling
+  // a snippet keeps them.
+  const SOURCE_TAGS = ['x-bookmark', 'x-like', 'linkedin-post'];
+
+  /** Pure: `tags` with the source tags found in `from` added at the end (once each). */
+  function withSourceTags(tags, from) {
+    const topics = (tags || []).filter((t) => !SOURCE_TAGS.includes(t));
+    return [...new Set([...topics, ...(from || []).filter((t) => SOURCE_TAGS.includes(t))])];
+  }
+
   /** Pure: the library's most-used tags, most used first: [{ tag, count }]. */
   function tagVocabulary(snippets, max = 40) {
     const counts = new Map();
-    for (const s of snippets || []) for (const t of s.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+    for (const s of snippets || []) for (const t of s.tags || []) if (!SOURCE_TAGS.includes(t)) counts.set(t, (counts.get(t) || 0) + 1);
     return [...counts.entries()].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag)).slice(0, max);
   }
 
@@ -126,5 +137,5 @@
     return Object.keys(changes).some((key) => key.startsWith(PREFIX));
   }
 
-  Object.assign(soroagent, { addSnippet, upsertSnippet, updateSnippet, listSnippets, deleteSnippets, importSnippets, isSnippetChange, pageKey, snippetsForPage, normalizeTag, tagVocabulary, canonicalTags });
+  Object.assign(soroagent, { addSnippet, upsertSnippet, updateSnippet, listSnippets, deleteSnippets, importSnippets, isSnippetChange, pageKey, snippetsForPage, normalizeTag, tagVocabulary, canonicalTags, SOURCE_TAGS, withSourceTags });
 })(globalThis);

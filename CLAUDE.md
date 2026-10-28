@@ -251,7 +251,11 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   the top 100; tags new posts with `tagBatch` in batches of `BATCH` = 5 (3B models: 22/40 sensible
   at 20, 40/40 at 5); `importSnippets` with `dedupeKey` `xbookmark:<id>` (bookmarks, as before),
   `xpost:<id>` (other X feeds; `postKeys` treats both as saved) or `lipost:<urn>`. On bookmarks and
-  likes, 30 already-saved posts in a row end the scroll (a re-sync). The bookmarks page also gets
+  likes, 30 already-saved posts in a row end the scroll (a re-sync). Source tags (`S.SOURCE_TAGS` in
+  `shared/snippets.js`: `x-bookmark`, `x-like`, `linkedin-post`) go last in `tags` for filtering;
+  `postSnippet` adds them, LinkedIn page saves and summaries get `linkedin-post` (`sourceTags()` in
+  assistant.js, `spec.sourceTags` in jobs.js), relabelling keeps them (`withSourceTags`), and
+  `tagVocabulary` and the PKG graph ignore them. Schema v9 backfills older snippets by `source`. The bookmarks page also gets
   the owl's dot and opens the floating panel once per browser session (`xBookmarksOffer`,
   `syncFeed()`); `xBookmarksSync` `{ at, total }` labels the re-sync button.
 - **Page actions** (owner's call 2026-10-28, all eight of the suggested features): `pageActions()` in

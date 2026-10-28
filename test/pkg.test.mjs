@@ -54,3 +54,8 @@ test('reading time on saved pages adds up per page, capped per report', () => {
   assert.equal(S.readingTime(14 * min), '14 min');
   assert.equal(S.readingTime(125 * min), '2 h 5 min');
 });
+
+test('source tags (x-bookmark, linkedin-post) are not topics in the graph', () => {
+  const g = S.buildGraph([note('1', ['ai', 'x-bookmark'], 'https://x.com/a/status/1'), note('2', ['linkedin-post'], 'https://www.linkedin.com/feed/update/u/')], {}, { now });
+  assert.deepEqual(g.topics.map((t) => t.id), ['ai']);
+});

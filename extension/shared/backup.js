@@ -6,7 +6,7 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 8;
+  const SCHEMA_VERSION = 9;
   const FORMAT = 'soroagent-backup';
   // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced),
   // the Stats page's reading log and the recent Tasks (both retired 2026-10-24).
@@ -77,6 +77,18 @@
 
   // v8: nothing to rewrite (screenshots go through planRemovals); recorded so the upgrade runs once.
   MIGRATIONS[8] = () => ({});
+
+  // v9: saved X bookmarks, X likes and LinkedIn posts get a tag naming where they came from, as new
+  // ones do (x-bookmark, x-like, linkedin-post), so the library can be filtered by them.
+  MIGRATIONS[9] = (all) => {
+    const updates = {};
+    for (const [key, s] of Object.entries(all)) {
+      if (!key.startsWith('snippet:') || !s || !['x-bookmark', 'x-like', 'linkedin-post'].includes(s.source)) continue;
+      const tags = Array.isArray(s.tags) ? s.tags : [];
+      if (!tags.includes(s.source)) updates[key] = { ...s, tags: [...tags, s.source] };
+    }
+    return updates;
+  };
 
   /** Pure: the storage updates needed to bring `all` (a storage dump) to the current schema. */
   function planMigrations(all) {

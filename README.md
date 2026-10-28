@@ -56,7 +56,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Research** turns a summary into a starting point. soroagent offers topics from the summary (or type your own), searches the web, reads the top sources and writes a brief with numbered citations. Only the search query leaves your machine.
 
 ### Your PKG (personal knowledge graph)
-- **Auto-filed and auto-tagged.** Every summary is saved with a title, short summary and tags. The tagger reuses the tags already in your library, so "AI Agents" files under your existing *ai-agents*.
+- **Auto-filed and auto-tagged.** Every summary is saved with a title, short summary and tags. The tagger reuses the tags already in your library, so "AI Agents" files under your existing *ai-agents*. Saved X bookmarks, X likes and LinkedIn posts also get *x-bookmark*, *x-like* or *linkedin-post*, so you can filter by where they came from.
 - **Save** puts the page itself into your library, with its text for search.
 - **Passive capture** (opt-in) saves the pages you actually read. That means pages where you were active for a while (45 seconds by default) and scrolled through at least half. Mail, chat, banking, logins, checkouts, search results, feeds and pages with a password box are never captured, and you can exclude any site.
 - **Search by meaning.** Finds notes about the same idea even when the words differ, and still finds exact names. It uses a free local embedding model (`ollama pull nomic-embed-text`) or your OpenAI, Gemini or Mistral key; vectors stay on your device. Without one, it searches by words.
@@ -108,12 +108,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.48.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.49.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.48.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.48.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.48.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.48.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.49.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.49.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.49.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.49.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

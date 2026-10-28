@@ -108,16 +108,17 @@
       };
     }
     const who = linkedin ? post.name || 'Someone' : bookmarkHandle(post);
+    const source = linkedin ? 'linkedin-post' : pageType === 'bookmarks' ? 'x-bookmark' : pageType === 'likes' ? 'x-like' : 'x-post';
     return {
       kind: 'page',
-      source: linkedin ? 'linkedin-post' : pageType === 'bookmarks' ? 'x-bookmark' : pageType === 'likes' ? 'x-like' : 'x-post',
+      source,
       title: `${who}: ${clip(oneLine, 90)}`.slice(0, 160),
       pageTitle: linkedin ? `${who}${post.headline ? ` (${post.headline})` : ''} on LinkedIn` : `${post.name ? `${post.name} (${who})` : who} on X`,
       summary: clip(oneLine, 260),
       text,
       url: post.url,
       site: linkedin ? 'LinkedIn' : 'X',
-      tags,
+      tags: source === 'x-post' ? tags : [...new Set([...tags, source])], // a tag to filter by: x-bookmark, x-like, linkedin-post
       postedAt: post.time || '',
       createdAt: now,
       dedupeKey: postKeys(siteId, post, pageType)[0],

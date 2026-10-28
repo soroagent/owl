@@ -18,3 +18,11 @@ test('auto-tags reuse the library vocabulary, whatever their spelling', () => {
   assert.deepEqual(S.canonicalTags(['AI Agents', '#ai_agent', 'LLMs', 'robotics', 'Robotics'], vocab), ['ai-agents', 'llm', 'robotics']);
   assert.equal(S.normalizeTag('  Machine Learning! '), 'machine-learning');
 });
+
+test('source tags (x-bookmark, x-like, linkedin-post) are kept but are not topics', () => {
+  const library = [{ tags: ['ai', 'x-bookmark'] }, { tags: ['x-bookmark'] }, { tags: ['linkedin-post'] }];
+  assert.deepEqual(S.tagVocabulary(library).map((v) => v.tag), ['ai'], 'the AI is never asked to reuse them');
+  assert.deepEqual(S.withSourceTags(['ai', 'chips'], ['old', 'x-bookmark']), ['ai', 'chips', 'x-bookmark'], 'relabelling keeps them');
+  assert.deepEqual(S.withSourceTags(['ai'], ['evil-tag']), ['ai'], 'only the known source tags pass');
+  assert.deepEqual(S.withSourceTags(['x-like', 'ai'], undefined), ['ai'], 'the AI cannot add one');
+});

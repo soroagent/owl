@@ -539,7 +539,7 @@
         if (vocabulary.length) messages[messages.length - 1].content += `\n\nTags already in the user's library: ${vocabulary.map((v) => v.tag).join(', ')}.\nReuse these tags whenever they fit; add a new tag only for a genuinely new topic.`;
         const { connection, api } = await resolveChat();
         const meta = S.parseSnippetMeta(await chat({ connection, api, messages, json: true }), note.title);
-        await S.updateSnippet(note.id, { title: meta.title || note.title, summary: meta.summary || note.summary, tags: S.canonicalTags(meta.tags, vocabulary), labeled: true });
+        await S.updateSnippet(note.id, { title: meta.title || note.title, summary: meta.summary || note.summary, tags: S.withSourceTags(S.canonicalTags(meta.tags, vocabulary), note.tags), labeled: true });
       }).catch(quietly('label saved page'));
       return { ok: true };
     },

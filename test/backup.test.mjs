@@ -117,5 +117,20 @@ test('v7: the automatic backup is opt-in, and Stats, Tasks and the pictures offe
 test('v8: stored screenshots are deleted with the feature', () => {
   const all = { meta: { schemaVersion: 7 }, 'snippet:a': { id: 'a', kind: 'summary' }, 'snippet:s': { id: 's', kind: 'screenshot', image: 'data:' } };
   assert.deepEqual(S.planRemovals(all), ['snippet:s']);
-  assert.equal(S.planMigrations(all).meta.schemaVersion, 8);
+  assert.equal(S.planMigrations(all).meta.schemaVersion, S.SCHEMA_VERSION);
+});
+
+test('v9: saved bookmarks, likes and LinkedIn posts get their source tag', () => {
+  const all = {
+    meta: { schemaVersion: 8 },
+    'snippet:b': { id: 'b', source: 'x-bookmark', tags: ['ai'] },
+    'snippet:l': { id: 'l', source: 'x-like' },
+    'snippet:p': { id: 'p', source: 'linkedin-post', tags: ['linkedin-post'] },
+    'snippet:o': { id: 'o', source: 'page', tags: [] },
+  };
+  const updates = S.planMigrations(all);
+  assert.deepEqual(updates['snippet:b'].tags, ['ai', 'x-bookmark']);
+  assert.deepEqual(updates['snippet:l'].tags, ['x-like']);
+  assert.equal(updates['snippet:p'], undefined, 'already tagged');
+  assert.equal(updates['snippet:o'], undefined);
 });

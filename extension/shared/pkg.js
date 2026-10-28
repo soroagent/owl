@@ -42,7 +42,7 @@
         pageSeen.add(page);
         dwellTotal += ms;
       }
-      const tags = [...new Set((s.tags || []).map((t) => String(t).trim().toLowerCase()).filter(Boolean))];
+      const tags = [...new Set((s.tags || []).map((t) => String(t).trim().toLowerCase()).filter((t) => t && !(soroagent.SOURCE_TAGS || []).includes(t)))];
       for (const tag of tags) {
         if (!byTopic.has(tag)) byTopic.set(tag, { id: tag, label: tag, notes: 0, dwellMs: 0, sites: new Set(), recent: 0, last: '', noteIds: [] });
         const t = byTopic.get(tag);
@@ -81,7 +81,7 @@
     return {
       topics,
       edges,
-      totals: { notes: notes.length, tagged: notes.filter((s) => (s.tags || []).length).length, dwellMs: dwellTotal, topics: byTopic.size },
+      totals: { notes: notes.length, tagged: notes.filter((s) => (s.tags || []).some((t) => !(soroagent.SOURCE_TAGS || []).includes(t))).length, dwellMs: dwellTotal, topics: byTopic.size },
     };
   }
 

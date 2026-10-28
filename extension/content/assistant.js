@@ -275,6 +275,9 @@
     if (longform()) return { type: 'article', label: `${state.site.name} · Article`, context: `This is a long-form article published on ${state.site.name}.` };
     return state.site.pageInfo ? state.site.pageInfo(location) : { type: 'page', label: '', context: '' };
   };
+  // The tag saved snippets from this page get, so they can be filtered: LinkedIn posts (a post, the
+  // feed or someone's activity) get linkedin-post. Feed saves add theirs in feeds.js.
+  const sourceTags = () => (state.site.id === 'linkedin' && pageInfo().type !== 'page' ? ['linkedin-post'] : []);
   // Articles are read as pages; so are page types a profile doesn't read as items (items.on).
   const items = () => {
     const site = state.site.items;
@@ -846,7 +849,7 @@
       const asText = site.format(posts, { start: 1 });
       state.pageContext = { url: location.href, page: { title: document.title, url: location.href, text: asText.slice(0, maxChars()), truncated: asText.length > maxChars() } };
       state.feed = { url: location.href, optionsKey: JSON.stringify(siteOptions()), seen: new Set(posts.map((p) => p.id)), endY: undefined, done: posts.length, exhausted: posts.length < feed.top };
-      return { kind: 'job', label: jobLabel, count: posts.length, noun: feed.noun, spec: { ...base, saveMessages, ...itemsJob(posts, { start: 1, context, label: jobLabel }) } };
+      return { kind: 'job', label: jobLabel, count: posts.length, noun: feed.noun, spec: { ...base, saveMessages, sourceTags: sourceTags(), ...itemsJob(posts, { start: 1, context, label: jobLabel }) } };
     }
     if (id === 'front') {
       const list = headlines().slice(0, 80);
@@ -1382,6 +1385,7 @@
       type: 'start',
       job: {
         saveMessages,
+        sourceTags: sourceTags(),
         ...job,
         placeholder: NOTES_PLACEHOLDER,
         url: location.href,
@@ -1983,7 +1987,7 @@
 
   // A summary job spec for the side panel: the prepared summary when it's current, else the page.
   function summarySpec({ fresh = false } = {}) {
-    const base = { url: location.href, pageTitle: document.title, site: state.site.id === 'default' ? location.hostname : state.site.name, model: '', placeholder: NOTES_PLACEHOLDER };
+    const base = { url: location.href, pageTitle: document.title, site: state.site.id === 'default' ? location.hostname : state.site.name, model: '', placeholder: NOTES_PLACEHOLDER, sourceTags: sourceTags() };
     const saveMessages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: S.JOB_PLACEHOLDERS.summary }), sitePrompts());
     if (!fresh && preparedReady()) return { ...base, saveMessages, label: prep.label, kind: prep.kind, fingerprint: prep.print, final: [], preset: prep.summary };
     const content = preparedContent();
@@ -2147,6 +2151,7 @@
         url: location.href,
         summary: full.length > 280 ? `${full.slice(0, 280).replace(/\s+\S*$/, '')}…` : full,
         text: page.text,
+        tags: sourceTags(),
       });
       if (label) {
         const messages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: page.text.slice(0, 5000) }), sitePrompts());

@@ -70,7 +70,9 @@ in Settings → AI → While you read):
   lists, profiles, search) and the LinkedIn feed, the panel shows two buttons instead of suggested
   questions. Only on a click does soroagent scroll that page in the user's tab, collect the posts the
   page shows, and either summarize the top 100 with the user's AI (like Summarize) or save them as
-  snippets, sending their text in batches of 5 for topic tags. On X's bookmarks page the panel opens
+  snippets, sending their text in batches of 5 for topic tags. Saved X bookmarks, X likes and
+  LinkedIn posts also get a fixed tag naming where they came from (x-bookmark, x-like,
+  linkedin-post), added locally without the AI. On X's bookmarks page the panel opens
   by itself once per browser session with these buttons (off in Settings → PKG). Nothing is posted.
 - **Page actions on news, Hacker News, Reddit and YouTube.** Buttons on the opening screen, each run
   on a click: a news front page's top 5 stories (its headlines to the user's AI); an article's
