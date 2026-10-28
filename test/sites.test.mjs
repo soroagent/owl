@@ -208,3 +208,21 @@ test('X Articles are recognized by their size and structure, not mistaken for po
   assert.deepEqual(x.extractTypes, ['article']);
   assert.equal(typeof x.longform, 'function');
 });
+
+test('LinkedIn page detection and post format', () => {
+  const { pageInfo, formatPosts, toNumber } = S.siteHelpers.linkedin;
+  assert.equal(S.siteFor(loc('https://www.linkedin.com/feed/')).id, 'linkedin');
+  assert.equal(pageInfo(loc('https://www.linkedin.com/feed/')).type, 'feed');
+  assert.equal(pageInfo(loc('https://www.linkedin.com/in/someone/recent-activity/all/')).type, 'activity');
+  assert.equal(pageInfo(loc('https://www.linkedin.com/posts/someone_topic-activity-7254-abcd')).type, 'post');
+  assert.equal(pageInfo(loc('https://www.linkedin.com/jobs/view/123/')).type, 'page', 'jobs and profiles are read as pages');
+  assert.equal(formatPosts([{ name: 'Priya Rao', headline: 'VP Eng', reactions: 120, text: 'CI went from 41 to 17 minutes.' }], { start: 3 }), '[3] Priya Rao (VP Eng) · 120 reactions\nCI went from 41 to 17 minutes.');
+  assert.equal(toNumber('1,204 reactions'), 1204);
+  assert.equal(toNumber('2.3K'), 2300);
+});
+
+test('X likes are a feed of their own', () => {
+  const { pageInfo } = S.siteHelpers.x;
+  assert.equal(pageInfo(loc('https://x.com/karpathy/likes')).type, 'likes');
+  assert.equal(pageInfo(loc('https://x.com/karpathy')).type, 'profile');
+});

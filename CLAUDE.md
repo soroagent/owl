@@ -51,7 +51,8 @@ extension/
     launcher.js      owl button placement/drag   styles.js  panel CSS
     extract.js       readable page text           capture.js passive capture (opt-in)
     faq.js           fixed answers to "do you store my data?"-type questions about soroagent itself
-  sites/             site profiles: structure-aware extraction per site (registry.js + one file per site)
+  sites/             site profiles: structure-aware extraction per site (registry.js + one file per site;
+                     x.js and linkedin.js read feeds as posts)
   prompts/           every prompt as plain text (default.js + per-site overrides); see prompts/README.md
   shared/            loaded everywhere: config (settings, providers), prompts engine, snippets store,
                      knowledge (BM25, note formatting), backup/migrations, markdown renderer, brand
@@ -235,36 +236,29 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   `flushDwell()` (leave, hide, every minute; ≥5 s; never incognito or excluded pages) sends
   `pkg:dwell` only if `snippetsForPage` finds the page saved; the background adds it with
   `S.addDwell` (≤1 h per report). Local only: not synced or backed up; "Delete all" clears it.
-- **X bookmarks → PKG** (`xBookmarksOffer`, on; `shared/xbookmarks.js`): on `x.com/i/bookmarks`
-  (and `/i/history`) `syncBookmarksOffer()` puts a dot on the owl and, once per browser session,
-  opens the floating panel with the question at the top of the opening screen (`.home-offer`); the
-  side panel shows it from the snapshot (`bookmarks`) and answers via `assistant:sp-bookmarks`
-  (start / stop / later / never). `importBookmarks()` scrolls to the end collecting X's posts as
-  they render (X drops off-screen ones), stops after 8 idle steps, 5,000 posts or 20 min, or after
-  30 already-saved in a row on a re-sync; tags new ones with the `tagBatch` prompt in batches of
-  `BATCH` = 5 (3B models: 22/40 sensible at 20, 40/40 at 5); saves with `importSnippets`
-  (`dedupeKey` `xbookmark:<id>`, newest first) and `xBookmarksSync` `{ at, total }`. Stop saves what
-  was found. The handle falls back to the post's address (`bookmarkHandle`).
-- **Reply ideas** (X and LinkedIn; `shared/replies.js`, the `reply` prompt): the Reply chip (both
-  panels, hidden elsewhere) and, on a post's own page (`isPostPage`), "Suggest a reply to <who>" at
-  the top of the opening screen (`.reply-offer`, `syncReplyOffer()`; side panel `#replyOffer` from the
-  snapshot's `reply`). `replyTarget()` in `assistant.js`: on X the post matching the status id (its
-  later same-author posts are the thread, others the replies) else the one covering the middle of
-  the screen (`pickCentral`); on LinkedIn `linkedinPosts()` (several selectors, untested against the
-  real site, which needs a login), `linkedinFromMeta()` on post pages it can't parse. `formatTarget`
-  → `{{content}}`; `parseReplies` takes JSON, a list or numbered lines. Copy, or Put in reply box
-  (`fillReplyBox`: focus + `execCommand('insertText')` so X's and LinkedIn's editors notice; falls
-  back to copying). Never posts. The turn goes into the chat history so "shorter" etc. work. Side
-  panel: `assistant:sp-reply` (messages) and `assistant:sp-reply-fill`. The prompt forbids writing
-  as if the user had a job or experience (3B models did: "async has helped us…"); brackets instead.
-- **Tech only** (chip in both panels, `assistant:sp-focus` for the side panel): `focusRequest()` in
-  `assistant.js` builds the `focus` prompt from all loaded X posts (`preparedContent()`, which now
-  also returns their `urls`), a feed's loaded items, or the page (YouTube: transcript via
-  `ensureSite(true)`); `{{question}}` is `S.FOCUS_TOPICS.tech`. The reply cites [n] and [m:ss];
-  `S.linkFocusRefs` turns them into post links and `&t=…s` video links and drops a bullet that only
-  repeats posts already listed (small models do). A flat list on purpose: with headings, 3B models
-  copied the topic's parts as headings and listed posts twice. Other topics can be added to
-  `FOCUS_TOPICS`.
+- **Feeds** (`shared/feeds.js`, `feedActions`; owner's call 2026-10-28): on X timeline, search,
+  list, profile, bookmarks and likes pages and the LinkedIn feed/activity, the opening screen shows
+  `.feed-home` (`renderFeedHome()`, side panel `#feedBox` from the snapshot's `feed`) with
+  **Summarize the top 100 posts** and **Save … to your PKG** instead of question templates: no
+  slot questions, no preparing (`preparable()` is false), no X refresh button there. `scrollFeed()`
+  in `assistant.js` scrolls from the top 1.5 screens at a time, reading the page every 120 ms while
+  the site loads (so posts between jumps are read before X/LinkedIn drop them), and stops at the
+  limit, after 8 s without new posts at the bottom (20 s anywhere) or 20 min: 150 bookmarks on the
+  stand-in took 36 s (the old loop, 0.9 screens and up to 3 s per step, 175 s). Summarize: 100
+  posts → `itemsJob()` (notes in parts when over the page limit) as a summary job, then Read more
+  as usual; the side panel gets the job spec from `assistant:sp-feed` op `summarize` and runs it.
+  Save (`saveFeedPosts()`, op `save`; `stop`): bookmarks and likes to the end (5,000 cap), other feeds
+  the top 100; tags new posts with `tagBatch` in batches of `BATCH` = 5 (3B models: 22/40 sensible
+  at 20, 40/40 at 5); `importSnippets` with `dedupeKey` `xbookmark:<id>` (bookmarks, as before),
+  `xpost:<id>` (other X feeds; `postKeys` treats both as saved) or `lipost:<urn>`. On bookmarks and
+  likes, 30 already-saved posts in a row end the scroll (a re-sync). The bookmarks page also gets
+  the owl's dot and opens the floating panel once per browser session (`xBookmarksOffer`,
+  `syncFeed()`); `xBookmarksSync` `{ at, total }` labels the re-sync button.
+- **LinkedIn** (`sites/linkedin.js`): reads posts on the feed, activity and post pages (several
+  selectors, `.feed-shared-update-v2` / `data-urn`; promoted posts left out); other pages (profiles,
+  jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in
+  `prompts/linkedin.js` (names and roles, no @handles: the 3B model invented them). Checked on a
+  stand-in only: LinkedIn needs a login.
 - **Hide non-tech** (`techFilter`: feed ids where it's on, default none): `content/feedfilter.js`
   knows the feeds (`FEEDS`: X except `/status/` pages, Reddit except threads, YouTube lists) and
   their post elements, keys and text; hiding is the `data-soroagent-offtopic` attribute +
@@ -370,7 +364,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn and Tech only (both removed 2026-10-28 as bloat; Hide non-tech stays and keeps `FOCUS_TOPICS.tech`), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).

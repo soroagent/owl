@@ -12,7 +12,7 @@
     'home', 'explore', 'search', 'notifications', 'messages', 'settings', 'i', 'compose', 'login', 'signup',
     'logout', 'tos', 'privacy', 'jobs', 'communities', 'premium_sign_up', 'account', 'hashtag', 'lists',
   ]);
-  const FEED_TYPES = new Set(['search', 'timeline', 'profile', 'bookmarks', 'list']);
+  const FEED_TYPES = new Set(['search', 'timeline', 'profile', 'bookmarks', 'likes', 'list']);
 
   // ---------------------------------------------------------------------------
   // Pure helpers (unit tested)
@@ -44,6 +44,8 @@
       return { type: 'timeline', label: 'Home timeline', context: "These are posts from the user's X home timeline." };
     }
     if (path.startsWith('/i/bookmarks')) return { type: 'bookmarks', label: 'Bookmarks', context: "These are posts the user bookmarked on X." };
+    const likes = path.match(/^\/([A-Za-z0-9_]{1,15})\/likes\/?$/);
+    if (likes && !RESERVED.has(likes[1].toLowerCase())) return { type: 'likes', label: 'Likes', context: `These are posts @${likes[1]} liked on X.` };
     if (/^\/i\/lists\/\d+/.test(path)) return { type: 'list', label: 'List', context: 'These are posts from an X list.' };
     const profile = path.match(/^\/([A-Za-z0-9_]{1,15})(?:\/(with_replies|media|highlights|articles))?\/?$/);
     if (profile && !RESERVED.has(profile[1].toLowerCase())) {

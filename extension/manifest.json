@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "soroagent",
   "short_name": "soroagent",
-  "version": "2.46.0",
+  "version": "2.47.0",
   "description": "Summarize, ask about and save any page or PDF into a private knowledge graph, with AI on your computer, in your browser or your key.",
   "permissions": [
     "storage",
@@ -58,8 +58,7 @@
         "shared/markdown.js",
         "shared/prompts.js",
         "shared/templates.js",
-        "shared/xbookmarks.js",
-        "shared/replies.js",
+        "shared/feeds.js",
         "prompts/*.js",
         "shared/snippets.js",
         "shared/knowledge.js",

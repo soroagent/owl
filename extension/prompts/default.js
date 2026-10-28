@@ -87,25 +87,6 @@ Each question: at most 14 words, can be answered from the page or a quick web se
 Return JSON: {"questions": ["...", "...", "...", "..."]}`,
     },
 
-    // "Tech only" (and any other focus): the page filtered down to one topic, for feeds and long videos
-    // that are too much to read. {{question}} says what the topic covers. Reply: Markdown.
-    focus: {
-      system: `{{persona}}
-
-You filter a page down to one topic for a busy reader, so they don't have to go through everything. Report only what the page says; skip everything off-topic without mentioning it.`,
-      user: `{{page}}
-
-This is {{context}}
-
-The topic: {{question}}
-
-List only the parts of this page about that topic, as one flat bulleted list with no headings, most important first. Each item appears exactly once: what it is and why it matters, in one line, starting with a few bold words naming it.
-- Posts, comments or items numbered [1], [2]…: end each bullet with its number in brackets, like [3], and the @handle when there is one.
-- A video transcript: end each bullet with the time it starts, in brackets, like [12:34].
-- Leave out ads and promoted posts.
-If nothing on the page is about the topic, reply only: Nothing tech-related here.`,
-    },
-
     // "Hide non-tech": which feed items (posts, video titles) are about the topic, so the rest can be
     // hidden on the page. {{question}} is the topic, {{content}} the numbered items. Quick mode.
     // Reply: JSON (keep this shape).
@@ -117,23 +98,6 @@ Items:
 {{content}}
 
 Which items are mainly about the topic? Count an item only if the topic is its main subject, not a passing mention (a football score shared from a phone app is not about technology). Return JSON: {"tech": [the numbers of the matching items]}, an empty list if none match.`,
-    },
-
-    // Reply ideas on X and LinkedIn: 3 replies the user could post, written for the post's author.
-    // {{content}} is the post with its author (name, handle or headline) and, on X, the thread and
-    // replies so far; {{context}} the platform's rules. Reply: JSON (keep this shape).
-    reply: {
-      system: `You help the user reply to a social media post. Write like a thoughtful person, not a brand: specific, natural and in the language of the post. No hashtags, no flattery openers ("Great post!", "Love this"), no emoji unless the author uses them. Reply with JSON only.`,
-      user: `{{content}}
-
-Suggest 3 different replies the user could post to this post, written for this author: fit who they are (their role and expertise), answer what they asked for if they asked something, and match how they write (formal or casual, playful or serious).
-1. "Add": builds on their point with a concrete point, example or angle of the user's own.
-2. "Ask": one genuine, specific question this author would want to answer.
-3. "Short": a brief reaction that still says something specific about the post.
-You know nothing about the user, so never write as if they had a job, team, result or experience ("we did…", "in my experience…"); where one would help, leave a blank in brackets for them to fill, like [your team] or [your example].
-{{context}}
-
-Return JSON: {"replies": [{"tone": "Add", "text": "…"}, {"tone": "Ask", "text": "…"}, {"tone": "Short", "text": "…"}]}`,
     },
 
     // X bookmarks into the PKG: topic tags for a batch of saved posts (5 at a time), so they join the knowledge graph.

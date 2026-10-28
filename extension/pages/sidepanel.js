@@ -132,12 +132,7 @@
     const page = $('page');
     page.replaceChildren();
     $('techFilter').hidden = true;
-    renderBookmarks(snap && snap.bookmarks);
-    // X and LinkedIn: the Reply chip, and on a post's own page the offer at the top.
-    const rp = !currentPdf() && snap && snap.reply;
-    $('reply').hidden = !rp;
-    $('replyOffer').hidden = !(rp && rp.post);
-    $('replyOfferText').textContent = `Suggest a reply to ${(rp && rp.who) || 'this post'}`;
+    renderFeed(snap && snap.feed);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -187,7 +182,7 @@
       $('suggestMore').hidden = !offer;
     }
     // X: refresh with the posts that loaded since.
-    const x = snap.site.id === 'x';
+    const x = snap.site.id === 'x' && !snap.feed;
     $('refresh').hidden = !x;
     $('refresh').classList.toggle('spin', p.status === 'working');
     $('newCount').hidden = !snap.newPosts || p.status === 'working';
@@ -195,30 +190,66 @@
     $('refresh').title = snap.newPosts ? `${snap.newPosts} new posts loaded since the summary: refresh` : 'Refresh the summary with the posts loaded now';
   }
 
-  // X bookmarks → PKG: the same question as the floating panel; the page does the scrolling and saving.
-  function renderBookmarks(b) {
-    if (!b || (!b.offer && !b.running && !b.result)) return $('bookmarksBox').replaceChildren();
-    const send = (op) => toTab({ type: 'assistant:sp-bookmarks', op }).catch(() => {});
-    let node;
-    if (b.running) node = card({ title: b.progress || 'Saving your bookmarks…', body: 'Keep the X tab open while it scrolls.', actions: [{ label: 'Stop and save what was found', onClick: () => send('stop') }] });
-    else if (b.offer) {
-      node = card({
-        title: 'Save your X bookmarks to your PKG?',
-        body: 'soroagent scrolls through your bookmarks to the end and saves each one as a snippet, with topics from your AI. Next time only new ones are added.',
-        actions: [{ label: 'Save all bookmarks', onClick: () => send('start') }, { label: 'Not now', onClick: () => send('later') }, { label: "Don't ask again", onClick: () => send('never') }],
-      });
-    } else node = card({ kind: 'ok', title: b.result, actions: [{ label: 'Open PKG', onClick: () => ext.runtime.sendMessage({ type: 'open:pkg' }) }] });
-    $('bookmarksBox').replaceChildren(node);
+  // Feeds (X timelines, bookmarks, likes; the LinkedIn feed): the same actions as the floating
+  // panel, instead of questions. The page scrolls and saves; Summarize the top 100 runs here as a job.
+  function renderFeed(f) {
+    if (!f) return $('feedBox').replaceChildren();
+    const busy = Boolean(state.busy) || f.running;
+    const button = (label, onClick) => {
+      const b = el('button', { type: 'button', textContent: label, disabled: busy || !(state.ai && state.ai.ok) });
+      b.addEventListener('click', onClick);
+      return b;
+    };
+    const nodes = [
+      el('div', { className: 'feed-title', textContent: f.title }),
+      button(f.summarize, () => summarizeTop()),
+      button(f.save, () => toTab({ type: 'assistant:sp-feed', op: 'save' }).catch(() => {})),
+      el('p', { className: 'feed-note', textContent: f.running && f.progress ? f.progress : f.note }),
+    ];
+    if (f.running) {
+      const stop = el('button', { type: 'button', className: 'link', textContent: 'Stop' });
+      stop.addEventListener('click', () => toTab({ type: 'assistant:sp-feed', op: 'stop' }).catch(() => {}));
+      nodes.push(stop);
+    } else if (f.result) nodes.push(card({ kind: 'ok', title: f.result, actions: [{ label: 'Open PKG', onClick: () => ext.runtime.sendMessage({ type: 'open:pkg' }) }] }));
+    $('feedBox').replaceChildren(...nodes);
+  }
+
+  function summarizeTop() {
+    return run(async (signal) => {
+      const label = (state.snap && state.snap.feed && state.snap.feed.summarize) || 'Summarize the top 100 posts';
+      addUser(label);
+      const reply = addAssistant('Scrolling through the feed…');
+      const stop = () => toTab({ type: 'assistant:sp-feed', op: 'stop' }).catch(() => {});
+      signal.addEventListener('abort', stop, { once: true });
+      let res;
+      try {
+        res = await toTab({ type: 'assistant:sp-feed', op: 'summarize' });
+      } finally {
+        signal.removeEventListener('abort', stop);
+      }
+      if (signal.aborted || (res && res.stopped)) {
+        reply.finish('');
+        throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
+      }
+      if (!res || !res.ok) {
+        reply.finish('');
+        throw new Error((res && res.error) || 'Couldn’t read this page.');
+      }
+      reply.status(`Reading ${res.count} posts…`);
+      const record = await runJob(res.spec, reply, signal);
+      reply.finish(record.text);
+      thread().history.push({ role: 'user', content: res.spec.label }, { role: 'assistant', content: record.text });
+      if (record.snippetId) append(card({ kind: 'ok', title: 'Saved to your snippets', actions: [{ label: 'Open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] }));
+      suggestFollowUps(res.spec.label, record.text);
+    });
   }
 
   function setEnabled() {
     const pdf = currentPdf();
+    renderFeed(!pdf && state.snap ? state.snap.feed : null);
     const readable = Boolean((state.snap && state.snap.readable) || (pdf && pdf.status === 'ready' && pdf.text));
     const ready = Boolean(state.ai && state.ai.ok);
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);
-    $('tech').disabled = !readable || !ready || Boolean(state.busy);
-    $('reply').disabled = !ready || Boolean(state.busy);
-    $('replyOffer').disabled = !ready || Boolean(state.busy);
     $('save').disabled = !state.snap && !(pdf && pdf.status === 'ready');
     $('input').disabled = !ready || !readable;
     $('send').disabled = !state.busy && (!ready || !readable);
@@ -561,80 +592,6 @@
     }
   }
 
-  // "Tech only": the page filtered down to tech by the focus prompt; the content script builds it
-  // (all loaded X posts, a YouTube transcript…), and [n] / [m:ss] in the reply become links.
-  function techOnly() {
-    return run(async (signal) => {
-      const pdf = currentPdf();
-      let req;
-      if (pdf) {
-        if (pdf.status !== 'ready' || !pdf.text) throw new Error(pdf.status === 'reading' ? 'Still reading the PDF…' : 'This PDF has no text soroagent could read.');
-        req = { ok: true, urls: [], videoUrl: '', messages: S.buildMessages('focus', S.pageVars(await pdfPage(pdf), { context: pdfContext(pdf), question: S.FOCUS_TOPICS.tech }), {}) };
-      } else req = await toTab({ type: 'assistant:sp-focus', topic: 'tech' });
-      if (!req || !req.ok) throw new Error((req && req.error) || 'Couldn’t read this page.');
-      addUser('Tech only');
-      const reply = addAssistant('Picking out the tech…');
-      const text = await streamChat(req.messages, reply, signal);
-      const linked = S.linkFocusRefs(S.stripThinking(text), req);
-      reply.finish(linked);
-      const t = thread();
-      t.history.push({ role: 'user', content: 'Show me only the tech-related parts of this page.' }, { role: 'assistant', content: linked });
-      t.history = t.history.slice(-12);
-    });
-  }
-
-  // Reply ideas on X and LinkedIn: the page finds the post and builds the prompt (shared/replies.js);
-  // Copy works here, Put in reply box asks the page to fill the site's box (else it copies).
-  function replyIdeas() {
-    return run(async (signal) => {
-      const req = await toTab({ type: 'assistant:sp-reply' });
-      addUser(req && req.ok ? `Suggest a reply to ${req.who}` : 'Suggest a reply');
-      if (!req || !req.ok) throw new Error((req && req.error) || 'Couldn’t read this page.');
-      const node = append(el('div', { className: 'msg assistant pending', textContent: 'Writing replies…' }));
-      let list = [];
-      try {
-        list = S.replies.parseReplies(await streamChat(req.messages, { push() {}, status() {} }, signal, { json: true }));
-      } finally {
-        if (!list.length) node.remove();
-      }
-      if (!list.length) throw new Error('Your AI didn’t suggest any replies. Try again.');
-      const use = async (button, text, fill) => {
-        const label = button.textContent;
-        let done = '';
-        const res = fill ? await toTab({ type: 'assistant:sp-reply-fill', text }).catch(() => null) : null;
-        if (res && res.filled) done = 'In the reply box';
-        else {
-          try {
-            await navigator.clipboard.writeText(text);
-            done = fill ? 'Copied: open the reply box and paste' : 'Copied';
-          } catch {
-            done = 'Select the text and copy it';
-          }
-        }
-        button.textContent = done;
-        setTimeout(() => (button.textContent = label), 3000);
-      };
-      node.classList.remove('pending');
-      node.classList.add('replies');
-      node.replaceChildren(
-        el('p', { className: 'reply-for', textContent: `For ${req.who}${req.excerpt ? `: “${req.excerpt}”` : ''}` }),
-        ...list.map((r) => {
-          const copy = el('button', { type: 'button', textContent: 'Copy' });
-          const put = el('button', { type: 'button', textContent: 'Put in reply box' });
-          copy.addEventListener('click', () => use(copy, r.text, false));
-          put.addEventListener('click', () => use(put, r.text, true));
-          const count = el('span', { className: `reply-count${req.limit && r.text.length > req.limit ? ' over' : ''}`, textContent: req.limit ? `${r.text.length}/${req.limit}` : '' });
-          return el('div', { className: 'reply-idea' }, [...(r.tone ? [el('span', { className: 'reply-tone', textContent: r.tone })] : []), el('p', { textContent: r.text }), el('div', { className: 'reply-actions' }, [count, copy, put])]);
-        }),
-        el('p', { className: 'reply-note', textContent: 'Nothing is posted for you. To change one, ask below: “shorter”, “more casual”…' }),
-      );
-      scrollEnd();
-      const t = thread();
-      t.history.push({ role: 'user', content: `Suggest replies I could post to this post.\n\n${req.content}` }, { role: 'assistant', content: list.map((r, i) => `${i + 1}. ${r.tone ? `${r.tone}: ` : ''}${r.text}`).join('\n') });
-      t.history = t.history.slice(-12);
-    });
-  }
-
   function ask(question, { aboutPage = false, echo = true } = {}) {
     return run(async (signal) => {
       if (echo) addUser(question);
@@ -723,9 +680,6 @@
   // ---------------------------------------------------------------------------
 
   $('summarize').addEventListener('click', () => summarize());
-  $('tech').addEventListener('click', () => techOnly());
-  $('reply').addEventListener('click', () => replyIdeas());
-  $('replyOffer').addEventListener('click', () => replyIdeas());
   $('techFilter').addEventListener('click', async () => {
     const on = $('techFilter').getAttribute('aria-pressed') !== 'true';
     await toTab({ type: 'assistant:sp-techfilter', on }).catch(() => {});

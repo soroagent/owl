@@ -203,25 +203,17 @@ header {
 .home-offer { width: 100%; text-align: left; }
 .home-offer:empty { display: none; }
 .home-offer .card { margin: 4px 0 8px; }
-/* Reply ideas (X, LinkedIn): the offer on a post's page, and the ideas with Copy / Put in reply box. */
-.reply-offer {
-  display: flex; align-items: center; gap: 8px; width: 100%; max-width: 300px; margin: 4px auto 2px; padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 10px; background: var(--accent-soft);
-  color: var(--fg); font-size: 12.5px; font-weight: 600; text-align: left;
+/* Feeds (X timelines, bookmarks, likes; LinkedIn): the feed actions instead of suggested questions. */
+.feed-home { display: grid; gap: 6px; width: 100%; max-width: 300px; margin: 8px auto 2px; }
+.feed-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); text-align: center; }
+.feed-home button {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg); color: var(--fg); font-size: 13px; font-weight: 600; text-align: left;
 }
-.reply-offer svg { width: 15px; height: 15px; flex: none; color: var(--brand); }
-.reply-offer:hover { border-color: var(--accent); }
-.msg.replies { display: grid; gap: 8px; }
-.reply-for { margin: 0; font-size: 12px; color: var(--fg-muted); }
-.reply-idea { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--bg); }
-.reply-idea p { margin: 2px 0 6px; white-space: pre-wrap; }
-.reply-tone { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
-.reply-actions { display: flex; align-items: center; gap: 6px; }
-.reply-actions button { padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); color: var(--fg); font-size: 11.5px; }
-.reply-actions button:hover { border-color: var(--accent); background: var(--accent-soft); }
-.reply-count { margin-right: auto; font-size: 11px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
-.reply-count.over { color: var(--spark-fg); font-weight: 650; }
-.reply-note { margin: 0; font-size: 11.5px; color: var(--fg-muted); }
+.feed-home button svg { width: 15px; height: 15px; flex: none; color: var(--brand); }
+.feed-home button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.feed-home button:disabled { opacity: .55; cursor: default; }
+.feed-note { margin: 0; font-size: 11.5px; color: var(--fg-muted); text-align: center; }
 .thread.chatting > .empty { margin: 0; padding: 2px 12px 14px; border-bottom: 1px solid var(--border); }
 .thread.chatting > .empty .empty-mark, .thread.chatting > .empty .empty-note, .thread.chatting > .empty .empty-hint { display: none; }
 .thread.chatting > .empty strong { font-size: 13.5px; }

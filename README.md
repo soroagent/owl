@@ -30,8 +30,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **YouTube transcripts.** When you summarize or ask about a video, soroagent reads its timed transcript (from YouTube's own transcript panel, which it opens and closes again), so answers cover what's said, with timestamps.
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
-- **Reply ideas on X and LinkedIn.** On a post, the owl offers "Suggest a reply to <author>" and writes three replies for that person: one that adds to their point, one question they'd want to answer, and a short one. They fit who the author is (their role, what they asked, how they write); on a feed it's the post in the middle of your screen. Copy one, or put it in the reply box, edit it and post it yourself. soroagent never posts anything. Ask for changes in the chat ("shorter", "more casual").
-- **Tech only** cuts a page down to the technology in it, when there's too much to go through: on X, every post that has loaded; on a YouTube video, the moments in its transcript; on Reddit, the loaded posts; anywhere else, the page. You get one line per item, and each links to its post or jumps to that moment in the video.
+- **Feeds, summarized or saved in one click.** On your X home timeline, bookmarks, likes, lists and profiles, and on your LinkedIn feed, the panel skips the usual questions and offers two things instead: **Summarize the top 100 posts** (it scrolls the feed, collects them and tells you what's worth knowing, who said it, and what's worth opening) and **Save the posts to your PKG** (all your bookmarks or likes, or the top 100 elsewhere), each as a snippet with topics from your AI. Next time only new ones are added.
 - **Hide non-tech** goes one step further on X, Reddit and YouTube video lists: switch it on in the panel's site bar (or next to the page title in the side panel) and the posts or videos that aren't about tech disappear from the page itself, including the ones that load as you scroll. Your AI sorts them in small batches; switch it off and everything comes back.
 - **Questions that fit the site.** Suggested questions always come in the same four slots, **Gist · Understand · Check · Next**, and each site fills them its own way: timestamps on YouTube, the consensus on Reddit, critical reviews and bank offers on Amazon and Flipkart, the match situation on Cricbuzz and ESPNcricinfo, red flags on eBay and Telegram, the background and the other side on any news site. They're written in the page's language, so a Hindi news page gets Hindi questions. Templates cover YouTube, X, Reddit, Wikipedia, Amazon (.com and .in), LinkedIn, Pinterest, Netflix, JioHotstar, Apple, ESPN, GitHub, eBay, Roblox, Quora, AliExpress, Spotify, Flipkart, Myntra, IMDb, BookMyShow, Physics Wallah, Moneycontrol, Yahoo Finance, Justdial and Telegram; other pages get the general four.
 - **Keep exploring.** The suggested questions stay at the top of the conversation (the ones you've asked are ticked), so you can scroll up and pick another. Under each answer, two follow-up questions written from that answer take you deeper or somewhere related.
@@ -59,7 +58,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **Search by meaning.** Finds notes about the same idea even when the words differ, and still finds exact names. It uses a free local embedding model (`ollama pull nomic-embed-text`) or your OpenAI, Gemini or Mistral key; vectors stay on your device. Without one, it searches by words.
 - **Related notes.** On the page you're reading, the panel shows *"📚 3 of your saved notes relate to this page"*. **Use in chat** brings them into the conversation, cited as [N1], [N2]…
 - **PKG, your personal knowledge graph.** The PKG tab draws your snippets as a small graph of topics: each topic is sized by how many snippets you have on it and how long you've actually spent reading those pages, and lines join topics that share snippets. Click a topic for its snippets, sources and connected topics; the side list shows where your knowledge is, strongest first. Reading time is counted only on pages you've saved, and stays on your computer.
-- **Your X bookmarks, in your PKG.** Open your bookmarks on X and the owl offers to save them all: it scrolls to the end, saves each bookmark as a snippet (author, text and link) and has your AI add topics, so they join your knowledge graph. Next time it adds only the new ones. Turn the offer off in Settings → PKG.
+- **Your X bookmarks, in your PKG.** Open your bookmarks on X and the owl opens with **Save all bookmarks to your PKG** ready: it scrolls to the end, saves each bookmark as a snippet (author, text and link) and has your AI add topics, so they join your knowledge graph. Next time it adds only the new ones. Settings → PKG turns off the panel opening by itself there.
 
 ### Your notes, everywhere
 - **Markdown folder (Obsidian, Logseq…).** The archivist keeps a clean `.md` file with YAML frontmatter for every note in a folder you choose, such as your Obsidian vault or Logseq `pages` folder:
@@ -105,12 +104,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.46.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.47.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.46.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.46.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.46.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.46.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.47.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.47.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.47.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.47.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -148,7 +147,7 @@ This creates `dist/chrome` and `dist/firefox`.
 
 | Where | How |
 |---|---|
-| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize**, **Save** and **Tech only** (and **Reply** on X and LinkedIn), the page's suggested questions, and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
+| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize** and **Save**, the page's suggested questions (on feeds: Summarize the top 100 posts and Save the posts), and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
 | Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Summarize this PDF with soroagent* (on PDF links) |
 | Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Send feedback** and **Settings**. |

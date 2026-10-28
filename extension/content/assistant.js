@@ -34,7 +34,6 @@
     alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
     refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
     tech: svg('<rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>'),
-    reply: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/>'),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
   };
 
@@ -93,8 +92,6 @@
       <div class="actions">
         <button class="chip" type="button" data-action="summarize" title="A short summary of this page">${ICONS.summarize}<span>Summarize</span></button>
         <button class="chip" type="button" data-action="save" title="Save this page to your PKG">${ICONS.save}<span>Save</span></button>
-        <button class="chip" type="button" data-action="tech" title="Only the tech: the posts, videos or parts of this page about technology">${ICONS.tech}<span>Tech only</span></button>
-        <button class="chip" type="button" data-action="reply" title="Reply ideas for this post, written for the person who posted it" hidden>${ICONS.reply}<span>Reply</span></button>
       </div>
       <div class="site-bar" hidden><span class="site-label"></span></div>
       <div class="related" hidden></div>
@@ -185,10 +182,9 @@
   // Hide non-tech's state (see "Hide non-tech" below); here because the site bar and snapshot read it early.
   const tech = { feed: '', verdicts: new Map(), busy: false, timer: 0, observer: null, pausedUntil: 0 };
   const techFeed = () => (S.feedFilter ? S.feedFilter.feedFor(location) : '');
-  // X bookmarks' state (see "X bookmarks → PKG" below); here because the snapshot reads it early.
-  const bm = { url: '', asked: false, node: null, run: null, progress: '', result: '' };
-  const onBookmarks = () => Boolean(S.xBookmarks && S.xBookmarks.isBookmarksPage(location));
-  const bookmarksOffered = () => onBookmarks() && state.settings.xBookmarksOffer !== false && !bm.asked && !bm.run;
+  // Feed actions' state (see "Feeds" below); here because the snapshot reads it early.
+  const fd = { url: '', opened: false, run: null, progress: '', result: '', last: null };
+  const onBookmarks = () => Boolean(S.feeds && S.feeds.isBookmarksPage(location));
 
   const launcherCtl = S.createLauncherController({
     host,
@@ -617,156 +613,257 @@
   }
 
   // ---------------------------------------------------------------------------
-  // X bookmarks → PKG (shared/xbookmarks.js). On X's bookmarks page the owl offers to save them all:
-  // it scrolls to the end collecting every post (X keeps only the ones near the screen in the page),
-  // asks the AI for topic tags in batches of 5 (3B models mix posts up in bigger batches: 22 of 40
-  // tagged sensibly at 20, 40 of 40 at 5), and saves each as a snippet. Next time only new
-  // bookmarks are added: scrolling stops after 30 in a row that were saved before.
+  // Feeds (shared/feeds.js): on X timelines, bookmarks and likes and on the LinkedIn feed, the
+  // opening screen offers "Summarize the top 100 posts" and "Save … to your PKG" instead of the
+  // usual questions. Both scroll the page collecting posts as they render (X and LinkedIn keep only
+  // the ones near the screen in the page). Saving asks the AI for topic tags in batches of 5 (3B
+  // models mix posts up in bigger batches: 22 of 40 tagged sensibly at 20, 40 of 40 at 5) and saves
+  // each post as a snippet; next time only new ones are added (on bookmarks and likes, scrolling
+  // stops after 30 in a row that were saved before). On the bookmarks page the panel opens by
+  // itself once per browser session (setting xBookmarksOffer).
   // ---------------------------------------------------------------------------
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // On start, navigation and settings changes: the owl's dot, and the question.
-  function syncBookmarksOffer() {
-    if (bm.url !== location.href) Object.assign(bm, { url: location.href, asked: false, node: null, result: '' });
-    const offered = bookmarksOffered();
-    els.launcher.classList.toggle('offer', offered);
-    if (!offered) {
-      if (bm.node && !bm.run) bm.node.remove();
-      notifySidePanel();
-      return;
-    }
-    // The first time in a browser session, open the floating panel so the question is seen.
-    let seen = true;
-    try {
-      seen = sessionStorage.getItem('soroagent.bookmarksOffer') === '1';
-      sessionStorage.setItem('soroagent.bookmarksOffer', '1');
-    } catch {
-      // no session storage: don't open it by itself
-    }
-    if (!isOpen() && !seen && state.settings.onboarded && S.appearanceOf(state.settings) === 'owl') openPanel({ focus: false });
-    if (isOpen()) offerBookmarks();
-    notifySidePanel();
-  }
-
-  async function offerBookmarks() {
-    if (!bookmarksOffered() || (bm.node && bm.node.isConnected)) return;
-    const { xBookmarksSync: last } = await ext.storage.local.get('xBookmarksSync');
-    if (!bookmarksOffered() || (bm.node && bm.node.isConnected)) return;
-    const answer = () => {
-      bm.asked = true;
-      els.launcher.classList.remove('offer');
-      if (bm.node) bm.node.remove();
-      notifySidePanel();
+  /** The feed actions on this page ({ title, summarize, save, limit, all, noun, type }), or null. */
+  function feedHere() {
+    if (!S.feeds || !items() || state.site.id === 'default') return null;
+    const type = onBookmarks() ? 'bookmarks' : pageInfo().type;
+    const actions = S.feeds.feedActions(state.site.id, type);
+    if (!actions) return null;
+    const again = type === 'bookmarks' && fd.last;
+    return {
+      ...actions,
+      type,
+      save: again ? 'Add new bookmarks to your PKG' : actions.save,
+      note: again
+        ? `Last time ${fd.last.total} were saved (${new Date(fd.last.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}); only new ones are added.`
+        : 'soroagent scrolls the page to collect the posts. Keep this tab in front while it runs.',
     };
-    bm.node = card({
-      kind: 'bookmarks-offer',
-      icon: 'save',
-      title: last ? 'Add your new X bookmarks to your PKG?' : 'Save your X bookmarks to your PKG?',
-      body: last
-        ? `Last time ${last.total} were saved (${new Date(last.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}). soroagent scrolls through your bookmarks and adds the new ones as snippets.`
-        : 'soroagent scrolls through your bookmarks to the end and saves each one as a snippet, with topics from your AI, so they join your knowledge graph. Keep this tab open while it runs.',
-      actions: [
-        { label: last ? 'Add new bookmarks' : 'Save all bookmarks', onClick: () => (answer(), importBookmarks()) },
-        { label: 'Not now', onClick: answer },
-        { label: "Don't ask again", onClick: () => (answer(), S.saveSettings({ xBookmarksOffer: false })) },
-      ],
-    });
-    // On the opening screen, above the suggested questions, when nothing's been said yet.
-    if (!els.empty.hidden && !els.thread.classList.contains('chatting')) {
-      els.empty.querySelector('.home-offer').append(bm.node);
-      els.thread.scrollTop = 0;
-    } else append(bm.node);
   }
 
-  function bookmarkProgress(text, ui) {
-    bm.progress = text;
+  /**
+   * Scrolls the feed from the top, collecting posts as they render: up to `limit`, until `stop(post)`
+   * says so, or until nothing new loads for 8 s at the bottom (20 s anywhere) or 20 minutes pass.
+   * It jumps 1.5 screens at a time and reads the page every 120 ms while the site loads more, so
+   * the posts in between are read before the site drops them.
+   */
+  async function scrollFeed({ limit, signal, options = {}, onProgress, stop = () => false }) {
+    const site = items();
+    const found = new Map();
+    const started = Date.now();
+    let lastNew = Date.now();
+    let done = false;
+    const read = () => {
+      for (const post of site.visible(document, options)) {
+        if (found.size >= limit || done) break;
+        if (!post.id || found.has(post.id)) continue;
+        const { el: _node, ...data } = post; // the data, not the DOM node (the site recycles them)
+        found.set(post.id, data);
+        lastNew = Date.now();
+        if (stop(data)) done = true;
+      }
+    };
+    const root = document.documentElement;
+    window.scrollTo(0, 0);
+    await wait(500);
+    while (!signal.aborted && !done && found.size < limit) {
+      read();
+      onProgress(found.size);
+      const atBottom = window.scrollY + window.innerHeight >= root.scrollHeight - 40;
+      if (done || found.size >= limit || Date.now() - lastNew > (atBottom ? 8000 : 20000) || Date.now() - started > 20 * 60000) break;
+      const height = root.scrollHeight;
+      window.scrollBy(0, Math.max(600, window.innerHeight * 1.5));
+      for (let waited = 0; waited < 1500 && root.scrollHeight === height && !done; waited += 120) {
+        await wait(120);
+        read();
+      }
+    }
+    return [...found.values()];
+  }
+
+  function feedProgress(text, ui) {
+    fd.progress = text;
     if (ui) ui.update(text);
+    renderFeedHome();
     notifySidePanel();
   }
 
-  async function importBookmarks() {
-    if (bm.run || !onBookmarks()) return;
+  // On start, navigation, opening the panel and settings changes: the owl's dot on the bookmarks
+  // page (opening the panel by itself once per browser session), and the feed actions.
+  function syncFeed() {
+    if (fd.url !== location.href) Object.assign(fd, { url: location.href, result: '', opened: false });
+    const offer = onBookmarks() && state.settings.xBookmarksOffer !== false;
+    els.launcher.classList.toggle('offer', offer && !fd.opened && !isOpen());
+    if (offer) {
+      let seen = true;
+      try {
+        seen = sessionStorage.getItem('soroagent.bookmarksOffer') === '1';
+        sessionStorage.setItem('soroagent.bookmarksOffer', '1');
+      } catch {
+        // no session storage: don't open it by itself
+      }
+      if (!isOpen() && !seen && state.settings.onboarded && S.appearanceOf(state.settings) === 'owl') openPanel({ focus: false });
+    }
+    if (onBookmarks()) {
+      ext.storage.local.get('xBookmarksSync').then(({ xBookmarksSync }) => {
+        fd.last = xBookmarksSync || null;
+        renderFeedHome();
+        notifySidePanel();
+      }, () => {});
+    }
+    renderFeedHome();
+    notifySidePanel();
+  }
+
+  // The feed actions at the top of the opening screen, in place of the suggested questions.
+  function renderFeedHome() {
+    const box = els.empty.querySelector('.home-offer');
+    let node = box.querySelector('.feed-home');
+    const feed = feedHere();
+    if (!feed) return node && node.remove();
+    if (!node) {
+      node = el('div', { className: 'feed-home' });
+      box.prepend(node);
+    }
+    const busy = Boolean(fd.run || state.busy);
+    const button = (icon, label, onClick) => {
+      const b = el('button', { type: 'button', disabled: busy || state.status !== 'ready' });
+      setHtml(b, ICONS[icon]);
+      b.append(el('span', { textContent: label }));
+      b.addEventListener('click', onClick);
+      return b;
+    };
+    node.replaceChildren(
+      el('div', { className: 'feed-title', textContent: feed.title }),
+      button('summarize', feed.summarize, () => summarizeTop()),
+      button('save', feed.save, () => saveFeedPosts()),
+      el('p', { className: 'feed-note', textContent: fd.run && fd.progress ? fd.progress : feed.note }),
+    );
+  }
+
+  // Summarize the top 100: scroll for them, then summarize them like any feed batch.
+  async function collectTop(signal, ui) {
+    try {
+      return await scrollFeed({ limit: S.feeds.TOP, signal, options: siteOptions(), onProgress: (n) => feedProgress(`Scrolling: ${n} of ${S.feeds.TOP} posts…`, ui) });
+    } finally {
+      window.scrollTo(0, 0);
+      fd.progress = '';
+    }
+  }
+
+  function topContext(posts) {
+    const info = pageInfo();
+    return {
+      label: `Summarize the top ${posts.length} posts${info.label ? ` · ${info.label}` : ''}`,
+      context: `${info.context || ''} These are the top ${posts.length} posts of the feed, in the order shown.`.trim(),
+    };
+  }
+
+  function summarizeTop() {
+    const feed = feedHere();
+    if (!feed || fd.run) return;
+    return runTask(async (signal) => {
+      addUserMessage(feed.summarize);
+      const ui = progressCard('summarize', 'Scrolling…');
+      fd.run = state.busy;
+      let posts;
+      try {
+        posts = await collectTop(signal, ui);
+      } finally {
+        ui.node.remove();
+        fd.run = null;
+        renderFeedHome();
+        notifySidePanel();
+      }
+      if (signal.aborted) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
+      if (!posts.length) return append(card({ title: 'No posts found on this page yet.', body: 'Wait for the feed to load, then try again.' }));
+      const { label, context } = topContext(posts);
+      state.feed = { url: location.href, optionsKey: JSON.stringify(siteOptions()), seen: new Set(posts.map((p) => p.id)), endY: undefined, done: posts.length, exhausted: posts.length < S.feeds.TOP };
+      await summarizeItems(posts, { start: 1, context, signal, label });
+      offerReadMore();
+    });
+  }
+
+  async function saveFeedPosts() {
+    const feed = feedHere();
+    if (!feed || fd.run || state.busy) return;
+    const F = S.feeds;
+    const siteId = state.site.id;
     const controller = new AbortController();
-    bm.run = controller;
-    bm.result = '';
+    Object.assign(fd, { run: controller, opened: true, result: '' });
+    els.launcher.classList.remove('offer');
     const signal = controller.signal;
-    const B = S.xBookmarks;
-    const site = S.siteFor(location);
-    const visible = site.items && site.items.visible;
     const ui = isOpen() ? progressCard('save', 'Getting ready…') : null;
     if (ui) {
       const stop = el('button', { type: 'button', className: 'btn-stop', textContent: 'Stop and save what was found' });
       stop.addEventListener('click', () => controller.abort());
       ui.node.append(el('div', { className: 'card-actions' }, [stop]));
     }
+    renderFeedHome();
     try {
-      const known = new Set((await S.listSnippets()).map((s) => s.dedupeKey).filter((k) => k && k.startsWith(B.PREFIX)));
-      const found = new Map();
-      let idle = 0;
+      const saved = new Set((await S.listSnippets()).map((s) => s.dedupeKey).filter(Boolean));
+      const isSaved = (p) => F.postKeys(siteId, p, feed.type).some((k) => saved.has(k));
       let knownRun = 0;
-      const started = Date.now();
+      let fresh = 0;
+      const posts = await scrollFeed({
+        limit: feed.limit,
+        signal,
+        onProgress: (n) => feedProgress(`Scrolling: ${n} ${feed.noun} found${saved.size ? `, ${fresh} new` : ''}…`, ui),
+        stop: (p) => {
+          knownRun = isSaved(p) ? knownRun + 1 : 0;
+          if (!knownRun) fresh++;
+          return feed.all && knownRun >= 30; // reached the ones saved last time
+        },
+      });
       window.scrollTo(0, 0);
-      await wait(1200);
-      while (!signal.aborted && visible) {
-        const before = found.size;
-        for (const post of visible(document, {})) {
-          if (!post.id || !post.url || found.has(post.id)) continue;
-          found.set(post.id, post);
-          knownRun = known.has(B.bookmarkKey(post)) ? knownRun + 1 : 0;
-        }
-        const fresh = [...found.values()].filter((p) => !known.has(B.bookmarkKey(p))).length;
-        bookmarkProgress(`Scrolling through your bookmarks: ${found.size} found${known.size ? `, ${fresh} new` : ''}…`, ui);
-        if (known.size && knownRun >= 30) break; // reached the ones saved last time
-        idle = found.size === before ? idle + 1 : 0;
-        if (idle >= 8 || found.size >= 5000 || Date.now() - started > 20 * 60000) break; // the end (or a sane limit)
-        const height = document.documentElement.scrollHeight;
-        window.scrollBy(0, Math.max(500, window.innerHeight * 0.9));
-        for (let waited = 0; waited < 3000 && document.documentElement.scrollHeight === height; waited += 300) await wait(300);
-        await wait(350);
-      }
-      const fresh = [...found.values()].filter((p) => !known.has(B.bookmarkKey(p)));
+      const known = posts.filter(isSaved).length;
+      const todo = posts.filter((p) => !isSaved(p));
       // Topics, so they join the graph (skipped without an AI; stopping keeps what's tagged so far).
-      const tags = fresh.map(() => []);
-      if (fresh.length && state.settings.onboarded) {
+      const tags = todo.map(() => []);
+      if (todo.length && state.settings.onboarded) {
         const vocabulary = S.tagVocabulary(await S.listSnippets(), 40);
         try {
-          for (let i = 0; i < fresh.length; i += B.BATCH) {
+          for (let i = 0; i < todo.length; i += F.BATCH) {
             if (signal.aborted) break;
-            bookmarkProgress(`Adding topics: ${i} of ${fresh.length}…`, ui);
-            const batch = fresh.slice(i, i + B.BATCH);
-            const content = batch.map((p, n) => `[${n + 1}] ${B.bookmarkHandle(p)}: ${String(p.text || '[media]').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n');
+            feedProgress(`Adding topics: ${i} of ${todo.length}…`, ui);
+            const batch = todo.slice(i, i + F.BATCH);
+            const content = batch.map((p, n) => `[${n + 1}] ${siteId === 'linkedin' ? p.name || 'Someone' : F.bookmarkHandle(p)}: ${String(p.text || '[media]').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n');
             const reply = await runChat({ messages: S.buildMessages('tagBatch', { content, context: vocabulary.map((v) => v.tag).join(', ') || 'none yet' }, {}), json: true, quick: true, signal });
-            B.parseTagBatch(S.stripThinking(reply), batch.length).forEach((t, n) => (tags[i + n] = S.canonicalTags(t, vocabulary)));
+            F.parseTagBatch(S.stripThinking(reply), batch.length).forEach((t, n) => (tags[i + n] = S.canonicalTags(t, vocabulary)));
           }
         } catch (err) {
-          if (err.name !== 'AbortError') report('llm', 'bookmark-tags-failed', err.message, { code: err.code || '' });
+          if (err.name !== 'AbortError') report('llm', 'feed-tags-failed', err.message, { code: err.code || '' });
         }
       }
       const now = Date.now();
-      const items = fresh.map((p, i) => B.bookmarkSnippet(p, { now: new Date(now - i).toISOString(), tags: tags[i] })); // newest bookmark first
-      if (items.length) await S.importSnippets(items);
-      await ext.storage.local.set({ xBookmarksSync: { at: new Date().toISOString(), total: known.size + items.length } });
-      window.scrollTo(0, 0);
+      const snippets = todo.map((p, i) => F.postSnippet(p, { siteId, pageType: feed.type, now: new Date(now - i).toISOString(), tags: tags[i] })); // the top post first
+      if (snippets.length) await S.importSnippets(snippets);
+      if (feed.type === 'bookmarks') {
+        fd.last = { at: new Date().toISOString(), total: ((fd.last && fd.last.total) || 0) + snippets.length };
+        await ext.storage.local.set({ xBookmarksSync: fd.last });
+      }
       const tagged = tags.filter((t) => t.length).length;
-      bm.result = items.length
-        ? `Saved ${items.length} bookmark${items.length === 1 ? '' : 's'} to your PKG${known.size ? ` (${known.size} were already there)` : ''}${tagged < items.length ? `; ${items.length - tagged} without topics` : ''}.`
-        : found.size ? 'No new bookmarks: everything here is already in your PKG.' : 'No bookmarks found on this page.';
+      const noun = snippets.length === 1 ? feed.noun.replace(/s$/, '') : feed.noun;
+      fd.result = snippets.length
+        ? `Saved ${snippets.length} ${noun} to your PKG${known ? ` (${known} were already there)` : ''}${tagged < snippets.length ? `; ${snippets.length - tagged} without topics` : ''}.`
+        : posts.length ? `Nothing new: these ${feed.noun} are already in your PKG.` : `No ${feed.noun} found on this page.`;
       if (ui) ui.node.remove();
       append(card({
         kind: 'ok',
         icon: 'check',
-        title: bm.result,
-        body: signal.aborted ? 'Stopped early: the bookmarks found so far are saved. Run it again to continue.' : '',
-        actions: items.length ? [{ label: 'Open PKG', onClick: () => sendMessage({ type: 'open:pkg' }) }, { label: 'Open snippets', onClick: () => sendMessage({ type: 'open:snippets' }) }] : [],
+        title: fd.result,
+        body: signal.aborted ? `Stopped early: the ${feed.noun} found so far are saved. Run it again to continue.` : '',
+        actions: snippets.length ? [{ label: 'Open PKG', onClick: () => sendMessage({ type: 'open:pkg' }) }, { label: 'Open snippets', onClick: () => sendMessage({ type: 'open:snippets' }) }] : [],
       }));
     } catch (err) {
       if (ui) ui.node.remove();
-      bm.result = `Couldn't save the bookmarks: ${err.message}`;
+      fd.result = `Couldn't save the ${feed.noun}: ${err.message}`;
       showError(err, '', false);
     } finally {
-      bm.run = null;
-      bm.progress = '';
+      fd.run = null;
+      fd.progress = '';
+      renderFeedHome();
       notifySidePanel();
     }
   }
@@ -836,14 +933,15 @@
   function updateControls() {
     const busy = Boolean(state.busy);
     const ready = state.status === 'ready';
-    // Only Summarize, Tech only and Reply need the model; the other buttons always work.
-    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize', 'tech', 'reply'].includes(chip.dataset.action) && (busy || !ready);
+    // Only Summarize needs the model; the other buttons always work.
+    for (const chip of els.actions.querySelectorAll('.chip')) chip.disabled = ['summarize'].includes(chip.dataset.action) && (busy || !ready);
     els.input.disabled = !ready;
     els.send.disabled = !busy && !ready;
     els.send.classList.toggle('stop', busy);
     setHtml(els.send, busy ? ICONS.stop : ICONS.send);
     els.send.setAttribute('aria-label', busy ? 'Stop' : 'Send');
     els.launcher.classList.toggle('busy', busy);
+    renderFeedHome();
   }
 
   async function runTask(task) {
@@ -1050,9 +1148,9 @@
     });
   }
 
-  // Formats items and summarizes them as a background job. Batches longer than the page-text
-  // limit are summarized in parts (notes per part), then the notes are merged into one summary.
-  async function summarizeItems(list, { start, context, signal, label, print = '' }) {
+  // A summary job for items (posts…). Batches longer than the page-text limit are summarized in
+  // parts (notes per part), then the notes are merged into one summary.
+  function itemsJob(list, { start, context, label, print = '' }) {
     const site = items();
     const prompts = sitePrompts();
     const budget = maxChars();
@@ -1087,13 +1185,17 @@
       fullContext = `${context} The content below is notes taken on ${list.length} ${noun} in ${groups.length} parts.`;
     }
     const vars = S.pageVars({ ...base, text: content }, { context: fullContext, count: list.length });
-    const { text } = await runSummaryJob(
-      { label, kind: 'items', fingerprint: print, notes, final: S.buildMessages('summarize', vars, prompts) },
-      { signal, reply: addAssistantMessage(`Reading ${list.length} ${noun}…`) }
-    );
+    return { label, kind: 'items', fingerprint: print, notes, final: S.buildMessages('summarize', vars, prompts) };
+  }
+
+  // Summarizes items as a background job, streamed into the panel.
+  async function summarizeItems(list, { start, context, signal, label, print = '' }) {
+    const noun = items().noun || 'items';
+    const { text } = await runSummaryJob(itemsJob(list, { start, context, label, print }), { signal, reply: addAssistantMessage(`Reading ${list.length} ${noun}…`) });
     // Follow-up questions are answered from these items.
-    const asText = site.format(list, { start });
-    state.pageContext = { url: location.href, page: { ...base, text: asText.slice(0, budget), truncated: asText.length > budget } };
+    const budget = maxChars();
+    const asText = items().format(list, { start });
+    state.pageContext = { url: location.href, page: { title: document.title, url: location.href, text: asText.slice(0, budget), truncated: asText.length > budget } };
     return text;
   }
 
@@ -1323,6 +1425,8 @@
     const url = location.href;
     // Sites soroagent never reads (adult, betting…): no suggested questions at all.
     if (S.capture && S.capture.neverRead(url, { adult: S.capture.isAdultPage(document) })) return renderQuestions([], '');
+    // Feeds: the feed actions (summarize the top 100, save the posts) instead of questions.
+    if (feedHere()) return renderQuestions([], '');
     const prepareOn = S.autoOn(state.settings, 'preparePages');
     if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(standardQuestions(), '', { offer: state.status === 'ready' });
     // Prepared on visit (from the page's summary): ready, being written, or started now.
@@ -1387,6 +1491,7 @@
 
   function preparable() {
     if (isPdfDocument()) return false; // the browser's PDF viewer: the side panel reads the file itself
+    if (feedHere()) return false; // feeds offer their own actions; nothing is read until asked
     if (!S.capture || !S.capture.captureAllowed) return true;
     const hasPassword = Boolean(document.querySelector('input[type="password"]'));
     return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity, adult: S.capture.isAdultPage(document) }, state.settings.captureExclude || []).ok;
@@ -1567,15 +1672,17 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
-      reply: replyPlatform() ? { post: S.replies.isPostPage(location), who: (() => { const t = replyTarget(); return t ? S.replies.whoOf(t.post) : ''; })() } : null,
-      bookmarks: onBookmarks() ? { offer: bookmarksOffered(), running: Boolean(bm.run), progress: bm.progress, result: bm.result } : null,
+      feed: (() => {
+        const feed = feedHere();
+        return feed ? { title: feed.title, summarize: feed.summarize, save: feed.save, note: feed.note, running: Boolean(fd.run), progress: fd.progress, result: fd.result } : null;
+      })(),
       techFilter: techFeed() ? { on: (state.settings.techFilter || []).includes(techFeed()), label: S.feedFilter.FEEDS[techFeed()].label, hidden: tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0 } : null,
-      standard: S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }) ? [] : standardQuestions(),
+      standard: feedHere() || (S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) })) ? [] : standardQuestions(),
     };
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}|${bookmarksOffered()}|${bm.progress}|${bm.result}`;
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}|${Boolean(feedHere())}|${Boolean(fd.run)}|${fd.progress}|${fd.result}|${fd.last ? fd.last.at : ''}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -1592,175 +1699,6 @@
     return { ...base, saveMessages, label: content.label, kind: content.kind, fingerprint: print, final: S.buildMessages('summarize', S.pageVars(content.page, { context: content.context, count: content.count }), sitePrompts()) };
   }
 
-  // Messages for a question about this page, for the side panel (it keeps its own history).
-  // "Tech only": the page filtered down to tech (the focus prompt). On X, every post loaded so far;
-  // on feeds with items (Reddit…), the loaded items; elsewhere the page (a YouTube video with its
-  // transcript). The reply's [n] and [m:ss] references become links (S.linkFocusRefs).
-  function focusRequest(topic = 'tech') {
-    const site = items();
-    let page;
-    let context;
-    let urls = [];
-    const content = isX() ? preparedContent() : null;
-    if (content) {
-      ({ page, context } = content);
-      urls = content.urls || [];
-    } else if (site && site.visible(document, siteOptions()).length) {
-      const posts = site.visible(document, siteOptions());
-      const text = site.format(posts, { start: 1 });
-      page = { title: document.title, url: location.href, text: text.slice(0, maxChars()), truncated: text.length > maxChars() };
-      context = `${pageInfo().context || ''} These are the ${posts.length} ${site.noun || 'items'} loaded on the page.`.trim();
-      urls = posts.map((p) => p.url || p.link || '');
-    } else {
-      page = sitePage();
-      context = pageInfo().context || '';
-    }
-    if (!page || !page.text || page.text.length < 80) return null;
-    const messages = S.buildMessages('focus', S.pageVars(page, { context, question: S.FOCUS_TOPICS[topic] }), sitePrompts());
-    const videoUrl = /youtube\.com$/.test(location.hostname.replace(/^www\.|^m\./, '')) && /^\/watch/.test(location.pathname) ? location.href.replace(/[&?]t=\d+s?/, '') : '';
-    return { messages, urls, videoUrl };
-  }
-
-  function techOnly() {
-    return runTask(async (signal) => {
-      await ensureSite(true); // YouTube: read the transcript
-      const req = focusRequest('tech');
-      addUserMessage('Tech only');
-      if (!req) return append(card({ icon: 'tech', title: 'Nothing to read here yet.', body: 'Scroll to load posts, or open a page with text, then try again.' }));
-      const reply = addAssistantMessage('Picking out the tech…');
-      const text = await runChat({ messages: req.messages, signal, onToken: reply.push, onThinking: reply.thinking });
-      const linked = S.linkFocusRefs(S.stripThinking(text), req);
-      reply.finish(linked);
-      state.history.push({ role: 'user', content: 'Show me only the tech-related parts of this page.' }, { role: 'assistant', content: linked });
-      state.history = state.history.slice(-12);
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Reply ideas on X and LinkedIn (shared/replies.js): three replies the user could post, written for
-  // the post's author (who they are, what they asked, how they write). On a post's own page it's that
-  // post (on X with the author's thread and the replies so far); on a feed, the post in the middle of
-  // the screen. Nothing is posted: Copy, or Put in reply box when the site's box is open.
-  // ---------------------------------------------------------------------------
-
-  const replyPlatform = () => (S.replies ? S.replies.platformOf(location) : '');
-  let replyLast = null; // the last post replies were written for (Put in reply box finds its box)
-
-  /** The post to reply to: { platform, post, thread, replies }, or null. */
-  function replyTarget() {
-    const R = S.replies;
-    const platform = replyPlatform();
-    if (!platform) return null;
-    const central = (posts) => posts[R.pickCentral(posts.map((p) => (p.el ? p.el.getBoundingClientRect() : null)), window.innerHeight)] || null;
-    if (platform === 'x') {
-      const site = items();
-      const posts = site ? site.visible(document, {}) : [];
-      const id = R.statusId(location);
-      const i = id ? posts.findIndex((p) => p.id === id) : -1;
-      const post = i >= 0 ? posts[i] : central(posts);
-      if (!post) return null;
-      const later = i >= 0 ? posts.slice(i + 1) : [];
-      return { platform, post, thread: later.filter((p) => p.handle === post.handle), replies: later.filter((p) => p.handle !== post.handle) };
-    }
-    const posts = R.linkedinPosts(document);
-    const post = R.isPostPage(location) ? posts[0] || R.linkedinFromMeta(document) : central(posts);
-    return post ? { platform, post, thread: [], replies: [] } : null;
-  }
-
-  function replyRequest() {
-    const target = replyTarget();
-    if (!target) return null;
-    const R = S.replies;
-    const rules = R.PLATFORM[target.platform];
-    const content = R.formatTarget(target.post, target);
-    const oneLine = String(target.post.text || '').replace(/\s+/g, ' ');
-    replyLast = target;
-    return {
-      messages: S.buildMessages('reply', { content, context: `Platform: ${rules.label}. ${rules.rule}` }, sitePrompts()),
-      who: R.whoOf(target.post),
-      excerpt: oneLine.length > 90 ? `${oneLine.slice(0, 90).replace(/\s+\S*$/, '')}…` : oneLine,
-      platform: target.platform,
-      limit: target.platform === 'x' ? rules.limit : 0,
-      content,
-    };
-  }
-
-  // Copies, or puts the reply in the site's reply box; the button says which happened.
-  async function useReply(button, text, fill) {
-    const label = button.textContent;
-    let done = '';
-    if (fill && replyLast && S.replies.fillReplyBox(document, replyLast.platform, replyLast.post, text)) done = 'In the reply box';
-    else {
-      try {
-        await navigator.clipboard.writeText(text);
-        done = fill ? 'Copied: open the reply box and paste' : 'Copied';
-      } catch {
-        done = 'Select the text and copy it';
-      }
-    }
-    button.textContent = done;
-    setTimeout(() => (button.textContent = label), 3000);
-  }
-
-  function renderReplies(node, req, list) {
-    node.classList.add('replies');
-    node.replaceChildren(
-      el('p', { className: 'reply-for', textContent: `For ${req.who}${req.excerpt ? `: “${req.excerpt}”` : ''}` }),
-      ...list.map((r) => {
-        const copy = el('button', { type: 'button', textContent: 'Copy' });
-        const put = el('button', { type: 'button', textContent: 'Put in reply box' });
-        copy.addEventListener('click', () => useReply(copy, r.text, false));
-        put.addEventListener('click', () => useReply(put, r.text, true));
-        const meta = el('span', { className: `reply-count${req.limit && r.text.length > req.limit ? ' over' : ''}`, textContent: req.limit ? `${r.text.length}/${req.limit}` : '' });
-        return el('div', { className: 'reply-idea' }, [
-          ...(r.tone ? [el('span', { className: 'reply-tone', textContent: r.tone })] : []),
-          el('p', { textContent: r.text }),
-          el('div', { className: 'reply-actions' }, [meta, copy, put]),
-        ]);
-      }),
-      el('p', { className: 'reply-note', textContent: 'Nothing is posted for you. To change one, ask below: “shorter”, “more casual”…' }),
-    );
-    scrollToEnd(true);
-  }
-
-  function replyIdeas() {
-    return runTask(async (signal) => {
-      const req = replyRequest();
-      addUserMessage(req ? `Suggest a reply to ${req.who}` : 'Suggest a reply');
-      if (!req) return append(card({ icon: 'reply', title: 'No post to reply to here.', body: 'Open a post, or scroll so the post is in the middle of the screen, then try again.' }));
-      const node = append(el('div', { className: 'msg assistant' }));
-      setHtml(node, '<span class="typing">Writing replies…</span>');
-      let list = [];
-      try {
-        list = S.replies.parseReplies(await runChat({ messages: req.messages, json: true, signal }));
-      } finally {
-        if (!list.length) node.remove();
-      }
-      if (!list.length) throw new Error('Your AI didn’t suggest any replies. Try again.');
-      renderReplies(node, req, list);
-      state.history.push({ role: 'user', content: `Suggest replies I could post to this post.\n\n${req.content}` }, { role: 'assistant', content: list.map((r, i) => `${i + 1}. ${r.tone ? `${r.tone}: ` : ''}${r.text}`).join('\n') });
-      state.history = state.history.slice(-12);
-    });
-  }
-
-  // The Reply chip on X and LinkedIn, and on a post's own page an offer at the top of the opening screen.
-  function syncReplyOffer() {
-    const platform = replyPlatform();
-    els.actions.querySelector('[data-action="reply"]').hidden = !platform;
-    const box = els.empty.querySelector('.home-offer');
-    let offer = box.querySelector('.reply-offer');
-    if (!platform || !S.replies.isPostPage(location)) return offer && offer.remove();
-    if (!isOpen()) return;
-    const target = replyTarget();
-    if (!offer) {
-      offer = el('button', { type: 'button', className: 'reply-offer' });
-      offer.addEventListener('click', () => !state.busy && replyIdeas());
-      box.prepend(offer);
-    }
-    setHtml(offer, ICONS.reply);
-    offer.append(el('span', { textContent: `Suggest a reply to ${target ? S.replies.whoOf(target.post) : 'this post'}` }));
-  }
-
   function askMessages(question, history = []) {
     const content = isX() ? preparedContent() : null;
     const page = content ? content.page : currentContext();
@@ -1772,7 +1710,7 @@
   function updateRefresh() {
     notifySidePanel();
     const button = els.refresh;
-    button.hidden = !isX();
+    button.hidden = !isX() || Boolean(feedHere());
     if (button.hidden) return;
     const working = prep.status === 'working' && prep.url === location.href;
     const n = newPostCount();
@@ -1806,7 +1744,6 @@
         if (!isX()) return;
         collectXPosts();
         updateRefresh();
-        if (isOpen() && S.replies.isPostPage(location)) syncReplyOffer();
 
       }, 800);
     });
@@ -2463,8 +2400,7 @@
     state.pageContext = null;
     renderSiteBar();
     syncTechFilter();
-    syncBookmarksOffer();
-    syncReplyOffer();
+    syncFeed();
     showPendingSummaries();
     watchX();
     schedulePrepare();
@@ -2482,8 +2418,8 @@
       els.panel.hidden = false;
       els.launcher.classList.add('open');
       renderSiteBar();
-      offerBookmarks();
-      syncReplyOffer();
+      fd.opened = true;
+      syncFeed();
       launcherCtl.placePanel();
       findRelated();
       if (state.status !== 'ready') connect();
@@ -2517,8 +2453,6 @@
     if (!chip) return;
     const action = chip.dataset.action;
     if (action === 'summarize') summarize();
-    else if (action === 'tech') techOnly();
-    else if (action === 'reply') replyIdeas();
     else if (action === 'page-history') showPageHistory();
     else if (action === 'save') savePage();
   });
@@ -2638,29 +2572,32 @@
           await ensureSite(true);
           return { ok: true, messages: askMessages(String(msg.question || ''), msg.history || []) };
         }
-        if (msg.type === 'assistant:sp-focus') {
-          await ensureSite(true);
-          const req = focusRequest(msg.topic || 'tech');
-          return req ? { ok: true, ...req } : { ok: false, error: 'Nothing to read here yet. Scroll to load posts, then try again.' };
-        }
-        if (msg.type === 'assistant:sp-bookmarks') {
-          if (msg.op === 'start') importBookmarks();
-          else if (msg.op === 'stop' && bm.run) bm.run.abort();
-          else if (msg.op === 'later' || msg.op === 'never') {
-            bm.asked = true;
-            els.launcher.classList.remove('offer');
-            if (bm.node) bm.node.remove();
-            if (msg.op === 'never') await S.saveSettings({ xBookmarksOffer: false });
+        if (msg.type === 'assistant:sp-feed') {
+          if (msg.op === 'stop') {
+            if (fd.run) fd.run.abort();
+            return { ok: true };
+          }
+          if (msg.op === 'save') {
+            saveFeedPosts();
+            return { ok: true };
+          }
+          // Summarize the top 100: scroll here, then hand the side panel a job like Summarize's.
+          if (!feedHere() || fd.run) return { ok: false, error: 'Not available on this page right now.' };
+          const controller = new AbortController();
+          fd.run = controller;
+          let posts;
+          try {
+            posts = await collectTop(controller.signal);
+          } finally {
+            fd.run = null;
             notifySidePanel();
           }
-          return { ok: true };
-        }
-        if (msg.type === 'assistant:sp-reply') {
-          const req = replyRequest();
-          return req ? { ok: true, ...req } : { ok: false, error: 'No post to reply to here. Open a post, or scroll so it is in the middle of the screen.' };
-        }
-        if (msg.type === 'assistant:sp-reply-fill') {
-          return { ok: true, filled: Boolean(replyLast && S.replies.fillReplyBox(document, replyLast.platform, replyLast.post, String(msg.text || ''))) };
+          if (controller.signal.aborted) return { ok: false, stopped: true };
+          if (!posts.length) return { ok: false, error: 'No posts found on this page yet. Wait for the feed to load, then try again.' };
+          const { label, context } = topContext(posts);
+          const base = { url: location.href, pageTitle: document.title, site: state.site.name, model: '', placeholder: NOTES_PLACEHOLDER };
+          const saveMessages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: S.JOB_PLACEHOLDERS.summary }), sitePrompts());
+          return { ok: true, count: posts.length, spec: { ...base, saveMessages, ...itemsJob(posts, { start: 1, context, label }) } };
         }
         if (msg.type === 'assistant:sp-techfilter') {
           setTechFilter(Boolean(msg.on));
@@ -2697,7 +2634,7 @@
       applySiteOptions();
       renderSiteBar();
     }
-    if (before.xBookmarksOffer !== state.settings.xBookmarksOffer) syncBookmarksOffer();
+    if (before.xBookmarksOffer !== state.settings.xBookmarksOffer) syncFeed();
     if (String(before.techFilter) !== String(state.settings.techFilter) || before.onboarded !== state.settings.onboarded) {
       syncTechFilter();
       renderSiteBar();
@@ -2724,8 +2661,7 @@
     watchX();
     schedulePrepare();
     syncTechFilter();
-    syncBookmarksOffer();
-    syncReplyOffer();
+    syncFeed();
   });
   updateControls();
 })();
