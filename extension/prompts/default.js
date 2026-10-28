@@ -164,19 +164,6 @@ Finish with **Skip to:** the one chapter most worth watching, and why.
 Use the start times exactly as written in the page. Without a transcript, say that the summary is based on the title, description and chapters only.`,
     },
 
-    // "Hide non-tech": which feed items (posts, video titles) are about the topic, so the rest can be
-    // hidden on the page. {{question}} is the topic, {{content}} the numbered items. Quick mode.
-    // Reply: JSON (keep this shape).
-    techSort: {
-      system: `You sort feed items by topic. Reply with JSON only.`,
-      user: `The topic: {{question}}
-
-Items:
-{{content}}
-
-Which items are mainly about the topic? Count an item only if the topic is its main subject, not a passing mention (a football score shared from a phone app is not about technology). Return JSON: {"tech": [the numbers of the matching items]}, an empty list if none match.`,
-    },
-
     // X bookmarks into the PKG: topic tags for a batch of saved posts (5 at a time), so they join the knowledge graph.
     // {{content}} is the numbered posts, {{context}} the tags already in the user's PKG. Quick mode.
     // Reply: JSON (keep this shape).

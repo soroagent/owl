@@ -86,7 +86,6 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `timeline` | **Story timeline** on a news article: `{{page}}` + `{{context}}` (publication date and the user's related snippets [N1]…, with their dates); dates worked out, never guessed | Markdown |
 | `bestComments` | **Best comments** on a Hacker News or Reddit thread (`{{page}}` = the post and its comments) | Markdown |
 | `chapters` | **Chapter summaries** of a YouTube video (`{{page}}`, with the transcript when there is one); [m:ss] becomes a link to that moment | Markdown |
-| `techSort` | **Hide non-tech** on feeds: which of the numbered items in `{{content}}` are about `{{question}}` (the topic). Quick mode | JSON `{ "tech": [] }` (item numbers) |
 | `tagBatch` | A feed's posts saved to the PKG (X bookmarks, likes, timelines; LinkedIn): 1–3 topic tags per numbered post in `{{content}}`, reusing the tags in `{{context}}`. Quick mode | JSON `{ "tags": { "1": [] } }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |

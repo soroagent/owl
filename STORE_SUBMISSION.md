@@ -63,9 +63,6 @@ in Settings → AI → While you read):
   (Gist, Understand, Check, Next) that follow a template for the site (`shared/templates.js`), written
   by the user's AI. After each answer it asks the same AI for two follow-up questions, sending only
   the question and the answer.
-- **Hide non-tech.** On X, Reddit and YouTube video lists, a switch (off by default, per site) that
-  sends the loaded posts' text (or video titles) to the user's AI in batches and hides the ones that
-  aren't about tech on the page (an attribute and one CSS rule; switching off restores the page).
 - **Feeds: summarize the top 100, save the posts.** On X feeds (home timeline, bookmarks, likes,
   lists, profiles, search) and the LinkedIn feed, the panel shows two buttons instead of suggested
   questions. Only on a click does soroagent scroll that page in the user's tab, collect the posts the
@@ -142,8 +139,7 @@ Tick these data types:
 
 - **Website content**: page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
-  or in-browser AI by default; and, while the user has "Hide non-tech" on for X, Reddit or YouTube,
-  the loaded posts' text or video titles, to sort them). Page actions (a feed's top 100, an article's Confirmed vs
+  or in-browser AI by default). Page actions (a feed's top 100, an article's Confirmed vs
   claimed or Story timeline, Best comments, Chapter summaries) send that content, on click. After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.

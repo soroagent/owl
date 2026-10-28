@@ -6,7 +6,7 @@
   'use strict';
 
   const soroagent = (root.soroagent = root.soroagent || {});
-  const SCHEMA_VERSION = 9;
+  const SCHEMA_VERSION = 10;
   const FORMAT = 'soroagent-backup';
   // Data from retired features, deleted on upgrade: browsing-time stats (this browser's and synced),
   // the Stats page's reading log and the recent Tasks (both retired 2026-10-24).
@@ -88,6 +88,13 @@
       if (!tags.includes(s.source)) updates[key] = { ...s, tags: [...tags, s.source] };
     }
     return updates;
+  };
+
+  // v10: Hide non-tech is removed (2026-10-28), and its setting with it.
+  MIGRATIONS[10] = (all) => {
+    if (!all.settings || !('techFilter' in all.settings)) return {};
+    const { techFilter, ...settings } = all.settings;
+    return { settings };
   };
 
   /** Pure: the storage updates needed to bring `all` (a storage dump) to the current schema. */

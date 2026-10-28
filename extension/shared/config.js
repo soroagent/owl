@@ -52,7 +52,6 @@
     xBookmarksOffer: true, // on X's bookmarks page, offer to save them all to the PKG
     pkgDwell: true, // count active reading time on saved pages (only those), for the PKG's topic weights
     declutterSites: [], // sites where "Hide clutter" is on (hostnames); no AI, only the page's own layout
-    techFilter: [], // feeds where "Hide non-tech" is on: 'x' | 'reddit' | 'youtube' (posts are sent to the AI to sort)
     followUps: true, // two follow-up questions under each answer, written by your AI from that answer
     webFallback: true, // a question the page can't answer is looked up on the web (else: a button to)
     syncOffer: {}, // { snoozedAt: library size when "Not now" was clicked, times } for the sync offer // suggested questions written for each page by the model when the panel opens

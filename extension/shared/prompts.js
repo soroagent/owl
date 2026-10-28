@@ -18,7 +18,7 @@
 
   const soroagent = (root.soroagent = root.soroagent || {});
 
-  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'frontPage', 'gist', 'timeline', 'bestComments', 'chapters', 'techSort', 'tagBatch', 'researchTopics', 'researchQuery', 'research']);
+  const ACTIONS = Object.freeze(['summarize', 'notes', 'ask', 'webAnswer', 'save', 'questions', 'followUps', 'frontPage', 'gist', 'timeline', 'bestComments', 'chapters', 'tagBatch', 'researchTopics', 'researchQuery', 'research']);
   const PLACEHOLDERS = Object.freeze(['persona', 'title', 'url', 'content', 'page', 'count', 'context', 'note', 'question', 'slots']);
   const promptSets = {}; // set id ("default", "x", …) -> { persona?, <action>: { system?, user? } }
 
@@ -259,11 +259,6 @@
     return parseQuestions(text).filter((q) => !seen.has(q.toLowerCase().replace(/[?.!\s]+$/, ''))).slice(0, 2);
   }
 
-  // "Hide non-tech": what counts as tech ({{question}} of the techSort prompt).
-  const FOCUS_TOPICS = Object.freeze({
-    tech: 'technology and the tech industry (for example software, AI, apps, gadgets, chips, security, science and engineering, tech companies, launches and funding)',
-  });
-
 
   /** Pure: suggested questions from the model's JSON reply (3 to 4 short, distinct questions). */
   function parseQuestions(text) {
@@ -340,7 +335,6 @@
     parseTopics,
     pageKind,
     parseQuestions,
-    FOCUS_TOPICS,
     followUpVars,
     pickFollowUps,
     parseWebRequest,

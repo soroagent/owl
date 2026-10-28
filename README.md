@@ -35,7 +35,6 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **What's new since your last visit.** On a news front page, Hacker News or a subreddit, ask once and from then on soroagent marks the stories you haven't seen before with a green dot and lists them. It remembers only those pages' story addresses, on your computer.
 - **Hacker News, Reddit and YouTube.** Summarize or save the top 100 stories on Hacker News and Reddit, see a thread's **Best comments**, summarize the top 50 videos on your YouTube home or subscriptions, and get **Chapter summaries** of a video that jump to each moment.
 - **Your digest.** The PKG page shows what you saved today, yesterday or this week, grouped by topic.
-- **Hide non-tech** goes one step further on X, Reddit and YouTube video lists: switch it on in the panel's site bar (or next to the page title in the side panel) and the posts or videos that aren't about tech disappear from the page itself, including the ones that load as you scroll. Your AI sorts them in small batches; switch it off and everything comes back.
 - **Questions that fit the site.** Suggested questions always come in the same four slots, **Gist · Understand · Check · Next**, and each site fills them its own way: timestamps on YouTube, the consensus on Reddit, critical reviews and bank offers on Amazon and Flipkart, the match situation on Cricbuzz and ESPNcricinfo, red flags on eBay and Telegram, the background and the other side on any news site. They're written in the page's language, so a Hindi news page gets Hindi questions. Templates cover YouTube, X, Reddit, Wikipedia, Amazon (.com and .in), LinkedIn, Pinterest, Netflix, JioHotstar, Apple, ESPN, GitHub, eBay, Roblox, Quora, AliExpress, Spotify, Flipkart, Myntra, IMDb, BookMyShow, Physics Wallah, Moneycontrol, Yahoo Finance, Justdial and Telegram; other pages get the general four.
 - **Keep exploring.** The suggested questions stay at the top of the conversation (the ones you've asked are ticked), so you can scroll up and pick another. Under each answer, two follow-up questions written from that answer take you deeper or somewhere related.
 - **Ask** anything about the page. If the page doesn't have the answer (ask a news article for a company's revenue), soroagent searches the web, reads the top results and answers with numbered sources instead of "the text doesn't say". Turn it into a one-click button in Settings → On the page.
@@ -108,12 +107,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.49.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.50.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.49.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.49.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.49.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.49.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.50.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.50.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.50.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.50.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

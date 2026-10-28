@@ -134,3 +134,8 @@ test('v9: saved bookmarks, likes and LinkedIn posts get their source tag', () =>
   assert.equal(updates['snippet:p'], undefined, 'already tagged');
   assert.equal(updates['snippet:o'], undefined);
 });
+
+test('v10: the Hide non-tech setting goes', () => {
+  const updates = S.planMigrations({ meta: { schemaVersion: 9 }, settings: { techFilter: ['x'], model: 'm' } });
+  assert.deepEqual(updates.settings, { model: 'm' });
+});

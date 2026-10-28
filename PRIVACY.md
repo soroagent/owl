@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.48 and later.
+Arc and Firefox, version 2.50 and later.
 
 ## The short version
 
@@ -77,7 +77,6 @@ soroagent sends data over the network only in these cases, and only to the desti
 | **Automatic preparing**: the side panel is open on a page, or you've read it for 15 seconds | The page text (on X, the posts loaded so far), to prepare a summary and the questions you're likely to have | The AI you chose, as above. **On by default only with an AI in the browser or on your computer; off by default with a cloud key.** Nothing is saved unless you act. Turn it off in Settings → On the page. |
 | You get an answer or a summary (**follow-up questions**) | Your question and the answer you got (not the page again), to write two follow-up questions | The AI you chose, as above. On by default; turn it off in Settings → On the page. |
 | You open soroagent on a page (suggested questions), when automatic preparing is off but suggested questions are on | The start of the page text | The AI you chose, as above. Same defaults; Settings → On the page. |
-| **Hide non-tech** is on for X, Reddit or YouTube (you switch it on per site) | The text of the posts as they load (the @handle and post text on X, titles on Reddit, video titles and channels on YouTube), in batches, so your AI can say which are about tech | The AI you chose, as above. Each post is sent once; nothing is stored. Switch it off in the panel's site bar. |
 | Your library is indexed for search | The text of your notes | The embedding model you use: a local Ollama model, or your OpenAI, Gemini or Mistral key. |
 | You click **Research** | Your research topic | A web search engine (DuckDuckGo, Brave Search or Bing, or a SearXNG server you set), then the top result pages are opened and read, as if you had visited them. Addresses on your computer or local network are never fetched. |
 | You ask something **the page doesn't answer** | A short search query for your question | The same search engine, then the top result pages are read, as for Research. On by default; turn it off in Settings → On the page to get a button instead. |

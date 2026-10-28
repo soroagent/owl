@@ -285,16 +285,6 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in
   `prompts/linkedin.js` (names and roles, no @handles: the 3B model invented them). Checked on a
   stand-in only: LinkedIn needs a login.
-- **Hide non-tech** (`techFilter`: feed ids where it's on, default none): `content/feedfilter.js`
-  knows the feeds (`FEEDS`: X except `/status/` pages, Reddit except threads, YouTube lists) and
-  their post elements, keys and text; hiding is the `data-soroagent-offtopic` attribute +
-  `PAGE_CSS`, like X's "Verified only". `syncTechFilter()` in `assistant.js` (start, navigation,
-  settings) runs a MutationObserver; `scanTech()` applies known verdicts and sends up to 25 unsorted
-  posts to the `techSort` prompt (quick, JSON `{"tech": [n]}`, `parseTopicIds`). Unsorted or
-  unreadable stays visible; an AI failure pauses new batches for 2 min. Verdicts are kept per key
-  (3,000 max), so nothing is sent twice. Toggles: the floating panel's site bar and the side panel's
-  `#techFilter` (`assistant:sp-techfilter`); the snapshot reports `{ on, hidden }`. Never on
-  `neverRead` pages. The `tech` state is declared near `state` (read early by the site bar).
 - **Answers off the page** (`webFallback`, on): the `ask` prompts (default, x, reddit) tell the model
   to reply only `[[search: query]]` when the answer isn't in the content; `S.parseWebRequest` also
   treats a short "the text doesn't contain…" reply as a request (the question becomes the query).
@@ -390,7 +380,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn and Tech only (both removed 2026-10-28 as bloat; Hide non-tech stays and keeps `FOCUS_TOPICS.tech`), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn, Tech only and Hide non-tech (all removed 2026-10-28 as bloat; v10 drops the `techFilter` setting), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).
