@@ -36,20 +36,11 @@
       // not saved; still applied
     }
   };
-  let settings = {};
-  // The prompts for the site a snippet came from, with the system prompt from settings if any.
-  const promptsForUrl = (url) => {
-    const id = S.promptSetForHost(hostOf(url));
-    const persona = S.customPersona(settings, id);
-    return S.promptsFor(id, persona ? { persona } : null);
-  };
-  const research = new Map(); // snippet id -> { status, text, error, sources } while running
   // Search by meaning and words (the library index), ranked; null when the box is empty.
   let ranked = null; // { query, ids: [...], mode }
   const relatedCache = new Map(); // snippet id -> related notes
 
   const KIND_LABEL = { summary: 'Summary', selection: 'Selection', page: 'Page', research: 'Research', deliverable: 'Created', read: 'Read' };
-  const topicPicks = new Map(); // snippet id -> { status: 'loading' | 'ready' | 'error', topics, error, draft }
   const JOB_LABEL = { running: 'Working', done: 'Not saved', error: 'Failed', interrupted: 'Interrupted', stopped: 'Stopped' };
   const kindOf = (s) => s.kind || (s.source === 'selection' ? 'selection' : s.source === 'summary' ? 'summary' : 'page');
   const hostOf = (url) => {
@@ -209,31 +200,17 @@
     nodes.push(body);
     nodes.push(relatedSection(s));
 
-    // Research: further reading from the web, attached to this snippet.
-    nodes.push(el('div', { className: 'section-title', textContent: 'Research' }));
-    const live = research.get(s.id);
-    if (live && live.status === 'running') {
-      nodes.push(el('div', { className: 'working', textContent: live.statusText || 'Researching on the web…' }));
-      if (live.sources) nodes.push(sourcesList(live.sources));
-      if (live.text) nodes.push(el('div', { className: 'prose' }, markdown(live.text, s.url)));
-    } else if (s.research && kind !== 'research') {
+    // Research done from the panel is attached to the snippet; shown here when there is some.
+    if (s.research && kind !== 'research') {
+      nodes.push(el('div', { className: 'section-title', textContent: 'Research' }));
       nodes.push(el('div', { className: 'meta', textContent: `Searched “${s.research.query || ''}” · ${when(s.research.at, { dateStyle: 'medium', timeStyle: 'short' })}` }));
       nodes.push(el('div', { className: 'prose' }, markdown(s.research.text, s.url)));
       nodes.push(el('div', { className: 'section-title', textContent: 'Sources' }), sourcesList(s.research.sources));
     } else if (kind === 'research' && s.research) {
-      nodes.push(sourcesList(s.research.sources));
-    } else if (!topicPicks.has(s.id)) {
-      nodes.push(el('p', { className: 'muted', textContent: 'Look this topic up on the web: soroagent searches, reads the top sources and writes a cited brief that goes beyond this snippet.' }));
+      nodes.push(el('div', { className: 'section-title', textContent: 'Sources' }), sourcesList(s.research.sources));
     }
-    if (topicPicks.has(s.id) && !(live && live.status === 'running')) nodes.push(...topicPicker(s));
-    if (live && live.status === 'error') nodes.push(el('div', { className: 'problem', textContent: live.error }));
 
     const actions = el('div', { className: 'reader-actions' });
-    if (kind !== 'research' && !(live && live.status === 'running') && !topicPicks.has(s.id)) {
-      const go = el('button', { type: 'button', className: 'btn primary', textContent: s.research ? 'Research again' : 'Research this further' });
-      go.addEventListener('click', () => pickTopic(s));
-      actions.append(go);
-    }
     if (/^https?:/.test(s.url)) actions.append(el('a', { className: 'btn', href: S.safeUrl(s.url), target: '_blank', rel: 'noopener', textContent: 'Open source ↗' }));
     const copy = el('button', { type: 'button', className: 'btn', textContent: 'Copy' });
     copy.addEventListener('click', async () => {
@@ -323,101 +300,6 @@
       createdAt: r.createdAt,
       tags: [],
     };
-  }
-
-  // Before researching, ask what to focus on: topics the model finds in the snippet, the whole
-  // snippet, or the reader's own words.
-  function pickTopic(s) {
-    const pick = { status: 'loading', topics: [], error: '', draft: '' };
-    topicPicks.set(s.id, pick);
-    renderReader();
-    const vars = S.pageVars({ title: s.pageTitle || s.title, url: s.url, text: stripThinking(s.text || s.summary || '').slice(0, 4000) });
-    S.askModel(S.buildMessages('researchTopics', vars, promptsForUrl(s.url)), { json: true })
-      .then((reply) => Object.assign(pick, { status: 'ready', topics: S.parseTopics(stripThinking(reply)) }))
-      .catch((err) => Object.assign(pick, { status: 'error', error: err.message }))
-      .finally(() => s.id === selectedId && renderReader());
-  }
-
-  function topicPicker(s) {
-    const pick = topicPicks.get(s.id);
-    const start = (query) => {
-      topicPicks.delete(s.id);
-      startResearch(s, query);
-    };
-    const heading = el('p', {
-      textContent: pick.status === 'loading' ? 'Finding topics in this snippet…'
-        : pick.status === 'error' ? `Couldn't suggest topics (${pick.error}). Research everything, or type your own:`
-        : pick.topics.length ? 'What should the research focus on? Pick a topic, or research everything:' : 'No clear topics found. Research everything, or type your own:',
-      className: pick.status === 'loading' ? 'working' : '',
-    });
-    const topics = el('div', { className: 'topics' });
-    for (const topic of pick.topics) {
-      const button = el('button', { type: 'button', className: 'topic', textContent: topic });
-      button.addEventListener('click', () => start(topic));
-      topics.append(button);
-    }
-    const everything = el('button', { type: 'button', className: 'topic all', textContent: 'Everything in this snippet' });
-    everything.addEventListener('click', () => start(''));
-    topics.append(everything);
-    const input = el('input', { type: 'text', placeholder: 'Or type your own topic…', value: pick.draft, maxLength: 120 });
-    input.setAttribute('aria-label', 'Research topic');
-    input.addEventListener('input', () => (pick.draft = input.value));
-    const go = el('button', { type: 'button', className: 'btn primary small', textContent: 'Research' });
-    go.addEventListener('click', () => input.value.trim() && start(input.value.trim()));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.isComposing && input.value.trim()) start(input.value.trim());
-    });
-    const cancel = el('button', { type: 'button', className: 'btn small', textContent: 'Cancel' });
-    cancel.addEventListener('click', () => {
-      topicPicks.delete(s.id);
-      renderReader();
-    });
-    return [heading, topics, el('div', { className: 'topic-own' }, [input, go, cancel])];
-  }
-
-  // Research runs as a background job, so it finishes even if this page is closed; the
-  // result is attached to the snippet.
-  function startResearch(s, query = '') {
-    const job = { status: 'running', statusText: query ? `Searching the web for “${query}”…` : 'Choosing what to search for…', text: '', sources: null };
-    research.set(s.id, job);
-    renderReader();
-    const vars = S.pageVars({ title: s.pageTitle || s.title, url: s.url, text: stripThinking(s.text).slice(0, 4000) });
-    const port = ext.runtime.connect({ name: 'summary' });
-    let frame = 0;
-    const refresh = () => {
-      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), s.id === selectedId && renderReader()));
-    };
-    port.onMessage.addListener((msg) => {
-      if (msg.type === 'status') job.statusText = msg.text;
-      else if (msg.type === 'sources') job.sources = msg.sources;
-      else if (msg.type === 'token') job.text += msg.text;
-      else if (msg.type === 'done') {
-        research.delete(s.id);
-        port.disconnect();
-      } else if (msg.type === 'error') {
-        Object.assign(job, { status: 'error', error: `${(msg.record && msg.record.error) || 'Research failed.'} ${(msg.record && msg.record.hint) || ''}` });
-        port.disconnect();
-      }
-      refresh();
-    });
-    port.postMessage({
-      type: 'start',
-      job: {
-        kind: 'research',
-        label: `Research: ${s.title}`,
-        url: s.url,
-        pageTitle: s.pageTitle || s.title,
-        site: hostOf(s.url),
-        snippetId: s.id,
-        fallbackQuery: s.title,
-        query,
-        queryMessages: query ? null : S.buildMessages('researchQuery', vars, promptsForUrl(s.url)),
-        final: S.buildMessages('research', S.pageVars(
-          { title: s.title, url: s.url, text: S.JOB_PLACEHOLDERS.sources },
-          { context: stripThinking(s.text).slice(0, 3000), question: S.JOB_PLACEHOLDERS.query }
-        ), promptsForUrl(s.url)),
-      },
-    });
   }
 
   // "Related in your library": notes about the same thing, found by meaning and words.
@@ -511,7 +393,6 @@
 
   async function load() {
     relatedCache.clear();
-    settings = await S.getSettings();
     snippets = (await listSnippets()).map((s) => ({ ...s, tags: Array.isArray(s.tags) ? s.tags : [] }));
     const all = await ext.storage.local.get(null);
     records = Object.keys(all).filter((k) => k.startsWith('summary:')).map((k) => all[k]).filter((r) => r && r.id);

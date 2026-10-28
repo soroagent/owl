@@ -225,7 +225,8 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   The summary history page is gone: Snippets lists snippets plus the summary jobs (`summary:<id>`)
   that have no saved snippet (running, failed, not saved), with their status, a reader, Save as
   snippet and Delete. Deleting a snippet deletes its job too. No Summaries/Research filters (research
-  is a snippet like any other). `open:history` opens Snippets.
+  is a snippet like any other). Research starts only from the panel; Snippets shows research already
+  attached to a snippet but has no Research button (removed 2026-10-28). `open:history` opens Snippets.
 - **PKG** (`pages/pkg.html`, the personal knowledge graph; the interface's name for the library):
   `S.buildGraph(snippets, pkgDwell)` in `shared/pkg.js` makes topics from tags (case-folded), weight
   = notes + reading minutes / 5 (a page's time counts once per topic; passive capture's
@@ -380,7 +381,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn, Tech only and Hide non-tech (all removed 2026-10-28 as bloat; v10 drops the `techFilter` setting), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn, Tech only, Hide non-tech and Snippets' "Research this further" (all removed 2026-10-28 as bloat; v10 drops the `techFilter` setting), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).
