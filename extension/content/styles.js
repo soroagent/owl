@@ -213,6 +213,7 @@ header {
 .feed-home button svg { width: 15px; height: 15px; flex: none; color: var(--brand); }
 .feed-home button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
 .feed-home button:disabled { opacity: .55; cursor: default; }
+.feed-home button.toggle-action[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .feed-note { margin: 0; font-size: 11.5px; color: var(--fg-muted); text-align: center; }
 .thread.chatting > .empty { margin: 0; padding: 2px 12px 14px; border-bottom: 1px solid var(--border); }
 .thread.chatting > .empty .empty-mark, .thread.chatting > .empty .empty-note, .thread.chatting > .empty .empty-hint { display: none; }
@@ -388,5 +389,7 @@ header {
   soroagent.PAGE_CSS = `
 [data-soroagent-filtered] { display: none !important; }
 [data-soroagent-offtopic] { display: none !important; }
+[data-soroagent-clutter] { display: none !important; }
+[data-soroagent-new]::before { content: "●"; color: #34D399; margin-right: .35em; font-size: .8em; vertical-align: .1em; }
 `;
 })(globalThis);

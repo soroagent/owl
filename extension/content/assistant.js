@@ -275,7 +275,12 @@
     if (longform()) return { type: 'article', label: `${state.site.name} · Article`, context: `This is a long-form article published on ${state.site.name}.` };
     return state.site.pageInfo ? state.site.pageInfo(location) : { type: 'page', label: '', context: '' };
   };
-  const items = () => (longform() ? null : state.site.items || null); // articles are read as pages
+  // Articles are read as pages; so are page types a profile doesn't read as items (items.on).
+  const items = () => {
+    const site = state.site.items;
+    if (!site || longform()) return null;
+    return !site.on || site.on(pageInfo()) ? site : null;
+  };
   // Prompt texts: prompts/default.js, then prompts/<site id>.js and its page-type overrides.
   // Site profile prompts (X, Reddit), else a prompt set for this host (YouTube, GitHub…), with the
   // system prompt from settings when the user wrote one.
@@ -638,7 +643,9 @@
       save: again ? 'Add new bookmarks to your PKG' : actions.save,
       note: again
         ? `Last time ${fd.last.total} were saved (${new Date(fd.last.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}); only new ones are added.`
-        : 'soroagent scrolls the page to collect the posts. Keep this tab in front while it runs.',
+        : items().top
+          ? `soroagent reads the next pages of this list to collect the ${actions.noun}.`
+          : `soroagent scrolls the page to collect the ${actions.noun}. Keep this tab in front while it runs.`,
     };
   }
 
@@ -685,12 +692,12 @@
   function feedProgress(text, ui) {
     fd.progress = text;
     if (ui) ui.update(text);
-    renderFeedHome();
+    renderHome();
     notifySidePanel();
   }
 
   // On start, navigation, opening the panel and settings changes: the owl's dot on the bookmarks
-  // page (opening the panel by itself once per browser session), and the feed actions.
+  // page (opening the panel by itself once per browser session), what's new, clutter, the actions.
   function syncFeed() {
     if (fd.url !== location.href) Object.assign(fd, { url: location.href, result: '', opened: false });
     const offer = onBookmarks() && state.settings.xBookmarksOffer !== false;
@@ -708,81 +715,367 @@
     if (onBookmarks()) {
       ext.storage.local.get('xBookmarksSync').then(({ xBookmarksSync }) => {
         fd.last = xBookmarksSync || null;
-        renderFeedHome();
+        renderHome();
         notifySidePanel();
       }, () => {});
     }
-    renderFeedHome();
+    checkWhatsNew();
+    scheduleClutter();
+    renderHome();
     notifySidePanel();
   }
 
-  // The feed actions at the top of the opening screen, in place of the suggested questions.
-  function renderFeedHome() {
+  // ---------------------------------------------------------------------------
+  // Page actions: one-click jobs on the opening screen, above (or, on feeds and news front pages,
+  // instead of) the suggested questions. Feeds: summarize the top 100 (50 videos) and save the
+  // posts. News front pages: today's top 5 stories. News, Hacker News and Reddit lists: what's new
+  // since the last visit. News articles: confirmed vs claimed, a story timeline with the reader's
+  // saved snippets, and Hide clutter. Threads: the best comments. YouTube videos: chapter
+  // summaries. Both panels run the same requests (buildRequest); the side panel through sp-page.
+  // ---------------------------------------------------------------------------
+
+  const kindCache = { url: '', kind: '' };
+  const pageKindHere = () => {
+    if (kindCache.url !== location.href) Object.assign(kindCache, { url: location.href, kind: S.pageKind(pageMeta()).kind });
+    return kindCache.kind;
+  };
+  const neverReadHere = () => Boolean(S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) }));
+  const newsFrontHere = () => Boolean(S.browse && state.site.id === 'default' && S.browse.isNewsFront(location));
+  const newsArticleHere = () => Boolean(S.browse && state.site.id === 'default' && S.browse.isNewsArticle(location, pageKindHere()));
+  const articleHere = () => !items() && (newsArticleHere() || (state.site.id === 'default' && ['article', 'news'].includes(pageKindHere())));
+  const threadHere = () => ['hackernews', 'reddit'].includes(state.site.id) && pageInfo().type === 'thread';
+  const videoHere = () => state.site.id === 'youtube' && pageInfo().type === 'video';
+
+  /** The page actions here: { title, note, buttons: [{ id, icon, label, pressed? }] }, or null. */
+  function pageActions() {
+    if (!S.browse || neverReadHere()) return null;
+    const buttons = [];
+    let title = '';
+    let note = '';
+    const feed = feedHere();
+    if (feed) {
+      ({ title, note } = feed);
+      buttons.push({ id: 'top', icon: 'summarize', label: feed.summarize });
+      if (feed.save) buttons.push({ id: 'save', icon: 'save', label: feed.save });
+    }
+    if (newsFrontHere()) {
+      title = `Today on ${location.hostname.replace(/^www\./, '')}`;
+      buttons.push({ id: 'front', icon: 'summarize', label: 'Today’s top 5 stories' });
+    }
+    if (whatsNewHere()) buttons.push({ id: 'new', icon: 'star', label: wn.label() });
+    if (newsArticleHere()) {
+      title = 'This story';
+      buttons.push({ id: 'gist', icon: 'check', label: 'Confirmed vs claimed' }, { id: 'timeline', icon: 'history', label: 'Story timeline' });
+    }
+    if (articleHere()) {
+      title = title || 'This article';
+      buttons.push({ id: 'clutter', icon: 'close', label: clutter.count && clutterOn() ? `Hide clutter · ${clutter.count} hidden` : 'Hide clutter', pressed: clutterOn() });
+    }
+    if (threadHere()) {
+      title = 'This discussion';
+      buttons.push({ id: 'best', icon: 'star', label: 'Best comments' });
+    }
+    if (videoHere()) {
+      title = 'This video';
+      buttons.push({ id: 'chapters', icon: 'summarize', label: 'Chapter summaries' });
+    }
+    return buttons.length ? { title, note, buttons } : null;
+  }
+
+  // The page actions at the top of the opening screen.
+  function renderHome() {
     const box = els.empty.querySelector('.home-offer');
     let node = box.querySelector('.feed-home');
-    const feed = feedHere();
-    if (!feed) return node && node.remove();
+    const actions = pageActions();
+    if (!actions) return node && node.remove();
     if (!node) {
       node = el('div', { className: 'feed-home' });
       box.prepend(node);
     }
     const busy = Boolean(fd.run || state.busy);
-    const button = (icon, label, onClick) => {
-      const b = el('button', { type: 'button', disabled: busy || state.status !== 'ready' });
-      setHtml(b, ICONS[icon]);
-      b.append(el('span', { textContent: label }));
-      b.addEventListener('click', onClick);
-      return b;
-    };
     node.replaceChildren(
-      el('div', { className: 'feed-title', textContent: feed.title }),
-      button('summarize', feed.summarize, () => summarizeTop()),
-      button('save', feed.save, () => saveFeedPosts()),
-      el('p', { className: 'feed-note', textContent: fd.run && fd.progress ? fd.progress : feed.note }),
+      el('div', { className: 'feed-title', textContent: actions.title }),
+      ...actions.buttons.map((a) => {
+        const local = a.id === 'clutter' || a.id === 'new';
+        const b = el('button', { type: 'button', disabled: !local && (busy || state.status !== 'ready'), className: a.pressed !== undefined ? 'toggle-action' : '' });
+        if (a.pressed !== undefined) b.setAttribute('aria-pressed', String(a.pressed));
+        setHtml(b, ICONS[a.icon] || '');
+        b.append(el('span', { textContent: a.label }));
+        b.addEventListener('click', () => runPageAction(a.id));
+        return b;
+      }),
+      ...(actions.note || (fd.run && fd.progress) ? [el('p', { className: 'feed-note', textContent: fd.run && fd.progress ? fd.progress : actions.note })] : []),
     );
   }
 
-  // Summarize the top 100: scroll for them, then summarize them like any feed batch.
-  async function collectTop(signal, ui) {
-    try {
-      return await scrollFeed({ limit: S.feeds.TOP, signal, options: siteOptions(), onProgress: (n) => feedProgress(`Scrolling: ${n} of ${S.feeds.TOP} posts…`, ui) });
-    } finally {
-      window.scrollTo(0, 0);
-      fd.progress = '';
-    }
+  /** Posts for a feed action: Hacker News fetches its next pages; other feeds are scrolled. */
+  function collectPosts({ limit, signal, options = {}, onProgress, stop }) {
+    const site = items();
+    if (site.top) return site.top({ limit, signal, onProgress });
+    return scrollFeed({ limit, signal, options, onProgress, stop });
   }
 
-  function topContext(posts) {
-    const info = pageInfo();
-    return {
-      label: `Summarize the top ${posts.length} posts${info.label ? ` · ${info.label}` : ''}`,
-      context: `${info.context || ''} These are the top ${posts.length} posts of the feed, in the order shown.`.trim(),
-    };
-  }
+  const pageText = (page) => S.pageVars(page, {});
+  const chat = (label, action, page, extra = {}, more = {}) => ({ kind: 'chat', label, messages: S.buildMessages(action, S.pageVars(page, extra), sitePrompts()), ...more });
 
-  function summarizeTop() {
-    const feed = feedHere();
-    if (!feed || fd.run) return;
-    return runTask(async (signal) => {
-      addUserMessage(feed.summarize);
-      const ui = progressCard('summarize', 'Scrolling…');
-      fd.run = state.busy;
+  /**
+   * The request behind an action, for either panel: { kind: 'job', label, spec, count, noun } (a
+   * summary job), { kind: 'chat', label, messages, urls?, videoUrl? } (a reply whose [n] and [m:ss]
+   * become links), { kind: 'text', label, text } (shown as is), or { error }.
+   */
+  async function buildRequest(id, signal, ui) {
+    const label = ((pageActions() || { buttons: [] }).buttons.find((b) => b.id === id) || {}).label || '';
+    if (id === 'top') {
+      const feed = feedHere();
+      if (!feed) return { error: 'Not available on this page.' };
+      const site = items();
       let posts;
       try {
-        posts = await collectTop(signal, ui);
+        posts = await collectPosts({ limit: feed.top, signal, options: siteOptions(), onProgress: (n) => feedProgress(`Collecting: ${n} of ${feed.top} ${feed.noun}…`, ui) });
       } finally {
-        ui.node.remove();
-        fd.run = null;
-        renderFeedHome();
-        notifySidePanel();
+        if (!site.top) window.scrollTo(0, 0);
+        fd.progress = '';
       }
-      if (signal.aborted) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
-      if (!posts.length) return append(card({ title: 'No posts found on this page yet.', body: 'Wait for the feed to load, then try again.' }));
-      const { label, context } = topContext(posts);
-      state.feed = { url: location.href, optionsKey: JSON.stringify(siteOptions()), seen: new Set(posts.map((p) => p.id)), endY: undefined, done: posts.length, exhausted: posts.length < S.feeds.TOP };
-      await summarizeItems(posts, { start: 1, context, signal, label });
-      offerReadMore();
+      if (signal.aborted) return { stopped: true };
+      if (!posts.length) return { error: `No ${feed.noun} found on this page yet. Wait for it to load, then try again.` };
+      const info = pageInfo();
+      const jobLabel = `Summarize the top ${posts.length} ${feed.noun}${info.label ? ` · ${info.label}` : ''}`;
+      const context = `${info.context || ''} These are the top ${posts.length} ${feed.noun} of the page, in the order shown.`.trim();
+      const base = { url: location.href, pageTitle: document.title, site: state.site.name, model: '', placeholder: NOTES_PLACEHOLDER };
+      const saveMessages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: S.JOB_PLACEHOLDERS.summary }), sitePrompts());
+      const asText = site.format(posts, { start: 1 });
+      state.pageContext = { url: location.href, page: { title: document.title, url: location.href, text: asText.slice(0, maxChars()), truncated: asText.length > maxChars() } };
+      state.feed = { url: location.href, optionsKey: JSON.stringify(siteOptions()), seen: new Set(posts.map((p) => p.id)), endY: undefined, done: posts.length, exhausted: posts.length < feed.top };
+      return { kind: 'job', label: jobLabel, count: posts.length, noun: feed.noun, spec: { ...base, saveMessages, ...itemsJob(posts, { start: 1, context, label: jobLabel }) } };
+    }
+    if (id === 'front') {
+      const list = headlines().slice(0, 80);
+      if (list.length < 5) return { error: 'Couldn’t find the headlines on this page.' };
+      const content = list.map((h, i) => `[${i + 1}] ${h.title}`).join('\n');
+      return { kind: 'chat', label, messages: S.buildMessages('frontPage', { ...pageText({ title: document.title, url: location.href, text: content }), content }, sitePrompts()), urls: list.map((h) => h.url) };
+    }
+    if (id === 'new') return whatsNewText();
+    if (id === 'gist') return chat(label, 'gist', { ...sitePage(), text: `${publishedDate() ? `Published ${publishedDate()}.\n\n` : ''}${sitePage().text}` });
+    if (id === 'timeline') {
+      related.url = '';
+      await findRelated();
+      const published = publishedDate();
+      const notes = related.notes.length ? S.formatNotes(related.notes.map((n) => ({ ...n, title: `${n.title} (saved ${String(n.createdAt || '').slice(0, 10)})` })), { prefix: 'N', perNote: 1200, total: 5000 }) : '(none)';
+      return chat(label, 'timeline', sitePage(), { context: `The article was published ${published ? `on ${published}` : 'on a date the page doesn\'t give'}.\n\nThe user's saved notes on related topics:\n${notes}` });
+    }
+    if (id === 'best') return chat(label, 'bestComments', sitePage());
+    if (id === 'chapters') {
+      await ensureSite(true); // the transcript
+      return chat(label, 'chapters', sitePage(), {}, { videoUrl: location.href.replace(/[&?]t=\d+s?/, '') });
+    }
+    return { error: 'Not available on this page.' };
+  }
+
+  // Runs an action in the floating panel.
+  function runPageAction(id) {
+    if (id === 'save') return saveFeedPosts();
+    if (id === 'clutter') return setClutter(!clutterOn());
+    const label = ((pageActions() || { buttons: [] }).buttons.find((b) => b.id === id) || {}).label || '';
+    return runTask(async (signal) => {
+      addUserMessage(label);
+      const ui = id === 'top' ? progressCard('summarize', 'Collecting…') : null;
+      if (ui) fd.run = state.busy;
+      let req;
+      try {
+        req = await buildRequest(id, signal, ui);
+      } finally {
+        if (ui) {
+          ui.node.remove();
+          fd.run = null;
+          renderHome();
+          notifySidePanel();
+        }
+      }
+      if (signal.aborted || req.stopped) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
+      if (req.error) return append(card({ title: req.error }));
+      if (req.kind === 'text') return addAssistantMessage().finish(req.text);
+      if (req.kind === 'job') {
+        await runSummaryJob(req.spec, { signal, reply: addAssistantMessage(`Reading ${req.count} ${req.noun}…`) });
+        return offerReadMore();
+      }
+      const reply = addAssistantMessage('Reading the page…');
+      const text = await runChat({ messages: req.messages, signal, onToken: reply.push, onThinking: reply.thinking });
+      const linked = S.browse.linkRefs(S.stripThinking(text), req);
+      reply.finish(linked);
+      state.history.push({ role: 'user', content: label }, { role: 'assistant', content: linked });
+      state.history = state.history.slice(-12);
+      suggestFollowUps(label, linked);
     });
+  }
+
+  // The article's publication date ("Tuesday 27 Oct 2026"), from its metadata or address, or ''.
+  function publishedDate() {
+    let raw = (document.querySelector('meta[property="article:published_time"], meta[name="pubdate"], meta[name="date"], meta[itemprop="datePublished"]') || {}).content || '';
+    if (!raw) {
+      for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+        const m = script.textContent.match(/"datePublished"\s*:\s*"([^"]+)"/);
+        if (m) {
+          raw = m[1];
+          break;
+        }
+      }
+    }
+    if (!raw) raw = (document.querySelector('time[datetime]') || {}).dateTime || '';
+    if (!raw) {
+      const m = location.pathname.match(/\/(20\d\d)\/(\d\d|[a-z]{3})\/(\d\d)\//i);
+      if (m) raw = `${m[3]} ${m[2]} ${m[1]}`;
+    }
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // Headlines on a news front page: links that read like headlines, to stories on the same site,
+  // outside the site's menus and footer, in page order.
+  function headlines() {
+    const seen = new Set();
+    const out = [];
+    for (const a of document.querySelectorAll('a[href]')) {
+      if (out.length >= 150) break;
+      if (a.closest('nav, footer, [role="navigation"], [role="contentinfo"], soroagent-assistant')) continue;
+      const title = (a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!S.browse.isHeadline(title, a.href, location.hostname)) continue;
+      const key = S.browse.headlineKey(a.href);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ key, title, url: a.href, el: a });
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------
+  // What's new since your last visit (news front pages, Hacker News lists, Reddit feeds). Off until
+  // the reader asks on a page; from then on, each visit to that page compares its headlines with
+  // the ones stored last time, marks the new ones on the page (a green dot) and lists them. Only the
+  // headlines' addresses are kept, on this computer (`seenLists`, at most 600 per page and 40 pages).
+  // ---------------------------------------------------------------------------
+
+  const wn = { url: '', tracked: false, fresh: [], at: '', label: () => (wn.tracked ? (wn.fresh.length ? `What’s new: ${wn.fresh.length} since your last visit` : 'Nothing new since your last visit') : 'What’s new since your last visit') };
+  const pageKey = () => `${location.hostname.replace(/^www\./, '')}${location.pathname.replace(/\/$/, '') || '/'}`;
+  const whatsNewHere = () => newsFrontHere() || (state.site.id === 'hackernews' && pageInfo().type === 'list') || (state.site.id === 'reddit' && ['home', 'subreddit'].includes(pageInfo().type));
+
+  /** The list items to compare: headlines, or the stories/posts loaded on the page. */
+  function listHere() {
+    if (newsFrontHere()) return headlines();
+    const site = items();
+    return site ? site.visible(document, {}).map((p) => ({ key: String(p.id), title: p.title || p.text || '', url: p.discussion || p.url, el: p.el })) : [];
+  }
+
+  function markNew(item) {
+    const target = item.el && (item.el.matches('a') ? item.el : item.el.querySelector('.titleline > a, a[slot="title"], h3 a, a[href]'));
+    if (target) target.setAttribute('data-soroagent-new', '');
+  }
+
+  async function checkWhatsNew() {
+    if (wn.url === location.href) return;
+    Object.assign(wn, { url: location.href, tracked: false, fresh: [], at: '' });
+    if (!whatsNewHere()) return;
+    const key = pageKey();
+    const { seenLists = {} } = await ext.storage.local.get('seenLists');
+    const entry = seenLists[key];
+    if (!entry || wn.url !== location.href) return;
+    await wait(2500); // let the page render its list
+    if (wn.url !== location.href) return;
+    const list = listHere();
+    if (!list.length) return;
+    const { fresh, keep } = S.browse.diffSeen(list.map((i) => i.key), entry.keys);
+    const freshSet = new Set(fresh);
+    Object.assign(wn, { tracked: true, at: entry.at, fresh: list.filter((i) => freshSet.has(i.key)).map(({ title, url, el }) => ({ title, url, el })) });
+    wn.fresh.forEach(markNew);
+    await storeSeen(key, keep);
+    renderHome();
+    notifySidePanel();
+  }
+
+  async function storeSeen(key, keys) {
+    const { seenLists = {} } = await ext.storage.local.get('seenLists');
+    seenLists[key] = { at: new Date().toISOString(), keys };
+    const pages = Object.entries(seenLists).sort((a, b) => String(b[1].at).localeCompare(String(a[1].at))).slice(0, 40);
+    await ext.storage.local.set({ seenLists: Object.fromEntries(pages) });
+  }
+
+  async function whatsNewText() {
+    const list = listHere();
+    if (!wn.tracked) {
+      if (!list.length) return { error: 'Couldn’t find a list of stories on this page.' };
+      await storeSeen(pageKey(), S.browse.diffSeen(list.map((i) => i.key), null).keep);
+      wn.tracked = true;
+      renderHome();
+      notifySidePanel();
+      return { kind: 'text', label: 'What’s new since your last visit', text: `Done: from your next visit, soroagent marks what's new on this page with a green dot and lists it here.\n\nIt remembers the addresses of the ${list.length} stories here, on this computer only. Settings → PKG clears them.` };
+    }
+    const when = wn.at ? new Date(wn.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : 'your last visit';
+    if (!wn.fresh.length) return { kind: 'text', label: wn.label(), text: `Nothing new here since ${when}.` };
+    const lines = wn.fresh.slice(0, 40).map((i) => `- [${i.title.replace(/[[\]]/g, '')}](${i.url})`);
+    return { kind: 'text', label: wn.label(), text: `**${wn.fresh.length} new since ${when}** (marked with a green dot on the page):\n\n${lines.join('\n')}${wn.fresh.length > 40 ? `\n\n…and ${wn.fresh.length - 40} more.` : ''}` };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hide clutter (articles; per site, setting declutterSites): folds away the page parts that aren't
+  // the story (related links, newsletter boxes, comments, "most read", sponsored blocks) by their
+  // class, id or label (S.browse.isClutterName), never the story itself or anything containing it.
+  // No AI; an attribute and one CSS rule, so turning it off restores the page.
+  // ---------------------------------------------------------------------------
+
+  const clutter = { count: 0, timers: [] };
+  const siteHost = () => location.hostname.replace(/^www\./, '');
+  const clutterOn = () => (state.settings.declutterSites || []).includes(siteHost());
+
+  /** The element holding the story: the one whose paragraphs have the most text. */
+  function storyRoot() {
+    const score = new Map();
+    for (const p of document.querySelectorAll('p')) {
+      const length = (p.textContent || '').trim().length;
+      if (length < 80 || !p.parentElement) continue;
+      score.set(p.parentElement, (score.get(p.parentElement) || 0) + length);
+    }
+    let best = null;
+    let top = 0;
+    for (const [node, n] of score) if (n > top) [best, top] = [node, n];
+    return best ? best.closest('article') || best : null;
+  }
+
+  function applyClutter() {
+    document.querySelectorAll('[data-soroagent-clutter]').forEach((n) => n.removeAttribute('data-soroagent-clutter'));
+    clutter.count = 0;
+    if (clutterOn() && articleHere()) {
+      const story = storyRoot();
+      const storyLength = story ? (story.textContent || '').length : 0;
+      for (const node of document.querySelectorAll('aside, section, div[class], div[id], ul[class], iframe')) {
+        if (node.closest('[data-soroagent-clutter], soroagent-assistant') || (story && node.contains(story))) continue;
+        const name = `${node.id || ''} ${typeof node.className === 'string' ? node.className : ''} ${node.getAttribute('aria-label') || ''} ${node.getAttribute('data-component') || ''} ${node.tagName === 'IFRAME' ? node.getAttribute('src') || '' : ''}`;
+        const outside = !story || !story.contains(node);
+        const small = (node.textContent || '').length < storyLength * 0.3;
+        if ((S.browse.isClutterName(name) && (outside || small)) || (node.tagName === 'ASIDE' && outside)) {
+          node.setAttribute('data-soroagent-clutter', '');
+          clutter.count++;
+        }
+      }
+    }
+    renderHome();
+    notifySidePanel();
+  }
+
+  // Sites add widgets late (recommendations, comment boxes): apply again after a few seconds.
+  function scheduleClutter() {
+    clutter.timers.forEach(clearTimeout);
+    clutter.timers = [];
+    if (!clutterOn() && !document.querySelector('[data-soroagent-clutter]')) return;
+    applyClutter();
+    clutter.timers = [2500, 7000].map((ms) => setTimeout(applyClutter, ms));
+  }
+
+  function setClutter(on) {
+    const list = new Set(state.settings.declutterSites || []);
+    if (on) list.add(siteHost());
+    else list.delete(siteHost());
+    state.settings = { ...state.settings, declutterSites: [...list] };
+    S.saveSettings({ declutterSites: [...list] });
+    scheduleClutter();
   }
 
   async function saveFeedPosts() {
@@ -800,13 +1093,13 @@
       stop.addEventListener('click', () => controller.abort());
       ui.node.append(el('div', { className: 'card-actions' }, [stop]));
     }
-    renderFeedHome();
+    renderHome();
     try {
       const saved = new Set((await S.listSnippets()).map((s) => s.dedupeKey).filter(Boolean));
       const isSaved = (p) => F.postKeys(siteId, p, feed.type).some((k) => saved.has(k));
       let knownRun = 0;
       let fresh = 0;
-      const posts = await scrollFeed({
+      const posts = await collectPosts({
         limit: feed.limit,
         signal,
         onProgress: (n) => feedProgress(`Scrolling: ${n} ${feed.noun} found${saved.size ? `, ${fresh} new` : ''}…`, ui),
@@ -828,7 +1121,7 @@
             if (signal.aborted) break;
             feedProgress(`Adding topics: ${i} of ${todo.length}…`, ui);
             const batch = todo.slice(i, i + F.BATCH);
-            const content = batch.map((p, n) => `[${n + 1}] ${siteId === 'linkedin' ? p.name || 'Someone' : F.bookmarkHandle(p)}: ${String(p.text || '[media]').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n');
+            const content = batch.map((p, n) => `[${n + 1}] ${siteId === 'linkedin' ? `${p.name || 'Someone'}: ` : siteId === 'x' ? `${F.bookmarkHandle(p)}: ` : ''}${String([p.title, p.text].filter(Boolean).join(' — ') || '[media]').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n');
             const reply = await runChat({ messages: S.buildMessages('tagBatch', { content, context: vocabulary.map((v) => v.tag).join(', ') || 'none yet' }, {}), json: true, quick: true, signal });
             F.parseTagBatch(S.stripThinking(reply), batch.length).forEach((t, n) => (tags[i + n] = S.canonicalTags(t, vocabulary)));
           }
@@ -863,7 +1156,7 @@
     } finally {
       fd.run = null;
       fd.progress = '';
-      renderFeedHome();
+      renderHome();
       notifySidePanel();
     }
   }
@@ -941,7 +1234,7 @@
     setHtml(els.send, busy ? ICONS.stop : ICONS.send);
     els.send.setAttribute('aria-label', busy ? 'Stop' : 'Send');
     els.launcher.classList.toggle('busy', busy);
-    renderFeedHome();
+    renderHome();
   }
 
   async function runTask(task) {
@@ -1426,7 +1719,7 @@
     // Sites soroagent never reads (adult, betting…): no suggested questions at all.
     if (S.capture && S.capture.neverRead(url, { adult: S.capture.isAdultPage(document) })) return renderQuestions([], '');
     // Feeds: the feed actions (summarize the top 100, save the posts) instead of questions.
-    if (feedHere()) return renderQuestions([], '');
+    if (feedHere() || newsFrontHere()) return renderQuestions([], '');
     const prepareOn = S.autoOn(state.settings, 'preparePages');
     if (!force && !prepareOn && !S.autoOn(state.settings, 'pageQuestions')) return renderQuestions(standardQuestions(), '', { offer: state.status === 'ready' });
     // Prepared on visit (from the page's summary): ready, being written, or started now.
@@ -1491,7 +1784,7 @@
 
   function preparable() {
     if (isPdfDocument()) return false; // the browser's PDF viewer: the side panel reads the file itself
-    if (feedHere()) return false; // feeds offer their own actions; nothing is read until asked
+    if (feedHere() || newsFrontHere()) return false; // they offer their own actions; nothing is read until asked
     if (!S.capture || !S.capture.captureAllowed) return true;
     const hasPassword = Boolean(document.querySelector('input[type="password"]'));
     return S.capture.captureAllowed({ url: location.href, hasPassword, textLength: Infinity, adult: S.capture.isAdultPage(document) }, state.settings.captureExclude || []).ok;
@@ -1672,17 +1965,17 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
-      feed: (() => {
-        const feed = feedHere();
-        return feed ? { title: feed.title, summarize: feed.summarize, save: feed.save, note: feed.note, running: Boolean(fd.run), progress: fd.progress, result: fd.result } : null;
+      page: (() => {
+        const actions = pageActions();
+        return actions ? { ...actions, running: Boolean(fd.run), progress: fd.progress, result: fd.result } : null;
       })(),
       techFilter: techFeed() ? { on: (state.settings.techFilter || []).includes(techFeed()), label: S.feedFilter.FEEDS[techFeed()].label, hidden: tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : 0 } : null,
-      standard: feedHere() || (S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) })) ? [] : standardQuestions(),
+      standard: feedHere() || newsFrontHere() || (S.capture && S.capture.neverRead(location.href, { adult: S.capture.isAdultPage(document) })) ? [] : standardQuestions(),
     };
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}|${Boolean(feedHere())}|${Boolean(fd.run)}|${fd.progress}|${fd.result}|${fd.last ? fd.last.at : ''}`;
+    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${tech.feed ? document.querySelectorAll(`[${S.feedFilter.ATTR}]`).length : -1}|${JSON.stringify(pageActions())}|${Boolean(fd.run)}|${fd.progress}|${fd.result}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -2572,32 +2865,32 @@
           await ensureSite(true);
           return { ok: true, messages: askMessages(String(msg.question || ''), msg.history || []) };
         }
-        if (msg.type === 'assistant:sp-feed') {
+        if (msg.type === 'assistant:sp-page') {
           if (msg.op === 'stop') {
             if (fd.run) fd.run.abort();
             return { ok: true };
           }
-          if (msg.op === 'save') {
+          if (msg.id === 'save') {
             saveFeedPosts();
-            return { ok: true };
+            return { ok: true, kind: 'started' };
           }
-          // Summarize the top 100: scroll here, then hand the side panel a job like Summarize's.
-          if (!feedHere() || fd.run) return { ok: false, error: 'Not available on this page right now.' };
+          if (msg.id === 'clutter') {
+            setClutter(!clutterOn());
+            return { ok: true, kind: 'started' };
+          }
+          if (fd.run) return { ok: false, error: 'Something is already running on this page.' };
           const controller = new AbortController();
-          fd.run = controller;
-          let posts;
+          if (msg.id === 'top') fd.run = controller;
+          let req;
           try {
-            posts = await collectTop(controller.signal);
+            req = await buildRequest(msg.id, controller.signal, null);
           } finally {
             fd.run = null;
             notifySidePanel();
           }
-          if (controller.signal.aborted) return { ok: false, stopped: true };
-          if (!posts.length) return { ok: false, error: 'No posts found on this page yet. Wait for the feed to load, then try again.' };
-          const { label, context } = topContext(posts);
-          const base = { url: location.href, pageTitle: document.title, site: state.site.name, model: '', placeholder: NOTES_PLACEHOLDER };
-          const saveMessages = S.buildMessages('save', S.pageVars({ title: document.title, url: location.href, text: S.JOB_PLACEHOLDERS.summary }), sitePrompts());
-          return { ok: true, count: posts.length, spec: { ...base, saveMessages, ...itemsJob(posts, { start: 1, context, label }) } };
+          if (req.stopped) return { ok: false, stopped: true };
+          if (req.error) return { ok: false, error: req.error };
+          return { ok: true, ...req };
         }
         if (msg.type === 'assistant:sp-techfilter') {
           setTechFilter(Boolean(msg.on));
@@ -2635,6 +2928,7 @@
       renderSiteBar();
     }
     if (before.xBookmarksOffer !== state.settings.xBookmarksOffer) syncFeed();
+    if (String(before.declutterSites) !== String(state.settings.declutterSites)) scheduleClutter();
     if (String(before.techFilter) !== String(state.settings.techFilter) || before.onboarded !== state.settings.onboarded) {
       syncTechFilter();
       renderSiteBar();

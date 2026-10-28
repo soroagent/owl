@@ -108,6 +108,7 @@
     matches: (location) => /(^|\.)linkedin\.com$/i.test(location.hostname),
     pageInfo,
     items: {
+      on: (info) => info.type !== 'page',
       noun: 'posts',
       batchSize: 50,
       isFeed: (info) => FEED_TYPES.has(info.type),

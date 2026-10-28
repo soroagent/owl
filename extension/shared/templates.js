@@ -344,5 +344,5 @@
     });
   }
 
-  Object.assign(soroagent, { QUESTION_SLOTS: SLOTS, matchTemplate, questionTemplate, slotsText, plainQuestions, parseSlotQuestions, QUESTION_TEMPLATES: T });
+  Object.assign(soroagent, { QUESTION_SLOTS: SLOTS, NEWS_HOSTS, matchTemplate, questionTemplate, slotsText, plainQuestions, parseSlotQuestions, QUESTION_TEMPLATES: T });
 })(globalThis);

@@ -169,5 +169,37 @@
     return { ...(map || {}), [page]: ((map || {})[page] || 0) + add };
   }
 
-  Object.assign(soroagent, { buildGraph, layoutGraph, topicWeight, readingTime, addDwell });
+  /** Pure: the start of a day (local time) as a Date, `back` days before `now`. */
+  function dayStart(now = new Date(), back = 0) {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - back);
+    return d;
+  }
+
+  /**
+   * Pure: the daily digest: snippets saved between `from` (inclusive) and `to` (exclusive), grouped
+   * by their first topic (case-folded; most snippets first, then alphabetical), newest first within
+   * a topic: { count, sites, topics: [{ topic, items }], other: [untagged] }.
+   */
+  function dailyDigest(snippets, { from, to = new Date(8.64e15) } = {}) {
+    const start = new Date(from).getTime();
+    const end = new Date(to).getTime();
+    const picked = snippets.filter((s) => {
+      const t = Date.parse(s && s.createdAt);
+      return t >= start && t < end;
+    }).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    const groups = new Map();
+    const other = [];
+    for (const s of picked) {
+      const tag = (s.tags || []).map((t) => String(t).trim().toLowerCase()).find(Boolean);
+      if (!tag) other.push(s);
+      else groups.set(tag, [...(groups.get(tag) || []), s]);
+    }
+    const topics = [...groups].map(([topic, list]) => ({ topic, items: list })).sort((a, b) => b.items.length - a.items.length || a.topic.localeCompare(b.topic));
+    const sites = new Set(picked.map((s) => s.site || (() => { try { return new URL(s.url).hostname.replace(/^www\./, ''); } catch { return ''; } })()).filter(Boolean));
+    return { count: picked.length, sites: sites.size, topics, other };
+  }
+
+  Object.assign(soroagent, { buildGraph, layoutGraph, topicWeight, readingTime, addDwell, dayStart, dailyDigest });
 })(globalThis);

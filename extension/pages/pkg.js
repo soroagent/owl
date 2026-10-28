@@ -152,10 +152,35 @@
     else renderOverview();
   }
 
+  // The digest: what you saved today, yesterday or this week, by topic (no AI; from your snippets).
+  let digestDays = 0;
+  let allSnippets = [];
+  function renderDigest() {
+    const now = new Date();
+    const range = digestDays === 1 ? { from: S.dayStart(now, 1), to: S.dayStart(now, 0) } : { from: S.dayStart(now, digestDays === 7 ? 6 : 0) };
+    const d = S.dailyDigest(allSnippets, range);
+    const when = digestDays === 0 ? 'today' : digestDays === 1 ? 'yesterday' : 'in the last 7 days';
+    $('digestSub').textContent = d.count ? `${plural(d.count, 'snippet')} saved ${when}, from ${plural(d.sites, 'source')}, in ${plural(d.topics.length, 'topic')}.` : `Nothing saved ${when}.`;
+    const list = (items) => el('ul', { className: 'notes' }, items.slice(0, 12).map((s) => el('li', {}, [
+      el('a', { href: `snippets.html#${encodeURIComponent(s.id)}`, textContent: s.title || s.pageTitle || 'Untitled' }),
+      el('small', { textContent: s.summary && !String(s.title || '').startsWith(s.summary.replace(/…$/, '')) ? s.summary.slice(0, 140) : s.site || '' }),
+    ])));
+    const groups = d.topics.map((t) => el('div', {}, [el('h3', { textContent: `${t.topic} · ${t.items.length}` }), list(t.items)]));
+    if (d.other.length) groups.push(el('div', {}, [el('h3', { textContent: `No topic yet · ${d.other.length}` }), list(d.other)]));
+    $('digestBody').replaceChildren(el('div', { className: 'digest-topics' }, groups));
+  }
+  document.querySelectorAll('#digest .seg button').forEach((b) => b.addEventListener('click', () => {
+    digestDays = Number(b.dataset.days);
+    document.querySelectorAll('#digest .seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderDigest();
+  }));
+
   async function load() {
     const all = await ext.storage.local.get(null);
     const snippets = Object.keys(all).filter((k) => k.startsWith('snippet:')).map((k) => all[k]).filter((s) => s && s.id);
     notesById = new Map(snippets.map((s) => [s.id, s]));
+    allSnippets = snippets;
+    renderDigest();
     graph = S.buildGraph(snippets, all.pkgDwell || {});
     positions = fit(S.layoutGraph(graph.topics, graph.edges, { width: W, height: H }));
     renderTiles();

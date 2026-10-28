@@ -49,6 +49,13 @@
     .label { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-muted); margin: 14px 0 6px; }
     .empty { text-align: center; padding: 48px 16px; color: var(--fg-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); }
     .tip { position: fixed; z-index: 60; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+    .digest { margin-top: 16px; }
+    .digest-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    .seg button { border: none; background: var(--surface); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 12px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--heading); font-weight: 600; }
+    .digest-topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px 20px; }
+    .digest-topics h3 { font-size: 13px; margin: 0 0 4px; color: var(--heading); }
     .foot-note { font-size: 12.5px; color: var(--fg-muted); margin-top: 14px; }
     @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
   </style>
@@ -70,6 +77,11 @@
     </section>
     <aside class="panel detail" id="detail" aria-live="polite"></aside>
   </div>
+  <section class="panel digest" id="digest">
+    <div class="digest-head"><h2>Your digest</h2><div class="seg" role="group" aria-label="Digest period"><button type="button" data-days="0" aria-pressed="true">Today</button><button type="button" data-days="1">Yesterday</button><button type="button" data-days="7">Last 7 days</button></div></div>
+    <p class="sub" id="digestSub"></p>
+    <div id="digestBody"></div>
+  </section>
   <p class="foot-note">Topics are your snippets' tags. Reading time counts only on pages you've saved, while the tab is in front and you're active; it stays on this computer. <a href="options.html#pkg">Turn off or clear it</a>.</p>
 </main>
 <div class="tip" id="tip" hidden></div>

@@ -226,3 +226,12 @@ test('X likes are a feed of their own', () => {
   assert.equal(pageInfo(loc('https://x.com/karpathy/likes')).type, 'likes');
   assert.equal(pageInfo(loc('https://x.com/karpathy')).type, 'profile');
 });
+
+test('Hacker News stories and YouTube videos are numbered for prompts', () => {
+  assert.equal(S.siteHelpers.hackernews.formatStories([{ title: 'A tiny DB', site: 'example.com', points: 120, comments: 45 }], { start: 2 }), '[2] A tiny DB (example.com) · 120 points · 45 comments');
+  const yt = S.siteHelpers.youtube;
+  assert.equal(yt.pageInfo(loc('https://www.youtube.com/feed/subscriptions')).type, 'subscriptions');
+  assert.equal(yt.pageInfo(loc('https://www.youtube.com/')).type, 'feed');
+  assert.equal(yt.pageInfo(loc('https://www.youtube.com/watch?v=abc')).type, 'video');
+  assert.equal(yt.formatVideos([{ title: 'Rust in 100 seconds', channel: 'Fireship', meta: '2M views · 1 year ago' }]), '[1] Rust in 100 seconds — Fireship · 2M views · 1 year ago');
+});

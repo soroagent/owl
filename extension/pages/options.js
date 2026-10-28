@@ -166,6 +166,20 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     if (!confirm('Clear the reading time counted on your saved pages? Your PKG keeps its snippets and topics.')) return;
     await ext.storage.local.remove('pkgDwell');
     showDwell();
+
+  // What's new (seenLists) and Hide clutter (declutterSites): what's remembered, and a way to forget it.
+  async function showBrowse() {
+    const { seenLists = {} } = await ext.storage.local.get('seenLists');
+    const pages = Object.keys(seenLists).length;
+    const sites = ((await S.getSettings()).declutterSites || []).length;
+    $('browseMsg').textContent = pages || sites ? `What's new on ${pages} page${pages === 1 ? '' : 's'}; clutter hidden on ${sites} site${sites === 1 ? '' : 's'}` : 'Nothing remembered';
+  }
+  $('clearBrowse').addEventListener('click', async () => {
+    await ext.storage.local.remove('seenLists');
+    await S.saveSettings({ declutterSites: [] });
+    showBrowse();
+  });
+  showBrowse();
   });
   showDwell();
 

@@ -80,6 +80,68 @@
     return stories.length ? { title: doc.title, text: formatList(stories) } : null;
   }
 
-  soroagent.registerSite({ id: 'hackernews', name: 'Hacker News', matches: (location) => location.hostname === 'news.ycombinator.com', pageInfo, extract });
-  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), hackernews: { pageInfo, formatThread, formatList } };
+  // Lists as items (stories), so Summarize reads them as a ranked list and the panel can summarize or
+  // save the top 100: the front page has 30 per page, so the next pages are fetched (?p=2, 3, 4).
+  function storiesIn(doc, { list = false } = {}) {
+    if (!list && pageInfo(location).type === 'thread') return [];
+    return [...doc.querySelectorAll('tr.athing.submission, tr.athing:not(.comtr)')].map((row) => {
+      const meta = row.nextElementSibling;
+      const link = row.querySelector('.titleline > a');
+      const commentsLink = meta ? [...meta.querySelectorAll('a')].find((a) => /comment|discuss/.test(a.textContent)) : null;
+      const href = link ? link.getAttribute('href') || '' : '';
+      return {
+        id: row.getAttribute('id') || '',
+        rank: soroagent.numberIn(text(row.querySelector('.rank'))),
+        title: text(link),
+        url: href ? new URL(href, location.origin).href : '',
+        site: text(row.querySelector('.sitestr')),
+        points: soroagent.numberIn(text(meta && meta.querySelector('.score'))),
+        comments: commentsLink && /\d/.test(commentsLink.textContent) ? soroagent.numberIn(commentsLink.textContent) : 0,
+        discussion: row.getAttribute('id') ? `${location.origin}/item?id=${row.getAttribute('id')}` : '',
+        el: row,
+      };
+    }).filter((s) => s.id && s.title);
+  }
+
+  /** Pure: numbered stories for prompts: "[n] Title (site) · 120 points · 45 comments". */
+  function formatStories(stories, { start = 1 } = {}) {
+    return stories.map((s, i) => `[${start + i}] ${s.title}${s.site ? ` (${s.site})` : ''} · ${s.points || 0} points · ${s.comments || 0} comments`).join('\n');
+  }
+
+  /** The top `limit` stories of this list: this page, then the next pages fetched in turn. */
+  async function topStories({ limit, signal, onProgress }) {
+    const found = new Map(storiesIn(document).map((s) => [s.id, { ...s, el: null }]));
+    const path = location.pathname === '/' ? '/news' : location.pathname;
+    for (let page = 2; found.size < limit && page <= 6 && !(signal && signal.aborted); page++) {
+      if (onProgress) onProgress(found.size);
+      const res = await fetch(`${location.origin}${path}?p=${page}`, { credentials: 'include', signal });
+      if (!res.ok) break;
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+      const more = storiesIn(doc, { list: true });
+      if (!more.length) break;
+      for (const s of more) if (!found.has(s.id)) found.set(s.id, { ...s, el: null });
+    }
+    return [...found.values()].slice(0, limit);
+  }
+
+  soroagent.registerSite({
+    id: 'hackernews',
+    name: 'Hacker News',
+    matches: (location) => location.hostname === 'news.ycombinator.com',
+    pageInfo,
+    extract,
+    items: {
+      on: (info) => info.type === 'list',
+      noun: 'stories',
+      batchSize: 30,
+      isFeed: (info) => info.type === 'list',
+      visible: storiesIn,
+      collect: async ({ target, skip = new Set(), signal }) => ({ items: (await topStories({ limit: target + skip.size, signal })).filter((s) => !skip.has(s.id)).slice(0, target), exhausted: true }),
+      top: topStories,
+      format: formatStories,
+      element: (s) => (s.el && s.el.isConnected ? s.el : null),
+      describe: (s) => `${s.title}${s.site ? ` (${s.site})` : ''}\n${s.url}`,
+    },
+  });
+  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), hackernews: { pageInfo, formatThread, formatList, formatStories } };
 })(globalThis);

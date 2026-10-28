@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.47.0 on 2026-10-28.
+against version 2.48.0 on 2026-10-28.
 
 ## Before you submit
 
@@ -12,7 +12,7 @@ against version 2.47.0 on 2026-10-28.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-28 (v2.47.0) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-28 (v2.48.0) |
 | ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
 | ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
 | ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
@@ -72,6 +72,21 @@ in Settings → AI → While you read):
   page shows, and either summarize the top 100 with the user's AI (like Summarize) or save them as
   snippets, sending their text in batches of 5 for topic tags. On X's bookmarks page the panel opens
   by itself once per browser session with these buttons (off in Settings → PKG). Nothing is posted.
+- **Page actions on news, Hacker News, Reddit and YouTube.** Buttons on the opening screen, each run
+  on a click: a news front page's top 5 stories (its headlines to the user's AI); an article's
+  "Confirmed vs claimed" and "Story timeline" (the article, plus the user's related saved snippets,
+  to the AI); Hacker News and Reddit top 100 (Hacker News: the next list pages are fetched from
+  news.ycombinator.com, same as clicking "More"); "Best comments" on threads; YouTube's top 50 videos
+  and a video's chapter summaries. None of this reads anything before the click, and it reads only
+  what the page (or the list's next pages) shows the user.
+- **What's new since your last visit.** Off until the user asks on a page (a news front page, Hacker
+  News, a subreddit). From then on, visiting that page compares its story links with the ones stored
+  last time and marks the new ones (an attribute and one CSS rule). Only those pages' story
+  addresses are stored, locally (`seenLists`, capped), never sent; Settings → PKG forgets them. No
+  AI and no network.
+- **Hide clutter.** Per site, off by default: hides related-link, newsletter, comment and sponsored
+  boxes on articles by their class or id (an attribute and one CSS rule; no AI, no network). The
+  story itself is never hidden; turning it off restores the page.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
@@ -126,8 +141,8 @@ Tick these data types:
 - **Website content**: page text is sent to the AI provider the *user* configured when they use
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
   or in-browser AI by default; and, while the user has "Hide non-tech" on for X, Reddit or YouTube,
-  the loaded posts' text or video titles, to sort them). A feed's "Summarize the top 100 posts" and "Save the
-  posts" send those posts with their authors' public names or headlines, on click. After an answer, the question and the answer go to the same AI to
+  the loaded posts' text or video titles, to sort them). Page actions (a feed's top 100, an article's Confirmed vs
+  claimed or Story timeline, Best comments, Chapter summaries) send that content, on click. After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
   device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and
@@ -160,6 +175,10 @@ purpose, not used for creditworthiness or lending.
 > On X feeds (for example x.com/home, x.com/i/bookmarks; needs an X account) and the LinkedIn feed,
 > the panel offers "Summarize the top 100 posts" and "Save … to your PKG". After a click, soroagent
 > scrolls that page in the user's tab to collect the posts it shows; it never posts anything.
+> To see the other page actions without an account: open https://news.ycombinator.com (Summarize
+> the top 100 stories), any story's comments (Best comments), a news site such as
+> https://www.bbc.com (Today's top 5 stories, What's new since your last visit) and one of its
+> articles (Confirmed vs claimed, Story timeline, Hide clutter).
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest

@@ -132,7 +132,7 @@
     const page = $('page');
     page.replaceChildren();
     $('techFilter').hidden = true;
-    renderFeed(snap && snap.feed);
+    renderPageActions(snap && snap.page);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -182,7 +182,7 @@
       $('suggestMore').hidden = !offer;
     }
     // X: refresh with the posts that loaded since.
-    const x = snap.site.id === 'x' && !snap.feed;
+    const x = snap.site.id === 'x' && !snap.page;
     $('refresh').hidden = !x;
     $('refresh').classList.toggle('spin', p.status === 'working');
     $('newCount').hidden = !snap.newPosts || p.status === 'working';
@@ -190,40 +190,40 @@
     $('refresh').title = snap.newPosts ? `${snap.newPosts} new posts loaded since the summary: refresh` : 'Refresh the summary with the posts loaded now';
   }
 
-  // Feeds (X timelines, bookmarks, likes; the LinkedIn feed): the same actions as the floating
-  // panel, instead of questions. The page scrolls and saves; Summarize the top 100 runs here as a job.
-  function renderFeed(f) {
-    if (!f) return $('feedBox').replaceChildren();
-    const busy = Boolean(state.busy) || f.running;
-    const button = (label, onClick) => {
-      const b = el('button', { type: 'button', textContent: label, disabled: busy || !(state.ai && state.ai.ok) });
-      b.addEventListener('click', onClick);
-      return b;
-    };
+  // Page actions (feeds, news, threads, videos): the same buttons as the floating panel. The page
+  // builds each request (assistant:sp-page); summaries run here as jobs, the rest as chats.
+  function renderPageActions(p) {
+    if (!p) return $('feedBox').replaceChildren();
+    const busy = Boolean(state.busy) || p.running;
     const nodes = [
-      el('div', { className: 'feed-title', textContent: f.title }),
-      button(f.summarize, () => summarizeTop()),
-      button(f.save, () => toTab({ type: 'assistant:sp-feed', op: 'save' }).catch(() => {})),
-      el('p', { className: 'feed-note', textContent: f.running && f.progress ? f.progress : f.note }),
+      el('div', { className: 'feed-title', textContent: p.title }),
+      ...p.buttons.map((a) => {
+        const local = a.id === 'clutter' || a.id === 'new';
+        const b = el('button', { type: 'button', textContent: a.label, disabled: !local && (busy || !(state.ai && state.ai.ok)) });
+        if (a.pressed !== undefined) b.setAttribute('aria-pressed', String(a.pressed));
+        b.addEventListener('click', () => runPageAction(a));
+        return b;
+      }),
     ];
-    if (f.running) {
+    if (p.note || (p.running && p.progress)) nodes.push(el('p', { className: 'feed-note', textContent: p.running && p.progress ? p.progress : p.note }));
+    if (p.running) {
       const stop = el('button', { type: 'button', className: 'link', textContent: 'Stop' });
-      stop.addEventListener('click', () => toTab({ type: 'assistant:sp-feed', op: 'stop' }).catch(() => {}));
+      stop.addEventListener('click', () => toTab({ type: 'assistant:sp-page', op: 'stop' }).catch(() => {}));
       nodes.push(stop);
-    } else if (f.result) nodes.push(card({ kind: 'ok', title: f.result, actions: [{ label: 'Open PKG', onClick: () => ext.runtime.sendMessage({ type: 'open:pkg' }) }] }));
+    } else if (p.result) nodes.push(card({ kind: 'ok', title: p.result, actions: [{ label: 'Open PKG', onClick: () => ext.runtime.sendMessage({ type: 'open:pkg' }) }] }));
     $('feedBox').replaceChildren(...nodes);
   }
 
-  function summarizeTop() {
+  function runPageAction(a) {
+    if (a.id === 'save' || a.id === 'clutter') return toTab({ type: 'assistant:sp-page', id: a.id }).catch(() => {});
     return run(async (signal) => {
-      const label = (state.snap && state.snap.feed && state.snap.feed.summarize) || 'Summarize the top 100 posts';
-      addUser(label);
-      const reply = addAssistant('Scrolling through the feed…');
-      const stop = () => toTab({ type: 'assistant:sp-feed', op: 'stop' }).catch(() => {});
+      addUser(a.label);
+      const reply = addAssistant(a.id === 'top' ? 'Collecting…' : 'Reading the page…');
+      const stop = () => toTab({ type: 'assistant:sp-page', op: 'stop' }).catch(() => {});
       signal.addEventListener('abort', stop, { once: true });
       let res;
       try {
-        res = await toTab({ type: 'assistant:sp-feed', op: 'summarize' });
+        res = await toTab({ type: 'assistant:sp-page', id: a.id });
       } finally {
         signal.removeEventListener('abort', stop);
       }
@@ -235,18 +235,26 @@
         reply.finish('');
         throw new Error((res && res.error) || 'Couldn’t read this page.');
       }
-      reply.status(`Reading ${res.count} posts…`);
-      const record = await runJob(res.spec, reply, signal);
-      reply.finish(record.text);
-      thread().history.push({ role: 'user', content: res.spec.label }, { role: 'assistant', content: record.text });
-      if (record.snippetId) append(card({ kind: 'ok', title: 'Saved to your snippets', actions: [{ label: 'Open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] }));
-      suggestFollowUps(res.spec.label, record.text);
+      let text;
+      if (res.kind === 'text') text = res.text;
+      else if (res.kind === 'job') {
+        reply.status(`Reading ${res.count} ${res.noun}…`);
+        const record = await runJob(res.spec, reply, signal);
+        text = record.text;
+        if (record.snippetId) {
+          reply.finish(text);
+          append(card({ kind: 'ok', title: 'Saved to your snippets', actions: [{ label: 'Open', onClick: () => ext.runtime.sendMessage({ type: 'open:snippets', id: record.snippetId }) }] }));
+        }
+      } else text = S.browse.linkRefs(S.stripThinking(await streamChat(res.messages, reply, signal)), res);
+      reply.finish(text);
+      thread().history.push({ role: 'user', content: res.label || a.label }, { role: 'assistant', content: text });
+      if (res.kind !== 'text') suggestFollowUps(res.label || a.label, text);
     });
   }
 
   function setEnabled() {
     const pdf = currentPdf();
-    renderFeed(!pdf && state.snap ? state.snap.feed : null);
+    renderPageActions(!pdf && state.snap ? state.snap.page : null);
     const readable = Boolean((state.snap && state.snap.readable) || (pdf && pdf.status === 'ready' && pdf.text));
     const ready = Boolean(state.ai && state.ai.ok);
     $('summarize').disabled = !readable || !ready || Boolean(state.busy);

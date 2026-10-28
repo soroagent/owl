@@ -600,7 +600,7 @@
     if ((snippets.length || records.length) && confirm(`Delete all ${snippets.length} snippets and the summary history? Download a backup first if you want to keep them.`)) {
       await deleteSnippets(snippets.map((s) => s.id));
       if (records.length) await ext.runtime.sendMessage({ type: 'summary:delete', ids: records.map((r) => r.id) });
-      await ext.storage.local.remove('pkgDwell'); // reading time belongs to the saved pages
+      await ext.storage.local.remove(['pkgDwell', 'seenLists']); // reading time and what's-new memory go with the PKG
     }
   });
 

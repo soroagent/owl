@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.47 and later.
+Arc and Firefox, version 2.48 and later.
 
 ## The short version
 
@@ -42,6 +42,11 @@ soroagent stores the following **only in your browser's extension storage on you
   topics you spend time on weigh more in your PKG. Pages you haven't saved are never recorded. It
   stays on this computer, is never synced, backed up or sent anywhere, and is deleted with "Delete
   all". Turn it off or clear it in Settings → PKG.
+- **What's new since your last visit:** only on pages where you asked for it (a news front page,
+  Hacker News, a subreddit), the addresses of the stories listed there (at most 600 per page, 40
+  pages), so the next visit can mark the new ones. Never synced, backed up or sent anywhere; "Forget
+  them" in Settings → PKG and "Delete all" clear it.
+- **Hide clutter:** the sites where you turned it on (in your settings).
 - **A diagnostic log** of soroagent's own errors (the last 50), kept in memory only while the browser is
   open. Web addresses, host names, page text, emails, keys and file paths are removed before anything
   is logged. See section 6.
@@ -49,7 +54,7 @@ soroagent stores the following **only in your browser's extension storage on you
 soroagent does not collect your browsing history or read your browser's history (the reading time
 above covers only pages you saved). It reads a page's content only:
 
-- when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, or a feed's Summarize the top 100 posts and Save the posts);
+- when you open soroagent on it or ask it to do something (Summarize, Ask, Save, Research, or one of the page's actions, such as a feed's Summarize the top 100 posts or an article's Confirmed vs claimed);
 - when **automatic preparing** is on (section 3) and the side panel is open on the page, or you have
   been reading the page for 15 seconds;
 - if you turn on **passive capture**, when you have actually read a page (time spent and how far you
@@ -67,7 +72,8 @@ soroagent sends data over the network only in these cases, and only to the desti
 
 | When | What is sent | To whom |
 |---|---|---|
-| You summarize, ask, research, summarize the top 100 posts of an X or LinkedIn feed (their text, with each author's public name, handle or headline), save (for its title and tags) or save a feed's posts, such as your **X bookmarks** (their text, in batches of 5, for topic tags) | The page text and your question | The AI you chose. **In the browser** (Chrome's built-in Gemini Nano, or the in-browser model) or **a local model server** (Ollama, LM Studio, llama.cpp, Jan): it stays on your computer. **A cloud AI** with your own key (Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, or a custom address you enter): it goes to that provider, whose privacy policy applies. |
+| You summarize, ask, research, use a page action (the top 100 posts or stories of an X, LinkedIn, Reddit or Hacker News feed, the top 50 videos on YouTube, a news front page's headlines, an article for Confirmed vs claimed or Story timeline, with your related snippets for the timeline, a thread for Best comments, a video for Chapter summaries), save (for its title and tags) or save a feed's posts, such as your **X bookmarks** (their text, in batches of 5, for topic tags) | The page text and your question | The AI you chose. **In the browser** (Chrome's built-in Gemini Nano, or the in-browser model) or **a local model server** (Ollama, LM Studio, llama.cpp, Jan): it stays on your computer. **A cloud AI** with your own key (Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, or a custom address you enter): it goes to that provider, whose privacy policy applies. |
+| You summarize or save the top 100 stories on Hacker News | Requests for the next pages of that list (for example news.ycombinator.com/news?p=2), as your browser would | Hacker News, the site you're on |
 | **Automatic preparing**: the side panel is open on a page, or you've read it for 15 seconds | The page text (on X, the posts loaded so far), to prepare a summary and the questions you're likely to have | The AI you chose, as above. **On by default only with an AI in the browser or on your computer; off by default with a cloud key.** Nothing is saved unless you act. Turn it off in Settings → On the page. |
 | You get an answer or a summary (**follow-up questions**) | Your question and the answer you got (not the page again), to write two follow-up questions | The AI you chose, as above. On by default; turn it off in Settings → On the page. |
 | You open soroagent on a page (suggested questions), when automatic preparing is off but suggested questions are on | The start of the page text | The AI you chose, as above. Same defaults; Settings → On the page. |

@@ -81,6 +81,11 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `save` | Labels each auto-saved summary (and saved selections): title, summary and tags | JSON `{ "title", "summary", "tags" }` |
 | `questions` | Suggested questions on the panel's opening screen: one per slot (Gist, Understand, Check, Next) from the site's template in `shared/templates.js`, in the page's language (`{{context}}` = what kind of page it is, `{{slots}}` = the slot patterns). Sent in quick mode: no long thinking | JSON `{ "questions": [] }`, 4 in slot order |
 | `followUps` | Two follow-up questions under each answer (`{{question}}` = what was asked, `{{content}}` = the answer). Quick mode | JSON `{ "questions": [] }` |
+| `frontPage` | **Today's top 5 stories** on a news front page: `{{content}}` = its headlines, numbered [n]; duplicates merged; [n] becomes a link | Markdown, 5 numbered lines |
+| `gist` | **Confirmed vs claimed** on a news article (`{{page}}`, with its publication date): what happened, confirmed, claimed and by whom, sources, missing | Markdown |
+| `timeline` | **Story timeline** on a news article: `{{page}}` + `{{context}}` (publication date and the user's related snippets [N1]…, with their dates); dates worked out, never guessed | Markdown |
+| `bestComments` | **Best comments** on a Hacker News or Reddit thread (`{{page}}` = the post and its comments) | Markdown |
+| `chapters` | **Chapter summaries** of a YouTube video (`{{page}}`, with the transcript when there is one); [m:ss] becomes a link to that moment | Markdown |
 | `techSort` | **Hide non-tech** on feeds: which of the numbered items in `{{content}}` are about `{{question}}` (the topic). Quick mode | JSON `{ "tech": [] }` (item numbers) |
 | `tagBatch` | A feed's posts saved to the PKG (X bookmarks, likes, timelines; LinkedIn): 1–3 topic tags per numbered post in `{{content}}`, reusing the tags in `{{context}}`. Quick mode | JSON `{ "tags": { "1": [] } }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |

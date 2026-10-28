@@ -55,6 +55,7 @@
     #feedBox > button:not(.link) { padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
     #feedBox > button:not(.link):hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
     #feedBox > button:disabled { opacity: .55; cursor: default; }
+    #feedBox > button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
     .feed-note { margin: 0; font-size: 11.5px; color: var(--fg-muted); text-align: center; }
     .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
     .suggest button.slotted { display: grid; gap: 1px; }
@@ -138,6 +139,7 @@
 <script src="../shared/markdown.js"></script>
 <script src="../shared/prompts.js"></script>
 <script src="../shared/templates.js"></script>
+<script src="../shared/browse.js"></script>
 <script src="../prompts/default.js"></script>
 <script src="../shared/knowledge.js"></script>
 <script src="../shared/snippets.js"></script>

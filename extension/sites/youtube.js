@@ -24,7 +24,37 @@
         context: 'This is a YouTube video page: title, channel, description, chapters, the comments that have loaded and, when there is one, the timed transcript of what is said. Without a transcript, what is said in the video is not included unless the description covers it.',
       };
     }
+    if (location.pathname === '/' || location.pathname === '/feed/recommended') return { type: 'feed', label: 'YouTube · Home', context: "These are videos from the user's YouTube home page, in the order shown." };
+    if (location.pathname === '/feed/subscriptions') return { type: 'subscriptions', label: 'YouTube · Subscriptions', context: "These are the latest videos from the channels the user subscribes to, newest first." };
+    if (location.pathname === '/results') return { type: 'search', label: 'YouTube · Search', context: `These are YouTube search results for "${new URLSearchParams(location.search || '').get('search_query') || ''}".` };
     return { type: 'page', label: 'YouTube', context: '' };
+  }
+
+  const LIST_TYPES = new Set(['feed', 'subscriptions', 'search']);
+
+  /** Pure: numbered videos for prompts: "[n] Title — Channel · 1.2M views · 3 days ago". */
+  function formatVideos(videos, { start = 1 } = {}) {
+    return videos.map((v, i) => `[${start + i}] ${v.title}${v.channel ? ` — ${v.channel}` : ''}${v.meta ? ` · ${v.meta}` : ''}`).join('\n');
+  }
+
+  /** The videos on a list page (home, subscriptions, search); Shorts and ads left out. */
+  function videosIn(doc) {
+    if (!LIST_TYPES.has(pageInfo(doc.location || location).type)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const el of doc.querySelectorAll('ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, yt-lockup-view-model')) {
+      if (el.parentElement && el.parentElement.closest('ytd-rich-item-renderer, ytd-video-renderer, yt-lockup-view-model')) continue;
+      const a = el.querySelector('a[href*="/watch?v="]');
+      const id = a ? (a.getAttribute('href').match(/[?&]v=([\w-]{6,})/) || [])[1] : '';
+      if (!id || seen.has(id) || el.querySelector('ytd-ad-slot-renderer, [class*="badge-style-type-ad"]')) continue;
+      const pick = (sel) => { const n = el.querySelector(sel); return n ? (n.getAttribute('title') || n.textContent || '').replace(/\s+/g, ' ').trim() : ''; };
+      const title = pick('#video-title, h3 a, h3, .yt-lockup-metadata-view-model-wiz__title');
+      if (!title) continue;
+      const meta = [...el.querySelectorAll('#metadata-line span, .yt-content-metadata-view-model-wiz__metadata-row, .yt-content-metadata-view-model__metadata-row')].map((n) => n.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      seen.add(id);
+      out.push({ id, url: `https://www.youtube.com/watch?v=${id}`, title, channel: pick('#channel-name a, ytd-channel-name a, ytd-channel-name') || (meta.length > 1 ? meta[0] : ''), meta: meta.slice(meta.length > 1 ? 1 : 0).join(' · ').slice(0, 80), el });
+    }
+    return out;
   }
 
   /** Pure: chapters from a description: lines like "0:00 Intro" or "1:02:03 - Q&A". */
@@ -175,6 +205,25 @@
     };
   }
 
-  soroagent.registerSite({ id: 'youtube', name: 'YouTube', matches: (location) => /(^|\.)youtube\.com$/i.test(location.hostname), pageInfo, extract, ensure });
-  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), youtube: { pageInfo, parseChapters, cleanDescription, formatVideo, formatTranscript, readTranscriptPanel } };
+  soroagent.registerSite({
+    id: 'youtube',
+    name: 'YouTube',
+    matches: (location) => /(^|\.)youtube\.com$/i.test(location.hostname),
+    pageInfo,
+    extract,
+    ensure,
+    // Home, subscriptions and search are read as videos; a video page as the video (extract).
+    items: {
+      on: (info) => LIST_TYPES.has(info.type),
+      noun: 'videos',
+      batchSize: 50,
+      isFeed: (info) => LIST_TYPES.has(info.type),
+      visible: videosIn,
+      collect: (args) => soroagent.collectByScrolling({ ...args, visible: videosIn }),
+      format: formatVideos,
+      element: (v) => (v.el && v.el.isConnected ? v.el : null),
+      describe: (v) => `${v.title}${v.channel ? ` — ${v.channel}` : ''}\n${v.url}`,
+    },
+  });
+  soroagent.siteHelpers = { ...(soroagent.siteHelpers || {}), youtube: { pageInfo, formatVideos, parseChapters, cleanDescription, formatVideo, formatTranscript, readTranscriptPanel } };
 })(globalThis);

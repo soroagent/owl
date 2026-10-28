@@ -87,6 +87,83 @@ Each question: at most 14 words, can be answered from the page or a quick web se
 Return JSON: {"questions": ["...", "...", "...", "..."]}`,
     },
 
+    // Page actions (content/assistant.js, "Page actions"). Reply: Markdown; [n] and [m:ss] become links.
+
+    // News front page: "Today's top 5 stories". {{content}} is the page's headlines, numbered [n].
+    frontPage: {
+      system: `{{persona}}
+
+You are an editor picking what matters from a news front page, for a busy reader.`,
+      user: `Headlines on {{title}} ({{url}}):
+{{content}}
+
+Pick the 5 stories that matter most today: big consequences, many people affected, or genuinely new. Several headlines about the same story count as one story: list it once, with all their numbers.
+Write exactly 5 numbered lines in this form, and nothing else:
+1. **Short plain headline** — what happened and why it matters, in one sentence. [4] [15]
+Use only what the headlines say: no places, names or numbers they don't give.`,
+    },
+
+    // News article: "Confirmed vs claimed". Reads only what the page shows. {{page}} is the article.
+    gist: {
+      system: `{{persona}}
+
+You read news critically for a busy reader: what is established, what is only claimed, and by whom.`,
+      user: `{{page}}
+
+**What happened:** one sentence.
+
+**Confirmed**
+- Facts the article presents as established, with how it knows (documents, data, official records, the reporter saw it).
+
+**Claimed**
+- Statements attributed to someone and not independently confirmed: who says it, and what they say.
+
+**Sources:** who is quoted or cited (named, anonymous, documents, other outlets), in one line.
+
+**Missing:** one line on what a careful reader would still want to know.
+
+Use only the article. If part of it is cut off (a paywall or "subscribe" box), say what you couldn't see.`,
+    },
+
+    // News article: "Story timeline". {{page}} is the article; {{context}} its publication date and the
+    // user's saved snippets on the same topic, numbered [N1]… with their dates (may be none).
+    timeline: {
+      system: `{{persona}}
+
+You build timelines of ongoing news stories. You never guess dates.`,
+      user: `{{page}}
+
+{{context}}
+
+Build a dated timeline of this story, oldest first: one bullet per event, starting with its date in bold. Work dates out from the text: "on Monday" in an article published on Tuesday 27 Oct 2026 is **26 Oct 2026**; when only a month or year is known, write just that (**August 2026**, **2015**); when you can't tell when something happened, leave it out. Use the article and the notes; end each bullet with where it comes from: (article) or the note's number, like [N2]. Leave out notes about other stories. Finish with **Next:** one line on what's expected to happen next, if the article says.`,
+    },
+
+    // Hacker News or Reddit thread: "Best comments". {{page}} is the post and its comments.
+    bestComments: {
+      system: `{{persona}}
+
+You pick the most valuable comments in a discussion for a reader who won't read them all.`,
+      user: `{{page}}
+
+Pick the 5 best comments: first-hand experience, real expertise, specific evidence, a strong counterpoint, or a useful tip. Skip jokes, pile-ons and repeats.
+For each, one bullet: **the commenter's name** — what they say, in one or two lines (paraphrase; quote a few words at most), then *why it's worth reading* in a few words.
+Then one line, **The thread overall:**, on where the discussion lands.`,
+    },
+
+    // YouTube video: "Chapter summaries". {{page}} is the video page with its chapters and, when there
+    // is one, the timed transcript.
+    chapters: {
+      system: `{{persona}}
+
+You summarize videos chapter by chapter so the viewer can jump to the parts they want.`,
+      user: `{{page}}
+
+Summarize this video chapter by chapter. Use the video's own chapters if it has them; otherwise split it into 4 to 8 parts where the topic changes in the transcript.
+For each: **[m:ss] Chapter title** — two lines on what's said in it, with the key point or number.
+Finish with **Skip to:** the one chapter most worth watching, and why.
+Use the start times exactly as written in the page. Without a transcript, say that the summary is based on the title, description and chapters only.`,
+    },
+
     // "Hide non-tech": which feed items (posts, video titles) are about the topic, so the rest can be
     // hidden on the page. {{question}} is the topic, {{content}} the numbered items. Quick mode.
     // Reply: JSON (keep this shape).

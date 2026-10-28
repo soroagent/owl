@@ -246,14 +246,36 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   limit, after 8 s without new posts at the bottom (20 s anywhere) or 20 min: 150 bookmarks on the
   stand-in took 36 s (the old loop, 0.9 screens and up to 3 s per step, 175 s). Summarize: 100
   posts → `itemsJob()` (notes in parts when over the page limit) as a summary job, then Read more
-  as usual; the side panel gets the job spec from `assistant:sp-feed` op `summarize` and runs it.
-  Save (`saveFeedPosts()`, op `save`; `stop`): bookmarks and likes to the end (5,000 cap), other feeds
+  as usual; the side panel gets the job spec from `assistant:sp-page` (id `top`) and runs it.
+  Save (`saveFeedPosts()`, id `save`; op `stop`): bookmarks and likes to the end (5,000 cap), other feeds
   the top 100; tags new posts with `tagBatch` in batches of `BATCH` = 5 (3B models: 22/40 sensible
   at 20, 40/40 at 5); `importSnippets` with `dedupeKey` `xbookmark:<id>` (bookmarks, as before),
   `xpost:<id>` (other X feeds; `postKeys` treats both as saved) or `lipost:<urn>`. On bookmarks and
   likes, 30 already-saved posts in a row end the scroll (a re-sync). The bookmarks page also gets
   the owl's dot and opens the floating panel once per browser session (`xBookmarksOffer`,
   `syncFeed()`); `xBookmarksSync` `{ at, total }` labels the re-sync button.
+- **Page actions** (owner's call 2026-10-28, all eight of the suggested features): `pageActions()` in
+  `assistant.js` lists the buttons on the opening screen (`.feed-home`; side panel `#feedBox` from the
+  snapshot's `page`); `buildRequest(id)` makes the same request for both panels (`job`: a summary job
+  spec; `chat`: messages, with `urls`/`videoUrl` so `S.browse.linkRefs` turns [n], "(4, 15)" and
+  [m:ss] into links; `text`; or `error`); the side panel gets it through `assistant:sp-page` (`id`,
+  or `op: 'stop'`). Feeds (above) plus Reddit home/subreddit/user/search, Hacker News lists (top 100
+  by fetching `?p=2..` same-origin: `items.top`) and YouTube home/subscriptions (top 50 videos,
+  `prompts/youtube.js` `pages.feed/subscriptions/search`; no Save). News front pages
+  (`S.browse.isNewsFront`: a `NEWS_HOSTS` site's home or ≤2-word section path): `frontPage` prompt on
+  `headlines()` (links that read like headlines, outside nav/footer); no questions or preparing there.
+  News articles: `gist` and `timeline` (with `publishedDate()` from metadata, JSON-LD, `<time>` or
+  the address, and the related snippets with their dates: the 3B model invented dates without
+  them). Threads (HN, Reddit): `bestComments`. YouTube videos: `chapters`. What's new
+  (`seenLists`: page key → story keys, local only, opt-in per page by asking once; `checkWhatsNew()`
+  marks fresh ones with `data-soroagent-new`). Hide clutter (`declutterSites`; `applyClutter()`:
+  `S.browse.isClutterName` on class/id/label, never the story root from `storyRoot()` or its
+  ancestors, re-applied at 2.5 s and 7 s). The PKG page's digest is `S.dailyDigest` (no AI).
+  Profiles can limit item reading to page types with `items.on(info)` (YouTube lists, HN lists,
+  LinkedIn feeds), so `items()` is null on their other pages. Live-checked on stand-ins (news front
+  and article, HN front/pages/thread, YouTube subscriptions, PKG); Reddit feeds and YouTube chapter
+  summaries only by unit tests. The 3B model's top 5 drops the explanations and links;
+  qwen2.5:14b follows the format.
 - **LinkedIn** (`sites/linkedin.js`): reads posts on the feed, activity and post pages (several
   selectors, `.feed-shared-update-v2` / `data-urn`; promoted posts left out); other pages (profiles,
   jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in

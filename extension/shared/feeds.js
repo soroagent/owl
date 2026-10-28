@@ -30,6 +30,19 @@
       feed: { title: 'Your LinkedIn feed' },
       activity: { title: 'These LinkedIn posts' },
     },
+    reddit: {
+      home: { title: 'Your Reddit feed' },
+      subreddit: { title: 'This subreddit' },
+      user: { title: 'These Reddit posts' },
+      search: { title: 'Reddit search results' },
+    },
+    hackernews: {
+      list: { title: 'Hacker News', noun: 'stories' },
+    },
+    youtube: {
+      feed: { title: 'Your YouTube feed', noun: 'videos', top: 50, save: false },
+      subscriptions: { title: 'Your subscriptions', noun: 'videos', top: 50, save: false },
+    },
   };
 
   /**
@@ -39,19 +52,24 @@
   function feedActions(siteId, pageType) {
     const feed = (FEEDS[siteId] || {})[pageType];
     if (!feed) return null;
+    const noun = feed.noun || 'posts';
+    const top = feed.top || TOP;
     return {
       title: feed.title,
-      summarize: `Summarize the top ${TOP} posts`,
-      save: feed.all ? `Save all ${feed.all} to your PKG` : `Save the top ${TOP} posts to your PKG`,
-      limit: feed.all ? 5000 : TOP,
+      top,
+      summarize: `Summarize the top ${top} ${noun}`,
+      save: feed.save === false ? '' : feed.all ? `Save all ${feed.all} to your PKG` : `Save the top ${top} ${noun} to your PKG`,
+      limit: feed.all ? 5000 : top,
       all: Boolean(feed.all),
-      noun: feed.all || 'posts',
+      noun: feed.all || noun,
     };
   }
 
   /** Pure: the keys that mark a post as saved; the first is the one a new snippet gets. */
   function postKeys(siteId, post, pageType) {
     if (siteId === 'linkedin') return [`lipost:${post.id}`];
+    if (siteId === 'reddit') return [`rdpost:${post.id}`];
+    if (siteId === 'hackernews') return [`hnstory:${post.id}`];
     // X: bookmarks keep the key they had before other X feeds could be saved.
     const keys = [`xbookmark:${post.id}`, `xpost:${post.id}`];
     return pageType === 'bookmarks' ? keys : keys.reverse();
@@ -71,6 +89,24 @@
     const text = String(post.text || '').trim() || (post.hasMedia ? '[media only]' : '');
     const oneLine = text.replace(/\s+/g, ' ');
     const linkedin = siteId === 'linkedin';
+    if (siteId === 'reddit' || siteId === 'hackernews') {
+      // A story with a title: Reddit posts (with their subreddit) and Hacker News stories.
+      const where = siteId === 'reddit' ? post.subreddit || 'Reddit' : 'Hacker News';
+      return {
+        kind: 'page',
+        source: siteId === 'reddit' ? 'reddit-post' : 'hn-story',
+        title: String(post.title || oneLine || 'Untitled').slice(0, 160),
+        pageTitle: `${post.title || 'A post'} · ${where}`.slice(0, 200),
+        summary: clip(oneLine || post.title || '', 260),
+        text: [post.title, text, post.link || post.url].filter(Boolean).join('\n\n'),
+        url: post.discussion || post.url,
+        site: siteId === 'reddit' ? 'Reddit' : 'Hacker News',
+        tags,
+        postedAt: post.time || '',
+        createdAt: now,
+        dedupeKey: postKeys(siteId, post, pageType)[0],
+      };
+    }
     const who = linkedin ? post.name || 'Someone' : bookmarkHandle(post);
     return {
       kind: 'page',

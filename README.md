@@ -31,6 +31,10 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 - **X keeps up with the timeline.** X loads more posts as you scroll, so soroagent collects every post that appears. The refresh button in the panel shows how many are new and redoes the summary and questions with all of them.
 - **Summarize** gives you the page in a scannable format: a one-line TL;DR, then the key points. Summaries run in the background, so you can switch tabs; the result waits for you.
 - **Feeds, summarized or saved in one click.** On your X home timeline, bookmarks, likes, lists and profiles, and on your LinkedIn feed, the panel skips the usual questions and offers two things instead: **Summarize the top 100 posts** (it scrolls the feed, collects them and tells you what's worth knowing, who said it, and what's worth opening) and **Save the posts to your PKG** (all your bookmarks or likes, or the top 100 elsewhere), each as a snippet with topics from your AI. Next time only new ones are added.
+- **News without the clutter.** On a news site's front page: **Today's top 5 stories** (duplicates merged, each linked to its headline). On an article: **Confirmed vs claimed** (what's established, what's only claimed and by whom, who the sources are, what's missing) and **Story timeline** (a dated timeline built from the article and your own saved snippets on the story). **Hide clutter** folds away related links, newsletter boxes, comments and sponsored blocks on that site, with no AI.
+- **What's new since your last visit.** On a news front page, Hacker News or a subreddit, ask once and from then on soroagent marks the stories you haven't seen before with a green dot and lists them. It remembers only those pages' story addresses, on your computer.
+- **Hacker News, Reddit and YouTube.** Summarize or save the top 100 stories on Hacker News and Reddit, see a thread's **Best comments**, summarize the top 50 videos on your YouTube home or subscriptions, and get **Chapter summaries** of a video that jump to each moment.
+- **Your digest.** The PKG page shows what you saved today, yesterday or this week, grouped by topic.
 - **Hide non-tech** goes one step further on X, Reddit and YouTube video lists: switch it on in the panel's site bar (or next to the page title in the side panel) and the posts or videos that aren't about tech disappear from the page itself, including the ones that load as you scroll. Your AI sorts them in small batches; switch it off and everything comes back.
 - **Questions that fit the site.** Suggested questions always come in the same four slots, **Gist · Understand · Check · Next**, and each site fills them its own way: timestamps on YouTube, the consensus on Reddit, critical reviews and bank offers on Amazon and Flipkart, the match situation on Cricbuzz and ESPNcricinfo, red flags on eBay and Telegram, the background and the other side on any news site. They're written in the page's language, so a Hindi news page gets Hindi questions. Templates cover YouTube, X, Reddit, Wikipedia, Amazon (.com and .in), LinkedIn, Pinterest, Netflix, JioHotstar, Apple, ESPN, GitHub, eBay, Roblox, Quora, AliExpress, Spotify, Flipkart, Myntra, IMDb, BookMyShow, Physics Wallah, Moneycontrol, Yahoo Finance, Justdial and Telegram; other pages get the general four.
 - **Keep exploring.** The suggested questions stay at the top of the conversation (the ones you've asked are ticked), so you can scroll up and pick another. Under each answer, two follow-up questions written from that answer take you deeper or somewhere related.
@@ -104,12 +108,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.47.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.48.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.47.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.47.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.47.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.47.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.48.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.48.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.48.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.48.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 
@@ -147,7 +151,7 @@ This creates `dist/chrome` and `dist/firefox`.
 
 | Where | How |
 |---|---|
-| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize** and **Save**, the page's suggested questions (on feeds: Summarize the top 100 posts and Save the posts), and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
+| Any page | Click the owl in the corner (or soroagent in the toolbar). The panel has **Summarize** and **Save**, one-click actions for the page (feeds, news, threads, videos), the page's suggested questions (none on feeds and news front pages), and a chat; its ⋯ menu switches between the floating owl and the side panel. On X, a refresh button shows how many new posts have loaded and redoes the summary with them. |
 | Keyboard | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (<kbd>⌥</kbd><kbd>⇧</kbd><kbd>O</kbd>) opens soroagent; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> opens the floating panel on the page. Change them at `chrome://extensions/shortcuts` (Firefox: Add-ons → ⚙ → Manage Extension Shortcuts). We avoided <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> and <kbd>S</kbd>: browsers already use them for bookmarks and screenshots. |
 | Right-click | *Summarize this page*, *Summarize this PDF with soroagent* (on PDF links) |
 | Toolbar button | Click to open soroagent; a number means summaries finished while you were away. Right-click for **Snippets**, **Send feedback** and **Settings**. |
