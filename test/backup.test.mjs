@@ -139,3 +139,14 @@ test('v10: the Hide non-tech setting goes', () => {
   const updates = S.planMigrations({ meta: { schemaVersion: 9 }, settings: { techFilter: ['x'], model: 'm' } });
   assert.deepEqual(updates.settings, { model: 'm' });
 });
+
+test('backups keep the knowledge graph: extractions, comparisons and the user\'s corrections', () => {
+  const all = { 'snippet:a': { id: 'a', text: 't' }, 'kgx:a': { hash: 'h', entities: [] }, 'kgcmp:a': { pairs: [] }, kgEdits: { merges: { x: 'y' } }, 'kgpage:y': { text: 'p' } };
+  const backup = S.buildBackup(all, '9');
+  assert.deepEqual(Object.keys(backup.graph.extractions), ['a']);
+  assert.deepEqual(backup.graph.edits, { merges: { x: 'y' } });
+  const { updates } = S.planRestore(backup, {});
+  assert.deepEqual(updates['kgx:a'], { hash: 'h', entities: [] });
+  assert.deepEqual(updates.kgEdits, { merges: { x: 'y' } });
+  assert.equal(S.planRestore(backup, { kgEdits: { merges: {} } }).updates.kgEdits, undefined, 'never overwrites corrections already here');
+});

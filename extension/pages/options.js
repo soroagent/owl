@@ -9,7 +9,7 @@
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
   const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'pkgDwell', 'xBookmarksOffer', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
-  const AUTO_FIELDS = ['preparePages', 'pageQuestions'];
+  const AUTO_FIELDS = ['preparePages', 'pageQuestions', 'knowledgeGraph'];
   const autoTouched = new Set();
 
   let saved = { ...DEFAULT_SETTINGS }; // last saved settings, for fields this page doesn't show
@@ -174,6 +174,19 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     const sites = ((await S.getSettings()).declutterSites || []).length;
     $('browseMsg').textContent = pages || sites ? `What's new on ${pages} page${pages === 1 ? '' : 's'}; clutter hidden on ${sites} site${sites === 1 ? '' : 's'}` : 'Nothing remembered';
   }
+  // The knowledge graph: what was extracted, compared and written, and your corrections.
+  const graphKeys = (all) => Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || k === 'kgEdits' || k === 'kgState');
+  async function showGraph() {
+    const all = await ext.storage.local.get(null);
+    const n = Object.keys(all).filter((k) => k.startsWith('kgx:')).length;
+    $('graphMsg').textContent = n ? `${n} snippet${n === 1 ? '' : 's'} read into the graph` : 'Nothing in the graph yet';
+  }
+  $('clearGraph').addEventListener('click', async () => {
+    if (!confirm('Clear the knowledge graph? Your snippets stay; the graph is built again from them, and your merges and renames are lost.')) return;
+    await ext.storage.local.remove(graphKeys(await ext.storage.local.get(null)));
+    showGraph();
+  });
+  showGraph();
   $('clearBrowse').addEventListener('click', async () => {
     await ext.storage.local.remove('seenLists');
     await S.saveSettings({ declutterSites: [] });

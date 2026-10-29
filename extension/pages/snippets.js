@@ -481,7 +481,9 @@
     if ((snippets.length || records.length) && confirm(`Delete all ${snippets.length} snippets and the summary history? Download a backup first if you want to keep them.`)) {
       await deleteSnippets(snippets.map((s) => s.id));
       if (records.length) await ext.runtime.sendMessage({ type: 'summary:delete', ids: records.map((r) => r.id) });
-      await ext.storage.local.remove(['pkgDwell', 'seenLists']); // reading time and what's-new memory go with the PKG
+      // Reading time, what's-new memory and the knowledge graph go with the PKG.
+      const all = await ext.storage.local.get(null);
+      await ext.storage.local.remove(['pkgDwell', 'seenLists', ...Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || k === 'kgEdits' || k === 'kgState')]);
     }
   });
 

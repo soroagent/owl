@@ -2447,7 +2447,7 @@
           label: 'soroagent 🦉',
           onClick: () => {
             node.remove();
-            const answer = S.ownAnswer(topic, { cloud: state.cloud, providerLabel: els.where.textContent, autoBackup: state.settings.autoBackup, autoCapture: state.settings.autoCapture });
+            const answer = S.ownAnswer(topic, { cloud: state.cloud, providerLabel: els.where.textContent, autoBackup: state.settings.autoBackup, autoCapture: state.settings.autoCapture, knowledgeGraph: S.autoOn(state.settings, 'knowledgeGraph') });
             addAssistantMessage().finish(answer);
             state.history.push({ role: 'user', content: question }, { role: 'assistant', content: answer });
           },

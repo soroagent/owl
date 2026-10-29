@@ -124,7 +124,7 @@
 
   /** True when storage changes touch data worth backing up. */
   function isBackupWorthy(changes) {
-    return Object.keys(changes).some((k) => k === 'settings' || k.startsWith('snippet:') || k.startsWith('summary:'));
+    return Object.keys(changes).some((k) => k === 'settings' || k === 'kgEdits' || k.startsWith('snippet:') || k.startsWith('summary:'));
   }
 
   /** Pure: a file:// URL for a local path from the downloads API (macOS, Linux or Windows). */
@@ -146,6 +146,12 @@
       settings,
       snippets: pick('snippet:'),
       summaries: pick('summary:').filter((s) => s.status !== 'running'),
+      // The knowledge graph: what the AI extracted (slow to redo) and the user's corrections.
+      graph: {
+        edits: all.kgEdits || null,
+        extractions: Object.fromEntries(Object.keys(all).filter((k) => k.startsWith('kgx:')).map((k) => [k.slice(4), all[k]])),
+        comparisons: Object.fromEntries(Object.keys(all).filter((k) => k.startsWith('kgcmp:')).map((k) => [k.slice(6), all[k]])),
+      },
     };
   }
 
@@ -169,6 +175,10 @@
         counts.summaries++;
       }
     }
+    const graph = backup.graph || {};
+    for (const [id, x] of Object.entries(graph.extractions || {})) if (x && !all[`kgx:${id}`]) updates[`kgx:${id}`] = x;
+    for (const [id, x] of Object.entries(graph.comparisons || {})) if (x && !all[`kgcmp:${id}`]) updates[`kgcmp:${id}`] = x;
+    if (graph.edits && !all.kgEdits) updates.kgEdits = graph.edits;
     if (includeSettings && backup.settings) {
       updates.settings = { ...(all.settings || {}), ...backup.settings, apiKey: (all.settings || {}).apiKey || '' };
       counts.settings = true;

@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
-**Effective October 24, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.50 and later.
+**Effective October 29, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
+Arc and Firefox, version 2.52 and later.
 
 ## The short version
 
@@ -37,6 +37,11 @@ soroagent stores the following **only in your browser's extension storage on you
 - **Your AI API keys**, if you add any. They are encrypted (AES-256) with a key the browser keeps and
   cannot export. They are never included in backups or sync, and Settings only ever shows their last
   four characters.
+- **Your knowledge graph:** what your AI found in your snippets (the people, companies, products,
+  ideas, papers and places in them, how they relate, and the claims they make with the sentence each
+  came from), which claims back up or contradict each other, the topic pages it writes, and your own
+  corrections (merges, renames, splits). Kept with your snippets; included in backups (not in sync,
+  where it is built again from the snippets). "Clear the graph" in Settings → PKG deletes it.
 - **Reading time on saved pages:** for pages you've saved to your PKG, and only those, how long
   you've actively read them (the tab in front and you using it), added up per page. It makes the
   topics you spend time on weigh more in your PKG. Pages you haven't saved are never recorded. It
@@ -77,6 +82,7 @@ soroagent sends data over the network only in these cases, and only to the desti
 | **Automatic preparing**: the side panel is open on a page, or you've read it for 15 seconds | The page text (on X, the posts loaded so far), to prepare a summary and the questions you're likely to have | The AI you chose, as above. **On by default only with an AI in the browser or on your computer; off by default with a cloud key.** Nothing is saved unless you act. Turn it off in Settings → On the page. |
 | You get an answer or a summary (**follow-up questions**) | Your question and the answer you got (not the page again), to write two follow-up questions | The AI you chose, as above. On by default; turn it off in Settings → On the page. |
 | You open soroagent on a page (suggested questions), when automatic preparing is off but suggested questions are on | The start of the page text | The AI you chose, as above. Same defaults; Settings → On the page. |
+| **Building your knowledge graph**: you haven't used the computer for a minute (or you click "Build now" or "Update now" on the PKG page) | The text of your saved snippets, one at a time; then short claims from them, to compare; then the claims about one topic, to write its page | The AI you chose, as above. **On by default only with an AI in the browser or on your computer; off by default with a cloud key.** It stops as soon as you are back. Turn it off in Settings → PKG. |
 | Your library is indexed for search | The text of your notes | The embedding model you use: a local Ollama model, or your OpenAI, Gemini or Mistral key. |
 | You click **Research** | Your research topic | A web search engine (DuckDuckGo, Brave Search or Bing, or a SearXNG server you set), then the top result pages are opened and read, as if you had visited them. Addresses on your computer or local network are never fetched. |
 | You ask something **the page doesn't answer** | A short search query for your question | The same search engine, then the top result pages are read, as for Research. On by default; turn it off in Settings → On the page to get a button instead. |

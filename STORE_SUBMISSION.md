@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.51.0 on 2026-10-28.
+against version 2.52.0 on 2026-10-29.
 
 ## Before you submit
 
@@ -12,7 +12,7 @@ against version 2.51.0 on 2026-10-28.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-28 (v2.51.0) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-29 (v2.52.0) |
 | ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
 | ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
 | ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
@@ -86,6 +86,13 @@ in Settings → AI → While you read):
 - **Hide clutter.** Per site, off by default: hides related-link, newsletter, comment and sponsored
   boxes on articles by their class or id (an attribute and one CSS rule; no AI, no network). The
   story itself is never hidden; turning it off restores the page.
+- **Knowledge graph.** While the user is away from the computer (the `idle` API: no input for a
+  minute), the user's AI reads their saved snippets one at a time and stores, locally, the entities,
+  typed relations and claims in them (each claim with the exact sentence it came from), which claims
+  support or contradict each other, and a topic page per entity they read most about. It stops when
+  the user is back. On by default only with a local or in-browser AI; off by default with a cloud key
+  (Settings → PKG); "Build now" on the PKG page runs it on a click. Users merge, split, rename and
+  hide entities on each topic page. Nothing new is fetched; only the user's own snippets are read.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,
@@ -115,7 +122,8 @@ Source: https://github.com/soroagent/owl (MIT). Privacy policy: https://github.c
 | `scripting` | When the user opens soroagent (or a right-click item) on a tab that was already open before soroagent was installed or updated, injects soroagent's own packaged content scripts into that tab so it works without a reload. |
 | `declarativeNetRequestWithHostAccess` | One session rule that sets the `Origin` header on soroagent's own background requests to the user's local model server (e.g. Ollama at 127.0.0.1), so the server accepts them. See "Local model servers" below. It never applies to web pages or tabs. |
 | `downloads` | Saves files the user asks for to their Downloads folder: exports (Markdown, JSON) and, only if the user turns it on in Settings, the automatic backup file. Each one shows in the browser's downloads like any other download. |
-| `alarms` | Schedules the optional automatic backup and the optional sync. |
+| `alarms` | Schedules the optional automatic backup, the optional sync, and a check every 15 minutes whether the knowledge graph has snippets left to read. |
+| `idle` | Builds the user's knowledge graph from their saved snippets only while they are away from the computer (idle for a minute), so it never slows their browsing; it stops when they come back. Off by default with a cloud AI (Settings → PKG). |
 | `identity` | Opens Google's sign-in window when the user connects Google Drive sync (scope `drive.appdata` only: a hidden app folder; no access to the user's files). |
 | `offscreen` | A hidden document for two things a service worker can't do: create a blob URL for the backup file (BLOBS), and run pdf.js (which uses a Worker) and the optional in-browser AI (WebLLM) as ES modules (WORKERS). |
 | `sidePanel` | Users can choose to open soroagent in the side panel, beside the page, instead of the floating panel on the page (one click in its menu, or in Settings). |
@@ -141,8 +149,9 @@ Tick these data types:
   soroagent (or automatically when the side panel is open / after 15 s of reading, only with a local
   or in-browser AI by default). Page actions (a feed's top 100, an article's Confirmed vs
   claimed or Story timeline, Best comments, Chapter summaries) send that content, on click. After an answer, the question and the answer go to the same AI to
-  suggest follow-up questions (switch in Settings). With a local or in-browser AI nothing leaves the
-  device.
+  suggest follow-up questions (switch in Settings). While the user is idle, their saved snippets go
+  to the same AI to build their knowledge graph (on by default only with a local or in-browser AI;
+  switch in Settings → PKG). With a local or in-browser AI nothing leaves the device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and
   included in the user's encrypted sync only if they turn sync on. For pages the user saved (only
   those), the active reading time is added up per page to weight topics in the PKG view; it stays on
@@ -177,6 +186,11 @@ purpose, not used for creditworthiness or lending.
 > the top 100 stories), any story's comments (Best comments), a news site such as
 > https://www.bbc.com (Today's top 5 stories, What's new since your last visit) and one of its
 > articles (Confirmed vs claimed, Story timeline, Hide clutter).
+>
+> Knowledge graph: save or summarize a few articles, then open the PKG page (toolbar menu → PKG, or
+> Snippets → PKG) and click "Build now". The people, companies and ideas in them appear as a graph;
+> click one and "Open the topic page" for its claims, the passages they came from and where sources
+> disagree. Without a click it runs only while the computer is idle.
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest

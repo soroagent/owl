@@ -87,6 +87,10 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `bestComments` | **Best comments** on a Hacker News or Reddit thread (`{{page}}` = the post and its comments) | Markdown |
 | `chapters` | **Chapter summaries** of a YouTube video (`{{page}}`, with the transcript when there is one); [m:ss] becomes a link to that moment | Markdown |
 | `tagBatch` | A feed's posts saved to the PKG (X bookmarks, likes, timelines; LinkedIn): 1–3 topic tags per numbered post in `{{content}}`, reusing the tags in `{{context}}`. Quick mode | JSON `{ "tags": { "1": [] } }` |
+| `extract` | The knowledge graph, in the background while the browser is idle: the entities (person, company, product, concept, paper, place), relations (authored-by, competes-with, part-of, cites, works-for, made-by) and claims in one snippet (`{{content}}`); each claim's `quote` must be copied from the text | JSON `{ "entities": [{ "name", "type" }], "relations": [{ "from", "type", "to" }], "claims": [{ "claim", "quote", "about", "stance" }] }` |
+| `compareClaims` | The knowledge graph: which new claims (`{{content}}`, N1…) support or contradict earlier ones (`{{context}}`, E1…) | JSON `{ "checks": [{ "new", "contradicts": [], "supports": [] }] }` |
+| `checkPair` | The knowledge graph: one pair from `compareClaims` checked on its own (`{{context}}` = the earlier claim, `{{content}}` = the later one) | JSON `{ "relation": "contradicts" \| "supports" \| "neither" }` |
+| `topicPage` | A living topic page: `{{question}}` = the entity, `{{content}}` = its claims [n] with dates and sources | Markdown |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
 | `research` | **Research**, step 2: the cited brief. `{{question}}` is the query, `{{content}}` the numbered web sources, `{{context}}` what the user already read | Markdown |

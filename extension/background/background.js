@@ -580,6 +580,20 @@
     },
     // The summary history is part of Snippets now (summaries that aren't snippets show there with their status).
     'open:history': () => handlers['open:snippets']({}),
+    'kg:run': (msg, sender) => {
+      requireExtensionPage(sender);
+      knowledge.run({ manual: true }).catch(quietly('knowledge graph'));
+      return { ok: true };
+    },
+    'kg:stop': (msg, sender) => {
+      requireExtensionPage(sender);
+      knowledge.stop();
+      return { ok: true };
+    },
+    'kg:page': async (msg, sender) => {
+      requireExtensionPage(sender);
+      return { ok: true, page: await knowledge.writePage(String(msg.key || '')) };
+    },
     'summary:find': async (msg) => ({ ok: true, record: await jobs.find(msg.url, msg.fingerprint) }),
     'summary:for-url': async (msg) => ({ ok: true, records: await jobs.forUrl(msg.url) }),
     'summary:seen': async (msg) => {
@@ -592,6 +606,43 @@
       return { ok: true };
     },
   };
+
+  // ---------------------------------------------------------------------------
+  // The knowledge graph (kgworker.js, shared/kg.js): built while the browser is idle
+  // ---------------------------------------------------------------------------
+
+  const knowledge = S.createKnowledgeWorker({
+    ext,
+    getSettings,
+    runChat: async (messages, { json }) => {
+      const { connection, api } = await resolveChat();
+      return chat({ connection, api, messages, json });
+    },
+    getModel: async () => {
+      const { connection } = await resolveChat();
+      return { api: connection.api, model: connection.model };
+    },
+    onProblem: quietly('knowledge graph'),
+  });
+  const KG_ALARM = 'soroagent-kg';
+  if (ext.idle) {
+    ext.idle.setDetectionInterval(60);
+    ext.idle.onStateChanged.addListener((state) => {
+      knowledge.setUserActive(state === 'active');
+      if (state === 'idle') knowledge.run().catch(quietly('knowledge graph'));
+    });
+    ext.alarms.create(KG_ALARM, { periodInMinutes: 15 });
+    ext.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name !== KG_ALARM) return;
+      ext.idle.queryState(120).then((state) => state === 'idle' && knowledge.run()).catch(quietly('knowledge graph'));
+    });
+  }
+  // A deleted snippet takes what was extracted from it along.
+  ext.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    const gone = Object.keys(changes).filter((k) => k.startsWith('snippet:') && !changes[k].newValue).map((k) => k.slice(8));
+    if (gone.length) ext.storage.local.remove(gone.flatMap((id) => [`kgx:${id}`, `kgcmp:${id}`])).catch(() => {});
+  });
 
   ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // "Switch to the side panel" from the floating panel: open it right away, inside the click's

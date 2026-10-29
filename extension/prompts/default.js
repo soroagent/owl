@@ -178,6 +178,85 @@ Give each post 1 to 3 short topic tags (lowercase, one or two words, hyphenated,
 Return JSON: {"tags": {"1": ["…"], "2": ["…"]}}`,
     },
 
+    // The knowledge graph, step 1 (in the background, while the browser is idle): the entities,
+    // relations and claims in one snippet. {{title}}/{{url}}: the snippet; {{content}}: its text.
+    // Every claim's "quote" must be copied exactly from the text (claims whose quote isn't there are
+    // dropped). Reply: JSON (keep this shape and these type names).
+    extract: {
+      system: `You build a personal knowledge graph from what someone has read. Reply with JSON only.`,
+      user: `Snippet: "{{title}}" ({{url}})
+<text>
+{{content}}
+</text>
+
+Find what this text is about.
+- entities: up to 12 specific, named things: people, companies, products, concepts, papers and places. Use the full usual name ("OpenAI", "Sam Altman", "retrieval-augmented generation"). No generic words ("the company", "users", "AI" on its own), no dates or numbers.
+  type: one of person, company, product, concept, paper, place.
+- relations: up to 8 the text states directly between those entities.
+  type: one of authored-by (a paper or post and its author), competes-with, part-of, cites, works-for, made-by (a product and its maker).
+- claims: up to 6 of the most important factual statements or opinions in the text, each in one short sentence of your own (at most 25 words) that stands on its own: name who or what it is about and keep the specifics (numbers, dates, names). "Stanford CRFM measured Atlas 2 at 86 percent on MMLU", not "The evaluation contradicts the claims".
+  quote: the sentence from the text it comes from, copied exactly, word for word.
+  about: the entities it is about (their names as in "entities").
+  stance: "for" if it praises or supports the main entity it's about, "against" if it criticizes it or doubts it, else "neutral".
+
+Return JSON: {"entities": [{"name": "", "type": ""}], "relations": [{"from": "", "type": "", "to": ""}], "claims": [{"claim": "", "quote": "", "about": [""], "stance": ""}]}`,
+    },
+
+    // The knowledge graph, step 2: how claims from a new snippet relate to earlier claims about the
+    // same entities. {{content}}: new claims N1…, {{context}}: earlier claims E1…, each with its date
+    // and source. Reply: JSON (keep this shape).
+    compareClaims: {
+      system: `You fact-check claims against each other for a personal knowledge graph. Be strict. Reply with JSON only.`,
+      user: `Earlier claims the reader saved:
+{{context}}
+
+New claims:
+{{content}}
+
+For each new claim, list the earlier claims it contradicts and the ones it supports.
+- Contradicts: both can't be true at once. Different numbers for the same measurement (91 percent vs 86 percent), opposite verdicts, or a promise or plan that a later report overturns (promised for December, now delayed to next year).
+- Supports: it confirms the same specific fact. Not just the same topic or mood.
+Most claims have neither; use empty lists then.
+Return JSON: {"checks": [{"new": "N1", "contradicts": ["E2"], "supports": []}]} with one entry per new claim.`,
+    },
+
+    // The knowledge graph, step 2b: one candidate pair from compareClaims, checked on its own (small
+    // models over-report). {{context}}: the earlier claim, {{content}}: the newer one, with dates.
+    // Reply: JSON (keep this shape).
+    checkPair: {
+      system: `You fact-check two claims against each other. Be strict. Reply with JSON only.`,
+      user: `Earlier claim: {{context}}
+Later claim: {{content}}
+
+Are they about the same specific fact? If so, can both be true at the same time?
+- "contradicts": same fact, and both can't be true (different numbers for the same measurement, opposite verdicts, a promise the later claim says was broken or delayed).
+- "supports": the later claim confirms the same specific fact or verdict.
+- "neither": different facts, or only the same topic or mood. This is the usual answer.
+Return JSON: {"relation": "contradicts" | "supports" | "neither"}`,
+    },
+
+    // The knowledge graph, step 3: a living topic page for one entity, from every claim the reader has
+    // saved about it. {{question}}: the entity's name and type; {{content}}: the claims [1]…, each with
+    // its date, source and, where found, the claims it contradicts. Reply: Markdown.
+    topicPage: {
+      system: `{{persona}}
+You keep a personal encyclopedia of what one person has read. Use only the claims given; cite every statement with [n]. Never add facts from your own knowledge.`,
+      user: `Topic: {{question}}
+
+What the reader has saved about it, oldest first:
+{{content}}
+
+Write the topic page. Start straight with the opening paragraph: no title, no heading, no label before it.
+A short opening paragraph: what it is and why it matters in what they read, with [n].
+**What you've read**
+- 3 to 6 bullets with the key facts and views, each with [n].
+**Where sources disagree**
+- one bullet per disagreement, naming both sides with their dates and [n]; leave this section out if there are none.
+**How it changed**
+- one or two bullets on what changed over time, with dates; leave this section out if everything is from the same few days.
+Cite one source per bracket: [3][8], never [3, 8] or [1-9]. Keep it under 250 words.`,
+    },
+
     // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
     // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
     // Reply: JSON (keep this shape).

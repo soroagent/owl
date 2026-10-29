@@ -77,7 +77,7 @@ files in `extension/vendor/` (see each README). Pure functions are exported on `
 `chrome.storage.local` keys: `settings`, `snippet:<id>` (library notes; kinds: summary, research,
 selection, page, deliverable, read), `summary:<id>` (summary history), `vec:<id>`
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
-`backupState`, `pkgDwell` (PKG reading time per saved page, local only), `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
+`backupState`, `pkgDwell` (PKG reading time per saved page, local only), `kgx:`/`kgcmp:`/`kgpage:`/`kgEdits`/`kgState` (the knowledge graph, below), `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
 `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
@@ -91,9 +91,9 @@ a cloud API),
 `syncOffer` (`{ snoozedAt, times }`), `autoCapture` (off), `maxPageChars` (12,000; 6,000 for
 in-browser models via `S.pageCharLimit`).
 
-`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 8). When a feature is
+`shared/backup.js` owns storage migrations (`SCHEMA_VERSION`, currently 10). When a feature is
 removed or a default changes, add a migration (v3: wishlist → readlater; v4: readlater → page and
-stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl; v7: automatic backup opt-in, Stats/Tasks/pictures data and settings deleted; v8: screenshot snippets deleted).
+stats keys deleted; v5: `preparePages`/`pageQuestions` `true` → `'auto'`; v6: back to the floating owl; v7: automatic backup opt-in, Stats/Tasks/pictures data and settings deleted; v8: screenshot snippets deleted; v9: source tags on saved bookmarks, likes and LinkedIn posts; v10: the Hide non-tech setting deleted).
 
 ## Rules
 
@@ -281,6 +281,25 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   and article, HN front/pages/thread, YouTube subscriptions, PKG); Reddit feeds and YouTube chapter
   summaries only by unit tests. The 3B model's top 5 drops the explanations and links;
   qwen2.5:14b follows the format.
+- **Knowledge graph** (owner's request 2026-10-29; `shared/kg.js` pure, `background/kgworker.js`,
+  `pages/pkg.js` entities view, `pages/topic.html`/`topic.js`): stored as `kgx:<noteId>` (the
+  `extract` prompt's entities/relations/claims, checked by `parseExtraction`: types fixed to
+  person/company/product/concept/paper/place, relations to `RELATIONS` and turned the right way round
+  by `orientRelation`, entities the text doesn't name and dates dropped (the 3B model copied the
+  prompt's example names), claims kept only when `findPassage` finds their quote in the text, which
+  gives `start`), `kgcmp:<noteId>` (pairs from `compareClaims`, each confirmed by `checkPair` asked
+  both ways round; skipped below 7B and for in-browser models, `canCompare`: the 3B model called
+  nearly everything a contradiction), `kgpage:<key>` (`topicPage` prompt from `topicPageInput`,
+  `cites[n-1]` = claim id or `note:<id>`; rewritten when `pageBasis` changes) and `kgEdits`
+  (merges/names/types/splits/hidden). The graph is never stored: `buildKG()` makes it from those, so
+  corrections are undoable. Entity keys: `entityKey()` ("OpenAI, Inc." = "openai.com" = "openai").
+  The worker runs on `idle.onStateChanged` 'idle' (60 s) and a 15-minute alarm if idle, stops when
+  the user is active, at most 10 snippets per run (25 on "Build now", `kg:run` from an extension
+  page), and pauses 30 min after an AI error; setting `knowledgeGraph` ('auto', `S.autoOn`). Deleted
+  snippets take their `kgx:`/`kgcmp:` along; backups include extractions, comparisons and edits; "Delete
+  all" and Settings → PKG → Clear the graph remove it. Passage links: `passageUrl()` text fragments,
+  only for snippets whose text is the page's own (page, selection, read). Live: 6 snippets in 96 s
+  with qwen2.5:14b, all 3 contradictions real.
 - **LinkedIn** (`sites/linkedin.js`): reads posts on the feed, activity and post pages (several
   selectors, `.feed-shared-update-v2` / `data-urn`; promoted posts left out); other pages (profiles,
   jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in

@@ -25,7 +25,7 @@
   }
 
   /**
-   * Markdown answer about soroagent. ctx: { cloud, providerLabel, autoBackup, autoCapture }.
+   * Markdown answer about soroagent. ctx: { cloud, providerLabel, autoBackup, autoCapture, knowledgeGraph }.
    */
   function ownAnswer(topic, ctx = {}) {
     const model = ctx.cloud
@@ -35,6 +35,7 @@
       'Everything soroagent keeps (your snippets, summary history and settings) is stored **in this browser on your computer**.',
       ctx.autoBackup === false ? '' : 'A backup copy is also kept in your Downloads folder (`Downloads/soroagent/`).',
       ctx.autoCapture === 'on' ? 'Passive capture is on, so pages you actually read are saved too (never mail, chat, banking, logins or checkouts).' : '',
+      ctx.knowledgeGraph ? 'While you are away from the computer, your AI also reads your saved snippets to build your knowledge graph (Settings → PKG turns this off).' : '',
       'There are **no soroagent accounts, servers or cloud storage**. Sync across browsers and the Markdown folder export are optional, and only go where you point them.',
     ].filter(Boolean).join(' ');
     switch (topic) {
