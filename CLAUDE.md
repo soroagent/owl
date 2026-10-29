@@ -77,7 +77,7 @@ files in `extension/vendor/` (see each README). Pure functions are exported on `
 `chrome.storage.local` keys: `settings`, `snippet:<id>` (library notes; kinds: summary, research,
 selection, page, deliverable, read), `summary:<id>` (summary history), `vec:<id>`
 (search vectors), `syncConfig`/`syncState`, `markdownExport`/`markdownIndex`/`markdownState`,
-`backupState`, `pkgDwell` (PKG reading time per saved page, local only), `kgx:`/`kgcmp:`/`kgpage:`/`kgEdits`/`kgState` (the knowledge graph, below), `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
+`backupState`, `pkgDwell` (PKG reading time per saved page, local only), `kgx:`/`kgcmp:`/`kgpage:`/`kgEdits`/`kgState`/`kgWeekly`/`kgReview` (the knowledge graph, below), `browserAI` (`{ webllmReady }`, set once the WebLLM weights finished loading).
 IndexedDB holds things storage can't: encrypted API keys, the sync key, the Markdown folder handle.
 `storage.session` holds the Google access token and the flight recorder (`flightRecorder`). WebLLM's weights live in the browser's Cache Storage.
 
@@ -312,6 +312,19 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   the side panel's `#seenBox` (snapshot `seen`, `assistant:sp-seen` index) show `S.resurface.lines()`.
   Address bar: manifest `omnibox.keyword` "kg" → entities (`rankEntities` query) and
   `library.search` results; Enter opens the topic, the snippet or `snippets.html#q=<words>`.
+- **Using the graph** (2026-10-29; `shared/kguse.js` pure, `pages/kgview.js` renders answers with
+  [n] → sources, PKG page `#ask` and `#review`, topic page "Make something from this"): `kg:ask`
+  (`parseTimeFilter` / `withoutTime`, `library.search` with a `where` filter, all snippets in the
+  period when a time-only question finds no words, `askContext`: claims of the hits and of the
+  entities the question names plus one hop along typed relations, then snippets; `askLibrary`
+  prompt), `kg:weekly` (`weeklyInput`, `weekly` prompt, `kgWeekly`; also by itself after an idle
+  run once a week, `maybeWeekly`, same switch), `kg:output` (`OUTPUTS`: brief, study, timeline,
+  compare, cards; `outputInput` falls back to snippets for entities with few claims; `outCards` JSON
+  → `cardsToTsv` for Anki's import). `resolveCites` gives each [n] its claim, quote and passage link.
+  Review: `onThisDay`, `gaps` (one-sided: no critical claim among 3+; one-source), practice
+  (`reviewCards` off by default; `reviewItems`, SM-2-ish `nextReview`, `dueCards` with 5 new a day,
+  states in `kgReview`). `renderMarkdown` renders `|` tables. Live with qwen2.5:14b: ask 3 s, weekly
+  4 s, brief 5 s, comparison 5 s, 7 flashcards 6 s.
 - **LinkedIn** (`sites/linkedin.js`): reads posts on the feed, activity and post pages (several
   selectors, `.feed-shared-update-v2` / `data-urn`; promoted posts left out); other pages (profiles,
   jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in
@@ -412,7 +425,7 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
 
 ## History of decisions
 
-- Features tried and removed on purpose (don't bring back without asking): Reply ideas on X and LinkedIn, Tech only, Hide non-tech and Snippets' "Research this further" (all removed 2026-10-28 as bloat; v10 drops the `techFilter` setting), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
+- Features tried and removed on purpose (don't bring back without asking; "Ask your library" came back on the PKG page on the owner's request, 2026-10-29): Reply ideas on X and LinkedIn, Tech only, Hide non-tech and Snippets' "Research this further" (all removed 2026-10-28 as bloat; v10 drops the `techFilter` setting), Screenshots (removed 2026-10-24; v8 deletes stored ones), Stats (the reading log and Browsing pattern page), Tasks (checking another site in the background), the high-resolution pictures download offer (all three removed 2026-10-24 before the Chrome Web Store submission), "Ask your library" (the chat console on the snippets page, and its `synthesize`/`deliverable` prompts; removed 2026-10-24), dark mode for sites,
   time stats, the doom-scroll limiter, read later (Save covers it), the wish list / e-commerce
   buy-later, malware detection, ad hiding, opening quips, the panel footer and feedback link,
   ++/-- resize (edge-drag resize replaced it).

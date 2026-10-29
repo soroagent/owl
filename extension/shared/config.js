@@ -52,6 +52,7 @@
     xBookmarksOffer: true, // on X's bookmarks page, offer to save them all to the PKG
     hovercards: true, // a card with what you know when the pointer rests on a name you've read about (no AI)
     resurface: true, // a short note when a page repeats or contradicts something you saved (no AI)
+    reviewCards: false, // spaced repetition of highlights and claims on the PKG page (opt-in)
     knowledgeGraph: 'auto', // build the knowledge graph from your snippets while the browser is idle (sends them to your AI)
     pkgDwell: true, // count active reading time on saved pages (only those), for the PKG's topic weights
     declutterSites: [], // sites where "Hide clutter" is on (hostnames); no AI, only the page's own layout

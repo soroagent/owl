@@ -175,7 +175,7 @@ Rewrite it to get better results on this website. Keep the intent and every rule
     $('browseMsg').textContent = pages || sites ? `What's new on ${pages} page${pages === 1 ? '' : 's'}; clutter hidden on ${sites} site${sites === 1 ? '' : 's'}` : 'Nothing remembered';
   }
   // The knowledge graph: what was extracted, compared and written, and your corrections.
-  const graphKeys = (all) => Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || k === 'kgEdits' || k === 'kgState');
+  const graphKeys = (all) => Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || ['kgEdits', 'kgState', 'kgWeekly', 'kgReview'].includes(k));
   async function showGraph() {
     const all = await ext.storage.local.get(null);
     const n = Object.keys(all).filter((k) => k.startsWith('kgx:')).length;

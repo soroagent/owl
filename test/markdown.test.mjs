@@ -25,3 +25,9 @@ test('stripThinking removes finished and unfinished think blocks', () => {
   assert.equal(S.stripThinking('Okay, the user wants {x}.\n</think>\n\nWAL lets readers and writers overlap.'), 'WAL lets readers and writers overlap.');
   assert.equal(S.stripThinking('No reasoning here.'), 'No reasoning here.');
 });
+
+test('tables', async () => {
+  const S = globalThis.soroagent;
+  const html = S.renderMarkdown('Compare:\n\n| Item | A |\n|---|---|\n| **Score** | 91% [1] |\n\nAfter.');
+  assert.equal(html, '<p>Compare:</p><table><thead><tr><th>Item</th><th>A</th></tr></thead><tbody><tr><td><strong>Score</strong></td><td>91% [1]</td></tr></tbody></table><p>After.</p>');
+});

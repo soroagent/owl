@@ -257,6 +257,91 @@ A short opening paragraph: what it is and why it matters in what they read, with
 Cite one source per bracket: [3][8], never [3, 8] or [1-9]. Keep it under 250 words.`,
     },
 
+    // Ask your PKG: a question answered only from the reader's own saved claims and snippets.
+    // {{question}}: the question; {{context}}: the filters it ran with; {{content}}: the sources [n],
+    // each with its date and site. Reply: Markdown.
+    askLibrary: {
+      system: `{{persona}}
+You answer questions from a person's own saved reading. Use only the sources given and cite every statement with [n]. If the sources don't answer it, say so plainly; never fill in from your own knowledge. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `Question: {{question}}
+{{context}}
+
+Sources from the reader's PKG, oldest first:
+{{content}}
+
+Answer in a short paragraph or a few bullets, each statement with [n]. If sources disagree, say who said what and when. End with one line on what the sources don't cover, if anything important is missing.`,
+    },
+
+    // The weekly "what you learned": {{content}} is the week's claims and snippets [n]. Reply: Markdown.
+    weekly: {
+      system: `{{persona}}
+You write a weekly review of what one person read. Use only the sources given; cite every statement with [n]. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `What the reader saved this week, oldest first:
+{{content}}
+
+Write the review in these sections, with no title above them:
+**The big things**
+- 3 to 5 bullets: the most important things they learned, each with [n].
+**What changed your picture**
+- 1 or 2 bullets on anything that corrected or contradicted something earlier, with [n]. If nothing did, leave this whole section out (no heading, no "None").
+**Worth following up**
+- 1 or 2 open questions their reading raised.
+Under 200 words.`,
+    },
+
+    // Outputs built from the graph, on topic pages. {{question}}: the entities; {{content}}: their
+    // claims [n] with dates and sources. Replies: Markdown, except outCards (JSON, keep the shape).
+    outBrief: {
+      system: `{{persona}}
+You write briefs from a person's saved reading. Use only the sources; cite every statement with [n]. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `Topic: {{question}}
+
+Sources:
+{{content}}
+
+Write a one-page brief: **Bottom line** (two sentences), **Key facts** (4 to 6 bullets with [n]), **Open questions and disagreements** (with [n]). Under 250 words.`,
+    },
+    outStudy: {
+      system: `{{persona}}
+You write study guides from a person's saved reading. Use only the sources; cite with [n]. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `Topic: {{question}}
+
+Sources:
+{{content}}
+
+Write a study guide: **Key terms** (each in one line), **What to know** (5 to 8 bullets with [n]), **Check yourself** (4 questions, answers after each in italics with [n]).`,
+    },
+    outTimeline: {
+      system: `{{persona}}
+You build timelines from a person's saved reading. Use only the sources; cite with [n]. Use the dates given; never guess dates. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `Topic: {{question}}
+
+Sources (each starts with the date it was saved):
+{{content}}
+
+Write a timeline, oldest first: one line per event as "**date** — what happened [n]". When a source reports an earlier event, use that event's date if the source gives it, else the date saved, marked "(reported)". End with one line on how the story changed.`,
+    },
+    outCompare: {
+      system: `{{persona}}
+You compare things from a person's saved reading. Use only the sources; cite with [n]. Write "not in your notes" for anything the sources don't cover. Cite one source per bracket: [3][8], never [3, 8] or [1-9].`,
+      user: `Compare: {{question}}
+
+Sources:
+{{content}}
+
+Write a Markdown table with one column per item and 4 to 7 rows of the most useful points of comparison (what it is, key numbers, strengths, criticisms, latest news…), each cell short with [n]. Then two sentences on how they differ most.`,
+    },
+    outCards: {
+      system: `You write flashcards from a person's saved reading. Reply with JSON only.`,
+      user: `Topic: {{question}}
+
+Sources:
+{{content}}
+
+Write 6 to 12 flashcards that test the most important facts in the sources: a short question on the front, a short answer on the back, and the number of the source it comes from. Only facts the sources state.
+Return JSON: {"cards": [{"front": "", "back": "", "source": 1}]}`,
+    },
+
     // Follow-up questions under an answer (at most 2), so the reader can keep exploring. Quick mode.
     // {{title}}/{{url}}: the page; {{question}}: what the reader asked; {{content}}: the answer they got.
     // Reply: JSON (keep this shape).

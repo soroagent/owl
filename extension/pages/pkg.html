@@ -36,6 +36,22 @@
     .claims { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; font-size: 13px; }
     .claims small { display: block; color: var(--fg-muted); font-size: 11.5px; }
     .open-topic { margin-top: 14px; }
+    .ask { margin-bottom: 14px; }
+    .ask-form { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ask-form input { flex: 1; min-width: 240px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; }
+    .ask-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .ask-form select, .ask-form button { width: auto; flex: none; }
+    .ask-form select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; }
+    #askOut:not(:empty) { margin-top: 14px; }
+    .review { margin-top: 16px; }
+    .review-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
+    .review h2 { margin-bottom: 6px; }
+    .gap { font-size: 13px; margin: 0 0 6px; }
+    .practice { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+    .card-front { font-size: 15px; font-weight: 650; margin: 6px 0; }
+    .card-back { font-size: 14.5px; margin: 6px 0; }
+    .grades { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    @media (max-width: 900px) { .review-grid { grid-template-columns: 1fr; } }
     #graph .node.dim { opacity: 0.35; }
     #graph .node text { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
     #graph .node:focus-visible circle { stroke-width: 3; }
@@ -80,7 +96,20 @@
 <main>
   <p class="intro" id="intro"><b>Your PKG</b>, personal knowledge graph: the topics in your snippets, how they connect, and where your reading time goes.</p>
   <div class="kg-bar" id="kgBar" hidden></div>
+  <section class="panel ask" id="ask" hidden>
+    <h2>Ask your PKG</h2>
+    <p class="sub">Answered only from what you saved, every statement linked to the snippet and the passage it came from. Uses your AI.</p>
+    <form id="askForm" class="ask-form">
+      <input type="text" id="askInput" maxlength="500" placeholder="What did I read about Atlas 2 last month?" aria-label="Your question" autocomplete="off">
+      <select id="askDays" aria-label="When"><option value="0">Any time</option><option value="7">Last week</option><option value="31">Last month</option><option value="366">Last year</option></select>
+      <select id="askSite" aria-label="Site"><option value="">All sites</option></select>
+      <select id="askKind" aria-label="Kind"><option value="">Everything</option><option value="summary">Summaries</option><option value="page">Saved pages</option><option value="selection">Highlights</option><option value="read">Pages you read</option></select>
+      <button class="btn primary" type="submit" id="askGo">Ask</button>
+    </form>
+    <div id="askOut"></div>
+  </section>
   <div class="tiles" id="tiles"></div>
+  <div class="empty" id="emptyPKG" hidden>Nothing in your PKG yet. Summarize or save a few pages; what they are about and how it connects appears here.</div>
   <div class="layout" id="layout">
     <section class="panel">
       <div class="view-head"><h2 id="viewTitle">Your topics</h2><div class="seg" role="group" aria-label="Show"><button type="button" data-mode="entities" aria-pressed="true">People, companies, ideas…</button><button type="button" data-mode="tags" aria-pressed="false">Tags</button></div></div>
@@ -91,6 +120,21 @@
     </section>
     <aside class="panel detail" id="detail" aria-live="polite"></aside>
   </div>
+  <section class="panel review" id="review" hidden>
+    <div class="review-grid">
+      <div>
+        <div class="digest-head"><h2>What you learned this week</h2><button class="btn small" type="button" id="weeklyGo">Write it now</button></div>
+        <div id="weekly"></div>
+      </div>
+      <div>
+        <h2>On this day</h2>
+        <div id="onThisDay"></div>
+        <h2 style="margin-top:14px">Gaps in your reading</h2>
+        <div id="gaps"></div>
+      </div>
+    </div>
+    <div id="practice"></div>
+  </section>
   <section class="panel digest" id="digest">
     <div class="digest-head"><h2>Your digest</h2><div class="seg" role="group" aria-label="Digest period"><button type="button" data-days="0" aria-pressed="true">Today</button><button type="button" data-days="1">Yesterday</button><button type="button" data-days="7">Last 7 days</button></div></div>
     <p class="sub" id="digestSub"></p>
@@ -104,7 +148,10 @@
 <script src="appheader.js"></script>
 <script src="../shared/snippets.js"></script>
 <script src="../shared/pkg.js"></script>
+<script src="../shared/markdown.js"></script>
 <script src="../shared/kg.js"></script>
+<script src="../shared/kguse.js"></script>
+<script src="kgview.js"></script>
 <script src="pkg.js"></script>
 </body>
 </html>

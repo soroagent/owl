@@ -594,6 +594,18 @@
     'kg:names': async () => ({ ok: true, index: (await readKG()).index }),
     'kg:page-check': async (msg) => ({ ok: true, ...(await pageCheck({ url: String(msg.url || ''), title: String(msg.title || ''), text: String(msg.text || '') })) }),
     'open:topic': (msg) => ext.tabs.create({ url: ext.runtime.getURL(`pages/topic.html?e=${encodeURIComponent(String(msg.key || ''))}`) }),
+    'kg:ask': async (msg, sender) => {
+      requireExtensionPage(sender);
+      return { ok: true, ...(await askPKG({ question: String(msg.question || '').slice(0, 1000), days: Number(msg.days) || 0, site: String(msg.site || ''), kind: String(msg.kind || '') })) };
+    },
+    'kg:weekly': async (msg, sender) => {
+      requireExtensionPage(sender);
+      return { ok: true, weekly: await writeWeekly() };
+    },
+    'kg:output': async (msg, sender) => {
+      requireExtensionPage(sender);
+      return { ok: true, ...(await makeOutput({ kind: String(msg.kind || ''), keys: (Array.isArray(msg.keys) ? msg.keys : []).map(String).slice(0, 4) })) };
+    },
     'kg:page': async (msg, sender) => {
       requireExtensionPage(sender);
       return { ok: true, page: await knowledge.writePage(String(msg.key || '')) };
@@ -629,16 +641,23 @@
     onProblem: quietly('knowledge graph'),
   });
   const KG_ALARM = 'soroagent-kg';
+  // The weekly "what you learned", written by itself once a week after an idle run (same switch).
+  async function maybeWeekly(result) {
+    if (!result || result.skipped || result.error) return;
+    const { kgWeekly } = await ext.storage.local.get('kgWeekly');
+    if (kgWeekly && Date.now() - Date.parse(kgWeekly.at) < 7 * 86400000) return;
+    await writeWeekly();
+  }
   if (ext.idle) {
     ext.idle.setDetectionInterval(60);
     ext.idle.onStateChanged.addListener((state) => {
       knowledge.setUserActive(state === 'active');
-      if (state === 'idle') knowledge.run().catch(quietly('knowledge graph'));
+      if (state === 'idle') knowledge.run().then(maybeWeekly).catch(quietly('knowledge graph'));
     });
     ext.alarms.create(KG_ALARM, { periodInMinutes: 15 });
     ext.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name !== KG_ALARM) return;
-      ext.idle.queryState(120).then((state) => state === 'idle' && knowledge.run()).catch(quietly('knowledge graph'));
+      ext.idle.queryState(120).then((state) => state === 'idle' && knowledge.run().then(maybeWeekly)).catch(quietly('knowledge graph'));
     });
   }
   // The graph as the rest of the extension reads it (hovercards, page checks, the address bar):
@@ -681,6 +700,55 @@
       contradicts,
       sameStory: story ? { id: story.id, title: story.title || story.pageTitle, host: K.hostOf(story.url), at: story.createdAt } : null,
     };
+  }
+
+  // Asking your PKG, the weekly review and outputs (shared/kguse.js): on a click, with your AI.
+  const kgChat = async (action, vars) => {
+    const { connection, api } = await resolveChat();
+    const settings = await getSettings();
+    const persona = S.customPersona(settings, 'default');
+    return S.stripThinking(await chat({ connection, api, messages: S.buildMessages(action, vars, persona ? { persona } : {}), json: action === 'outCards' }));
+  };
+
+  async function askPKG({ question, days = 0, site = '', kind = '' }) {
+    const U = S.kguse;
+    const { kg, notesById } = await readKG();
+    const time = U.parseTimeFilter(question, { days });
+    const filters = { since: time.since, site, kind };
+    const res = await library.search(U.withoutTime(question) || question, { limit: 12, since: time.since, where: (n) => U.passes(n, filters) });
+    let hits = (res.results || []).map((r) => r.note);
+    // "What did I read last week?": nothing to search for, so everything in that time (newest first).
+    if (!hits.length && (time.since || site || kind)) hits = [...notesById.values()].filter((n) => U.passes(n, filters)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 12);
+    const ctx = U.askContext({ kg, notesById, hits, question, filters });
+    if (!ctx.content) return { answer: '', cites: [], empty: true, label: time.label };
+    const limits = [time.label && `Only what the reader saved ${time.label}.`, site && `Only from ${site}.`, kind && `Only their ${kind} snippets.`].filter(Boolean).join(' ');
+    const answer = await kgChat('askLibrary', { question, context: limits, content: ctx.content });
+    return { answer, cites: U.resolveCites(ctx.cites, kg, notesById), label: time.label, entities: ctx.entities };
+  }
+
+  async function writeWeekly({ now = Date.now() } = {}) {
+    const U = S.kguse;
+    const { kg, notes, notesById } = await readKG();
+    const from = now - 7 * 86400000;
+    const input = U.weeklyInput(kg, notes, { from, to: now });
+    if (!input) return null;
+    const text = await kgChat('weekly', { content: input.content });
+    const weekly = { at: new Date(now).toISOString(), from: new Date(from).toISOString(), count: input.count, text, cites: input.cites };
+    await ext.storage.local.set({ kgWeekly: weekly });
+    return { ...weekly, sources: U.resolveCites(input.cites, kg, notesById) };
+  }
+
+  async function makeOutput({ kind, keys }) {
+    const U = S.kguse;
+    const out = U.OUTPUTS[kind];
+    if (!out) throw new Error('Unknown output.');
+    const { kg, notesById } = await readKG();
+    const input = U.outputInput(kg, keys, notesById);
+    if (!input) return { text: '', cites: [], empty: true };
+    const reply = await kgChat(out.prompt, { question: input.question, content: input.content });
+    const cites = U.resolveCites(input.cites, kg, notesById);
+    if (kind === 'cards') return { cards: U.parseCards(reply), cites, title: input.question };
+    return { text: reply, cites, title: input.question };
   }
 
   // "kg <words>" in the address bar: your PKG's entities and snippets as suggestions.

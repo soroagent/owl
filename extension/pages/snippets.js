@@ -490,7 +490,7 @@
       if (records.length) await ext.runtime.sendMessage({ type: 'summary:delete', ids: records.map((r) => r.id) });
       // Reading time, what's-new memory and the knowledge graph go with the PKG.
       const all = await ext.storage.local.get(null);
-      await ext.storage.local.remove(['pkgDwell', 'seenLists', ...Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || k === 'kgEdits' || k === 'kgState')]);
+      await ext.storage.local.remove(['pkgDwell', 'seenLists', ...Object.keys(all).filter((k) => /^kg(x|cmp|page):/.test(k) || ['kgEdits', 'kgState', 'kgWeekly', 'kgReview'].includes(k))]);
     }
   });
 

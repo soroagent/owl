@@ -91,6 +91,10 @@ For `save`, `try-prompt` also prints the title, summary and tags soroagent read 
 | `compareClaims` | The knowledge graph: which new claims (`{{content}}`, N1…) support or contradict earlier ones (`{{context}}`, E1…) | JSON `{ "checks": [{ "new", "contradicts": [], "supports": [] }] }` |
 | `checkPair` | The knowledge graph: one pair from `compareClaims` checked on its own (`{{context}}` = the earlier claim, `{{content}}` = the later one) | JSON `{ "relation": "contradicts" \| "supports" \| "neither" }` |
 | `topicPage` | A living topic page: `{{question}}` = the entity, `{{content}}` = its claims [n] with dates and sources | Markdown |
+| `askLibrary` | **Ask your PKG** (PKG page): `{{question}}`, `{{context}}` = the filters, `{{content}}` = the reader's claims and snippets [n] | Markdown |
+| `weekly` | **What you learned this week** (PKG page): `{{content}}` = the week's claims and snippets [n] | Markdown |
+| `outBrief`, `outStudy`, `outTimeline`, `outCompare` | Outputs on a topic page: `{{question}}` = the entity (or entities to compare), `{{content}}` = their claims [n] | Markdown |
+| `outCards` | Flashcards on a topic page, downloaded for Anki | JSON `{ "cards": [{ "front", "back", "source" }] }` |
 | `researchTopics` | **Research**, step 0: topics offered to the reader before research starts | JSON `{ "topics": [] }` |
 | `researchQuery` | **Research**, step 1: the web search query | JSON `{ "query" }` |
 | `research` | **Research**, step 2: the cited brief. `{{question}}` is the query, `{{content}}` the numbered web sources, `{{context}}` what the user already read | Markdown |

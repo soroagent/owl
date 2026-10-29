@@ -154,10 +154,10 @@
      * Search everything saved. Resolves with { mode, model, results: [{ note, score, by: [...] }] }.
      * opts: { limit, since (ms), excludeUrl }
      */
-    async function search(query, { limit = 12, since = 0, excludeUrl = '' } = {}) {
+    async function search(query, { limit = 12, since = 0, excludeUrl = '', where = null } = {}) {
       const { notes } = await loadAll();
       const exclude = excludeUrl ? soroagent.pageKey(excludeUrl) : '';
-      const pool = notes.filter((n) => (!since || new Date(n.createdAt).getTime() >= since) && !(exclude && n.url && soroagent.pageKey(n.url) === exclude));
+      const pool = notes.filter((n) => (!since || new Date(n.createdAt).getTime() >= since) && !(exclude && n.url && soroagent.pageKey(n.url) === exclude) && (!where || where(n)));
       const byId = new Map(pool.map((n) => [n.id, n]));
       const words = soroagent.searchNotes(soroagent.buildIndex(pool), query, { limit: 40 }).map((h) => h.note.id);
       let meaning = [];

@@ -22,29 +22,9 @@
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; }
     .panel h2 { font-size: 14px; margin: 0 0 4px; color: var(--heading); }
     .sub { font-size: 12px; color: var(--fg-muted); margin: 0 0 10px; }
-    .prose { font-size: 15.5px; line-height: 1.7; max-width: 72ch; }
-    .prose p, .prose ul, .prose ol { margin: 0 0 12px; }
-    .prose ul { padding-left: 22px; }
-    .prose a.cite { text-decoration: none; font-size: 12px; font-weight: 650; vertical-align: 1px; }
-    .working { display: flex; align-items: center; gap: 8px; color: var(--fg-muted); font-size: 14px; }
-    .working::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .working::before { animation: none; } }
-    details.sources { margin-top: 14px; }
-    details.sources summary { cursor: pointer; font-size: 13px; font-weight: 650; color: var(--heading); margin-bottom: 10px; }
-    .cites, .claims { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-    .cites li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px; scroll-margin-top: 80px; }
-    .cites li:target { background: var(--accent-soft); border-radius: 8px; }
-    .cites .n { color: var(--fg-muted); font-weight: 650; font-size: 12px; padding-top: 2px; }
-    .claim-text { font-size: 14px; }
-    .quote { margin: 4px 0 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--border); color: var(--fg-muted); font-size: 13px; }
-    .src { font-size: 12px; color: var(--fg-muted); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .src a { text-decoration: none; }
     .stance { font-size: 11px; font-weight: 650; border-radius: 999px; padding: 0 7px; }
     .stance.for { background: var(--accent-soft); color: var(--accent); }
     .stance.against { background: var(--spark-soft); color: var(--spark-fg); }
-    .flag { font-size: 11px; font-weight: 650; color: var(--err); }
-    .flag.ok { color: var(--ok); }
     .month { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-muted); margin: 16px 0 8px; }
     .month:first-child { margin-top: 0; }
     .dispute { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -76,6 +56,8 @@
 <script src="appheader.js"></script>
 <script src="../shared/markdown.js"></script>
 <script src="../shared/kg.js"></script>
+<script src="../shared/kguse.js"></script>
+<script src="kgview.js"></script>
 <script src="topic.js"></script>
 </body>
 </html>

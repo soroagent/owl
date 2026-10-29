@@ -272,6 +272,8 @@ header {
 .msg h3, .msg h4, .msg h5, .msg h6 { margin: 12px 0 4px; font-size: 14px; }
 .msg code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg-soft); padding: 1px 4px; border-radius: 4px; }
 .msg pre { background: var(--bg-soft); padding: 10px; border-radius: 8px; overflow-x: auto; }
+.msg table { border-collapse: collapse; margin: 0 0 8px; font-size: 12.5px; display: block; overflow-x: auto; }
+.msg th, .msg td { border: 1px solid var(--border); padding: 4px 6px; text-align: left; vertical-align: top; }
 .msg pre code { background: none; padding: 0; }
 .msg a { color: var(--accent); }
 .typing { color: var(--fg-muted); font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }

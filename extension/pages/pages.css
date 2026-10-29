@@ -136,3 +136,28 @@ button.tag { cursor: pointer; }
 .type::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--t, var(--icon)); }
 .t-person { --t: var(--t-person); } .t-company { --t: var(--t-company); } .t-product { --t: var(--t-product); }
 .t-concept { --t: var(--t-concept); } .t-paper { --t: var(--t-paper); } .t-place { --t: var(--t-place); }
+
+/* Answers from the knowledge graph (kgview.js): text with citations, and their sources. */
+.prose { font-size: 15.5px; line-height: 1.7; max-width: 72ch; }
+.prose p, .prose ul, .prose ol { margin: 0 0 12px; }
+.prose ul { padding-left: 22px; }
+.prose a.cite { text-decoration: none; font-size: 12px; font-weight: 650; vertical-align: 1px; }
+details.sources { margin-top: 14px; }
+details.sources summary { cursor: pointer; font-size: 13px; font-weight: 650; color: var(--heading); margin-bottom: 10px; }
+.cites, .claims { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.cites li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px; scroll-margin-top: 80px; }
+.cites li:target { background: var(--accent-soft); border-radius: 8px; }
+.cites .n { color: var(--fg-muted); font-weight: 650; font-size: 12px; padding-top: 2px; }
+.claim-text { font-size: 14px; }
+.quote { margin: 4px 0 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--border); color: var(--fg-muted); font-size: 13px; }
+.src { font-size: 12px; color: var(--fg-muted); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+.src a { text-decoration: none; }
+.flag { font-size: 11px; font-weight: 650; color: var(--err); }
+.flag.ok { color: var(--ok); }
+.working { display: flex; align-items: center; gap: 8px; color: var(--fg-muted); font-size: 14px; }
+.working::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .working::before { animation: none; } }
+.prose table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
+.prose th, .prose td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+.prose th { background: var(--surface-soft); }

@@ -338,6 +338,127 @@
     renderDigest();
   }));
 
+  // ---------------------------------------------------------------------------
+  // Ask your PKG (background kg:ask: library search + the graph + your AI)
+  // ---------------------------------------------------------------------------
+
+  const U = S.kguse;
+  let asking = false;
+  $('askForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = $('askInput').value.trim();
+    if (!question || asking) return;
+    asking = true;
+    $('askGo').disabled = true;
+    $('askOut').replaceChildren(el('div', { className: 'working', textContent: 'Looking through your PKG…' }));
+    const res = await ext.runtime.sendMessage({ type: 'kg:ask', question, days: Number($('askDays').value), site: $('askSite').value, kind: $('askKind').value }).catch((err) => ({ ok: false, error: err.message }));
+    asking = false;
+    $('askGo').disabled = false;
+    if (!res || res.ok === false) return $('askOut').replaceChildren(el('p', { className: 'sub', textContent: `Couldn't answer: ${(res && res.error) || 'the AI did not respond.'}` }));
+    if (res.empty) return $('askOut').replaceChildren(el('p', { className: 'sub', textContent: `Nothing in your PKG${res.label ? ` ${res.label}` : ''} matches that. Try other words or a wider time.` }));
+    const nodes = [];
+    if (res.label) nodes.push(el('p', { className: 'sub', textContent: `From what you saved ${res.label}.` }));
+    nodes.push(S.kgview.answer(res.answer, res.cites, { prefix: 'ask' }));
+    const topics = (res.entities || []).map((k) => kg && kg.entities.get(k)).filter(Boolean).slice(0, 6);
+    if (topics.length) nodes.push(el('div', { className: 'chips', style: 'margin-top:10px' }, topics.map((t) => el('a', { className: 'btn small', href: topicHref(t.key), textContent: t.name }))));
+    $('askOut').replaceChildren(...nodes);
+  });
+
+  function renderAskFilters() {
+    const counts = new Map();
+    for (const n of notesById.values()) {
+      const host = K.hostOf(n.url);
+      if (host) counts.set(host, (counts.get(host) || 0) + 1);
+    }
+    const current = $('askSite').value;
+    $('askSite').replaceChildren(el('option', { value: '', textContent: 'All sites' }), ...[...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([h, n]) => el('option', { value: h, textContent: `${h} · ${n}`, selected: h === current })));
+    $('ask').hidden = !notesById.size;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Review: the week, on this day, gaps, and practice (spaced repetition, opt-in)
+  // ---------------------------------------------------------------------------
+
+  function renderReview(all) {
+    $('review').hidden = !notesById.size;
+    const weekly = all.kgWeekly;
+    if (weekly && weekly.text) {
+      $('weekly').replaceChildren(
+        el('p', { className: 'sub', textContent: `${dateOf(weekly.from)} to ${dateOf(weekly.at)}, from ${plural(weekly.count || 0, 'snippet')}. Written by your AI once a week while you're away, or now.` }),
+        S.kgview.answer(weekly.text, U.resolveCites(weekly.cites, kg, notesById), { prefix: 'week' }),
+      );
+      $('weeklyGo').textContent = 'Write it again';
+    } else {
+      $('weekly').replaceChildren(el('p', { className: 'sub', textContent: 'A short review of what you read in the last 7 days, cited to your snippets. Written once a week while you are away, or now.' }));
+    }
+    const otd = U.onThisDay([...notesById.values()]);
+    $('onThisDay').replaceChildren(otd.length
+      ? el('div', {}, otd.map((g) => el('div', {}, [el('div', { className: 'label', textContent: g.label }), el('ul', { className: 'notes' }, g.notes.slice(0, 4).map((s) => el('li', {}, [el('a', { href: `snippets.html#${encodeURIComponent(s.id)}`, textContent: s.title || s.pageTitle || 'Untitled' }), el('small', { textContent: K.hostOf(s.url) })])))])))
+      : el('p', { className: 'sub', textContent: 'Nothing saved on this day a month, three months, six months or a year ago.' }));
+    const g = U.gaps(kg, notesById);
+    $('gaps').replaceChildren(g.length
+      ? el('div', {}, g.slice(0, 5).map((x) => el('p', { className: 'gap' }, [el('a', { href: topicHref(x.key), textContent: x.text })])))
+      : el('p', { className: 'sub', textContent: 'None found: what you read most comes from more than one site and includes critical views.' }));
+    renderPractice(all);
+  }
+  $('weeklyGo').addEventListener('click', async () => {
+    $('weeklyGo').disabled = true;
+    $('weekly').replaceChildren(el('div', { className: 'working', textContent: 'Your AI is writing your week…' }));
+    const res = await ext.runtime.sendMessage({ type: 'kg:weekly' }).catch((err) => ({ ok: false, error: err.message }));
+    $('weeklyGo').disabled = false;
+    if (!res || res.ok === false) $('weekly').replaceChildren(el('p', { className: 'sub', textContent: `Couldn't write it: ${(res && res.error) || 'the AI did not respond.'}` }));
+    else if (!res.weekly) $('weekly').replaceChildren(el('p', { className: 'sub', textContent: 'Nothing saved in the last 7 days.' }));
+  });
+
+  let practice = { card: null, shown: false };
+  function renderPractice(all) {
+    const box = el('div', { className: 'practice' });
+    const settings = all.settings || {};
+    if (!settings.reviewCards) {
+      const on = el('button', { type: 'button', className: 'btn small', textContent: 'Turn on practice' });
+      on.addEventListener('click', () => S.saveSettings({ reviewCards: true }));
+      box.append(el('h2', { textContent: 'Practice' }), el('p', { className: 'sub', textContent: 'Review your highlights and the claims about what you read most, a few a day, spaced out so they stick. No AI.' }), on);
+      return $('practice').replaceChildren(box);
+    }
+    const states = all.kgReview || {};
+    const due = U.dueCards(U.reviewItems(kg, [...notesById.values()]), states, { max: 20 });
+    const off = el('button', { type: 'button', className: 'btn small', textContent: 'Turn off' });
+    off.addEventListener('click', () => S.saveSettings({ reviewCards: false }));
+    box.append(el('div', { className: 'digest-head' }, [el('h2', { textContent: `Practice${due.length ? ` · ${due.length} to review` : ''}` }), off]));
+    if (!due.length) {
+      box.append(el('p', { className: 'sub', textContent: 'All done for today. New cards come from your highlights and claims as you read.' }));
+      return $('practice').replaceChildren(box);
+    }
+    if (!practice.card || !due.some((c) => c.id === practice.card.id)) practice = { card: due[0], shown: false };
+    const c = practice.card;
+    const note = notesById.get(c.noteId) || {};
+    box.append(el('div', { className: 'card-front', textContent: c.front }));
+    if (!practice.shown) {
+      const show = el('button', { type: 'button', className: 'btn primary small', textContent: 'Show answer' });
+      show.addEventListener('click', () => {
+        practice.shown = true;
+        renderPractice(all);
+      });
+      box.append(show);
+    } else {
+      box.append(el('div', { className: 'card-back', textContent: c.back }));
+      if (c.quote) box.append(el('blockquote', { className: 'quote', textContent: c.quote }));
+      box.append(el('div', { className: 'src' }, [el('span', { textContent: dateOf(note.createdAt) }), el('a', { href: `snippets.html#${encodeURIComponent(c.noteId)}`, textContent: note.title || 'your snippet' })]));
+      const grades = [['Forgot', 0], ['Remembered', 1], ['Easy', 2]].map(([label, grade]) => {
+        const b = el('button', { type: 'button', className: `btn small${grade === 1 ? ' primary' : ''}`, textContent: label });
+        b.addEventListener('click', async () => {
+          const { kgReview = {} } = await ext.storage.local.get('kgReview');
+          kgReview[c.id] = U.nextReview(kgReview[c.id], grade);
+          practice = { card: null, shown: false };
+          await ext.storage.local.set({ kgReview });
+        });
+        return b;
+      });
+      box.append(el('div', { className: 'grades' }, grades));
+    }
+    $('practice').replaceChildren(box);
+  }
+
   async function load() {
     const all = await ext.storage.local.get(null);
     const snippets = Object.keys(all).filter((k) => k.startsWith('snippet:')).map((k) => all[k]).filter((s) => s && s.id);
@@ -350,10 +471,11 @@
     kg = K.buildKG({ notes: snippets, extractions: pick('kgx:'), comparisons: pick('kgcmp:'), edits: all.kgEdits });
     renderTiles();
     renderBar(all);
-    if (!snippets.length) {
-      $('layout').replaceChildren(el('div', { className: 'empty', textContent: 'Nothing in your PKG yet. Summarize or save a few pages; what they are about and how it connects appears here.' }));
-      return;
-    }
+    renderAskFilters();
+    renderReview(all);
+    $('emptyPKG').hidden = Boolean(snippets.length);
+    $('layout').hidden = !snippets.length;
+    if (!snippets.length) return;
     if (firstLoad && !kg.entities.size) mode = 'tags';
     firstLoad = false;
     draw();
@@ -373,7 +495,7 @@
 
   let timer = 0;
   ext.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || !Object.keys(changes).some((k) => k.startsWith('snippet:') || k === 'pkgDwell' || /^kg/.test(k))) return;
+    if (area !== 'local' || !Object.keys(changes).some((k) => k.startsWith('snippet:') || k === 'pkgDwell' || k === 'settings' || /^kg/.test(k))) return;
     clearTimeout(timer);
     timer = setTimeout(load, 600);
   });

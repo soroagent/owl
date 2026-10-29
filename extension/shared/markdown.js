@@ -44,7 +44,17 @@
     let paragraph = [];
     let list = null; // { tag: 'ul' | 'ol', items: [] }
     let code = null;
+    let table = null; // rows of cells
 
+    // Simple tables: | a | b | rows; the |---| line under the header is left out.
+    const flushTable = () => {
+      if (!table) return;
+      const rows = table.filter((r) => !r.every((c) => /^:?-{2,}:?$/.test(c.trim())));
+      const [head, ...body] = rows;
+      const cells = (r, tag) => r.map((c) => `<${tag}>${renderInline(c.trim())}</${tag}>`).join('');
+      out.push(`<table><thead><tr>${cells(head, 'th')}</tr></thead><tbody>${body.map((r) => `<tr>${cells(r, 'td')}</tr>`).join('')}</tbody></table>`);
+      table = null;
+    };
     const flushParagraph = () => {
       if (paragraph.length) out.push(`<p>${renderInline(paragraph.join('<br>'))}</p>`);
       paragraph = [];
@@ -68,6 +78,14 @@
         code = [];
         continue;
       }
+
+      if (/^\s*\|.*\|\s*$/.test(line)) {
+        flushParagraph();
+        flushList();
+        (table = table || []).push(line.trim().slice(1, -1).split('|'));
+        continue;
+      }
+      flushTable();
 
       const heading = line.match(/^\s*(#{1,6})\s+(.*)$/);
       const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
@@ -95,6 +113,7 @@
       }
     }
     if (code) out.push(`<pre><code>${code.join('\n')}</code></pre>`);
+    flushTable();
     flushParagraph();
     flushList();
     return out.join('');

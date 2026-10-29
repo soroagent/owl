@@ -14,6 +14,7 @@
   let key = new URLSearchParams(location.search).get('e') || '';
   let data = null; // { notes, notesById, kg, page, edits }
   let writing = false;
+  let output = null; // { kind, label, status: 'working' | 'done' | 'error', res, error }
 
   const el = (tag, props = {}, children = []) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -172,8 +173,90 @@
         el('small', { textContent: [dateOf(s.createdAt), K.hostOf(s.url)].filter(Boolean).join(' · ') }),
       ]))),
     ]));
+    out.splice(1, 0, makePanel(ent));
     out.push(toolsPanel(ent));
     return out;
+  }
+
+  // Outputs built from this entity's claims (background kg:output, your AI): a brief, a study guide,
+  // a timeline, a comparison with another entity, flashcards for Anki.
+  function makePanel(ent) {
+    const U = S.kguse;
+    const button = (kind, keys, label = U.OUTPUTS[kind].label) => {
+      const b = el('button', { type: 'button', className: 'btn small', textContent: label, disabled: Boolean(output && output.status === 'working') });
+      b.addEventListener('click', () => makeOutput(kind, keys, label));
+      return b;
+    };
+    const others = K.rankEntities(data.kg).filter((e) => e.key !== ent.key);
+    const other = el('input', { type: 'text', placeholder: 'Compare with…', maxLength: 80 });
+    other.setAttribute('list', 'compareNames');
+    other.setAttribute('aria-label', 'Compare with');
+    const list = el('datalist', { id: 'compareNames' }, others.slice(0, 300).map((e) => el('option', { value: e.name })));
+    const compare = el('button', { type: 'button', className: 'btn small', textContent: 'Compare' });
+    compare.addEventListener('click', () => {
+      const match = others.find((e) => e.name.toLowerCase() === other.value.trim().toLowerCase());
+      if (!match) return (other.value = ''), (other.placeholder = 'Pick a name from the list');
+      makeOutput('compare', [ent.key, match.key], `${ent.name} vs ${match.name}`);
+    });
+    return el('section', { className: 'panel' }, [
+      el('h2', { textContent: 'Make something from this' }),
+      el('p', { className: 'sub', textContent: `From what you saved about it (${plural(ent.claimIds.length, 'claim')}, ${plural(ent.noteIds.length, 'snippet')}), cited. Uses your AI.` }),
+      el('div', { className: 'tools' }, ['brief', 'study', 'timeline', 'cards'].map((k) => button(k, [ent.key]))),
+      el('div', { className: 'tools', style: 'margin-top:8px' }, [other, list, compare]),
+    ]);
+  }
+
+  async function makeOutput(kind, keys, label) {
+    output = { kind, label, status: 'working' };
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const res = await ext.runtime.sendMessage({ type: 'kg:output', kind, keys }).catch((err) => ({ ok: false, error: err.message }));
+    output = !res || res.ok === false ? { kind, label, status: 'error', error: (res && res.error) || 'the AI did not respond.' } : { kind, label, status: 'done', res };
+    render();
+  }
+
+  function outputPanel() {
+    if (!output) return null;
+    const close = el('button', { type: 'button', className: 'btn small', textContent: 'Close' });
+    close.addEventListener('click', () => {
+      output = null;
+      render();
+    });
+    const head = el('div', { className: 'head' }, [el('h2', { textContent: output.label }), close]);
+    const box = el('section', { className: 'panel output' }, [head]);
+    if (output.status === 'working') return box.append(el('div', { className: 'working', textContent: 'Your AI is writing it from your claims…' })), box;
+    if (output.status === 'error') return box.append(el('p', { className: 'sub', textContent: `Couldn't make it: ${output.error}` })), box;
+    const res = output.res;
+    if (res.empty) return box.append(el('p', { className: 'sub', textContent: 'There are no claims to build it from yet.' })), box;
+    const actions = el('div', { className: 'tools', style: 'margin:6px 0 10px' });
+    if (output.kind === 'cards') {
+      const cards = res.cards || [];
+      const sourceOf = (c) => {
+        const s = res.cites[c.cite - 1];
+        return s ? `${s.title} (${s.host})` : '';
+      };
+      const download = el('button', { type: 'button', className: 'btn small primary', textContent: `Download ${plural(cards.length, 'card')} for Anki` });
+      download.addEventListener('click', () => {
+        const blob = new Blob([S.kguse.cardsToTsv(cards, sourceOf)], { type: 'text/plain' });
+        const a = el('a', { href: URL.createObjectURL(blob), download: `soroagent-${key}-flashcards.txt` });
+        document.body.append(a);
+        a.click();
+        setTimeout(() => (URL.revokeObjectURL(a.href), a.remove()), 1000);
+      });
+      actions.append(download, el('span', { className: 'muted', style: 'font-size:12px', textContent: 'In Anki: File → Import, choose the file.' }));
+      box.append(actions, el('ol', { className: 'cites' }, cards.map((c, i) => el('li', {}, [el('span', { className: 'n', textContent: `${i + 1}.` }), el('div', {}, [el('div', { className: 'claim-text', textContent: c.front }), el('div', { className: 'quote', textContent: `${c.back}${c.cite ? ` [${c.cite}]` : ''}` })])]))));
+      return box;
+    }
+    const copy = el('button', { type: 'button', className: 'btn small', textContent: 'Copy as Markdown' });
+    copy.addEventListener('click', async () => {
+      const refs = res.cites.map((s) => `[${s.n}]: ${s.title} (${s.host}, ${s.at.slice(0, 10)}) ${s.passage || s.url}`).join('\n');
+      await navigator.clipboard.writeText(`# ${output.label}\n\n${S.stripThinking(res.text)}\n\n${refs}\n`);
+      copy.textContent = 'Copied';
+      setTimeout(() => (copy.textContent = 'Copy as Markdown'), 1500);
+    });
+    actions.append(copy);
+    box.append(actions, S.kgview.answer(res.text, res.cites, { prefix: 'out' }));
+    return box;
   }
 
   // Corrections: everything here is stored as an edit (kgEdits) and can be undone.
@@ -261,7 +344,7 @@
     $('page').replaceChildren(
       header(ent),
       el('div', { className: 'layout' }, [
-        el('div', {}, [livingPage(ent), disputesPanel(ent), timelinePanel(ent)].filter(Boolean)),
+        el('div', {}, [outputPanel(), livingPage(ent), disputesPanel(ent), timelinePanel(ent)].filter(Boolean)),
         el('aside', {}, sidePanels(ent)),
       ]),
     );
