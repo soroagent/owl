@@ -479,10 +479,96 @@
     return { question: `${ent.name} (${TYPE_LABEL[ent.type] || ent.type})`, content: lines.join('\n'), cites };
   }
 
+  // ---------------------------------------------------------------------------
+  // Resurfacing: what you already know, while you browse
+  // ---------------------------------------------------------------------------
+
+  /** Pure: the first sentence of a topic page, without citations, for a hovercard. */
+  function pageLine(text) {
+    const plain = String(text || '').replace(/\s*\[\d+(?:\s*[,–-]\s*\d+)*\]/g, '').replace(/[*_#`]/g, '').replace(/\s+/g, ' ').trim();
+    const m = plain.match(/^(.{20,240}?[.!?])(\s|$)/);
+    return m ? m[1] : plain.slice(0, 200);
+  }
+
+  /**
+   * Pure: the names worth recognising on other pages: entities with at least `min` snippets (or a
+   * disagreement), at most `max`, most-read first. Each: { key, name, names, type, notes, claims,
+   * disputes, line, last }. `names` are the ways it's written (3+ characters).
+   */
+  function nameIndex(kg, pages = {}, { min = 2, max = 400 } = {}) {
+    const disputed = new Map();
+    for (const d of disagreements(kg)) for (const k of new Set([...d.a.about, ...d.b.about])) disputed.set(k, (disputed.get(k) || 0) + 1);
+    return rankEntities(kg)
+      .filter((e) => e.noteIds.length >= min || disputed.has(e.key))
+      .slice(0, max)
+      .map((e) => ({
+        key: e.key,
+        name: e.name,
+        names: [...new Set([e.name, ...e.aliases])].filter((n) => n.length >= 3 && !/^\d+$/.test(n)),
+        type: e.type,
+        notes: e.noteIds.length,
+        claims: e.claimIds.length,
+        disputes: disputed.get(e.key) || 0,
+        line: pages[e.key] ? pageLine(pages[e.key].text) : '',
+        last: e.last,
+      }))
+      .filter((e) => e.names.length);
+  }
+
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  /**
+   * Pure: a matcher for the index's names in page text: matcher(text) → [{ index, length, entry }].
+   * Whole words, case-sensitive (so "Atlas" the map isn't "ATLAS" the product), longest name first.
+   */
+  function nameMatcher(index) {
+    const byName = new Map();
+    for (const e of index) for (const n of e.names) if (!byName.has(n)) byName.set(n, e);
+    if (!byName.size) return () => [];
+    const names = [...byName.keys()].sort((a, b) => b.length - a.length).map(escapeRe);
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${names.join('|')})(?![\\p{L}\\p{N}])`, 'gu');
+    return (text) => {
+      const out = [];
+      for (const m of String(text || '').matchAll(re)) out.push({ index: m.index, length: m[0].length, entry: byName.get(m[0]) });
+      return out;
+    };
+  }
+
+  /** Pure: the entities a page mentions, most mentioned first: [{ entry, count }]. */
+  function findMentions(text, matcher) {
+    const counts = new Map();
+    for (const m of matcher(text)) counts.set(m.entry, (counts.get(m.entry) || 0) + 1);
+    return [...counts.entries()].map(([entry, count]) => ({ entry, count })).sort((a, b) => b.count - a.count || b.entry.notes - a.entry.notes);
+  }
+
+  const words = (s) => new Set(String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w)));
+  const STOP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'are', 'was', 'its', 'has', 'have', 'after', 'over', 'into', 'about', 'says', 'said', 'new', 'how', 'why', 'what', 'will', 'you', 'your']);
+
+  /**
+   * Pure: a saved snippet that is the same story from another site (headlines sharing most of their
+   * words, saved within `days` of each other), or null.
+   */
+  function sameStory(title, notes, { url = '', now = Date.now(), days = 4 } = {}) {
+    const mine = words(title);
+    if (mine.size < 3) return null;
+    const host = hostOf(url);
+    let best = null;
+    for (const n of notes || []) {
+      if (!n || !n.url || hostOf(n.url) === host) continue;
+      if (Math.abs(now - Date.parse(n.createdAt)) > days * 86400000) continue;
+      const theirs = words(n.title || n.pageTitle);
+      const shared = [...mine].filter((w) => theirs.has(w)).length;
+      const score = shared / Math.min(mine.size, Math.max(theirs.size, 1));
+      if (shared >= 3 && score >= 0.5 && (!best || score > best.score)) best = { note: n, score };
+    }
+    return best && best.note;
+  }
+
   soroagent.kg = {
     VERSION, TYPES, TYPE_LABEL, TYPE_PLURAL, RELATIONS, RELATION_LABEL, LIMITS, EMPTY_EDITS, orientRelation,
     entityKey, findPassage, parseExtraction, parseComparison, parseCheck, canCompare, resolveKey, claimId, buildKG, rankEntities,
     neighbours, disagreements, claimTimeline, pageBasis, passageUrl, mergeEdit, splitEdit, setEdit,
     textHash, noteText, extractionQueue, compareInput, topicPageInput, hostOf, day,
+    pageLine, nameIndex, nameMatcher, findMentions, sameStory,
   };
 })(globalThis);

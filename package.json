@@ -1,6 +1,6 @@
 {
   "name": "soroagent",
-  "version": "2.52.0",
+  "version": "2.53.0",
   "private": true,
   "description": "soroagent: an AI assistant for any web page, powered by a local LLM or your own API key.",
   "type": "module",

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "soroagent",
   "short_name": "soroagent",
-  "version": "2.52.0",
+  "version": "2.53.0",
   "description": "Summarize, ask about and save any page or PDF into a private knowledge graph, with AI on your computer, in your browser or your key.",
   "permissions": [
     "storage",
@@ -67,6 +67,7 @@
         "prompts/*.js",
         "shared/snippets.js",
         "shared/knowledge.js",
+        "shared/kg.js",
         "sites/registry.js",
         "sites/*.js",
         "vendor/readability/Readability.js",
@@ -76,6 +77,7 @@
         "content/launcher.js",
         "content/capture.js",
         "content/faq.js",
+        "content/resurface.js",
         "content/assistant.js"
       ],
       "run_at": "document_idle"
@@ -89,6 +91,9 @@
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     }
+  },
+  "omnibox": {
+    "keyword": "kg"
   },
   "options_ui": {
     "page": "pages/options.html",

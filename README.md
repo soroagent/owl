@@ -56,6 +56,7 @@ soroagent sits beside every page as a small owl (or in your browser's side panel
 
 ### Your PKG (personal knowledge graph)
 - **A real knowledge graph.** While you're away from the computer, your AI reads your snippets and files the people, companies, products, ideas, papers and places in them, how they relate (made by, competes with, part of, written by, cites, works for), and the claims they make, each tied to the exact sentence it came from. "OpenAI", "Open AI" and "openai.com" are one entity. New claims are checked against older ones, so the PKG shows **where your sources disagree** (a benchmark of 91% vs 86%, a launch promised for December and then delayed). Finding contradictions needs a 7B model or larger, or a cloud AI.
+- **What you already know, while you browse.** Rest the pointer on a name you've read about, on any page, and a card shows what your notes say about it. A short note tells you when a page repeats a story you saved from another site, contradicts something you read, or is about things you've read a lot about. Type `kg` and a space in the address bar to search your PKG. None of this uses the AI or sends anything anywhere.
 - **Topic pages.** Every entity you read about has a page: a summary your AI keeps up to date as you read more, every sentence cited to the claim and passage behind it (the link opens the source page scrolled to that sentence), the disagreements, the claims over time and what it's connected to. Fix the AI's mistakes there: rename, change the type, merge, split off a name, or hide.
 - **Auto-filed and auto-tagged.** Every summary is saved with a title, short summary and tags. The tagger reuses the tags already in your library, so "AI Agents" files under your existing *ai-agents*. Saved X bookmarks, X likes and LinkedIn posts also get *x-bookmark*, *x-like* or *linkedin-post*, so you can filter by where they came from.
 - **Save** puts the page itself into your library, with its text for search.
@@ -109,12 +110,12 @@ Read the full [privacy policy](PRIVACY.md).
 
 ## Download
 
-Current version: **v2.52.0**. The version is in each file name, so you can tell which build you have.
+Current version: **v2.53.0**. The version is in each file name, so you can tell which build you have.
 
 | Browser | Download | Install |
 |---|---|---|
-| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.52.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.52.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
-| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.52.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.52.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
+| Chrome, Edge, Brave, Arc | [**soroagent-chrome-2.53.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-chrome-2.53.0.zip) | Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the unzipped folder. |
+| Firefox (140+, no in-browser model) | [**soroagent-firefox-2.53.0.zip**](https://github.com/soroagent/owl/raw/main/downloads/soroagent-firefox-2.53.0.zip) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and choose the zip. |
 
 Both work on macOS and Windows.
 

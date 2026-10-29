@@ -1966,6 +1966,7 @@
       prepare: { on: S.autoOn(state.settings, 'preparePages'), allowed: preparable() },
       prepared: prep.url === location.href ? { status: prep.status, summary: prep.status === 'done' ? prep.summary : '', questions: prep.questions, label: prep.label } : { status: 'idle', summary: '', questions: [], label: '' },
       newPosts: newPostCount(),
+      seen: S.resurface ? S.resurface.lines().map((l) => ({ text: l.text, warn: Boolean(l.warn), action: l.open ? l.action : '' })) : [],
       page: (() => {
         const actions = pageActions();
         return actions ? { ...actions, running: Boolean(fd.run), progress: fd.progress, result: fd.result } : null;
@@ -1975,7 +1976,7 @@
   }
   let lastNotice = '';
   function notifySidePanel() {
-    const notice = `${location.href}|${prep.status}|${prep.questions.length}|${newPostCount()}|${JSON.stringify(pageActions())}|${Boolean(fd.run)}|${fd.progress}|${fd.result}`;
+    const notice = `${location.href}|${S.resurface ? S.resurface.lines().length : 0}|${prep.status}|${prep.questions.length}|${newPostCount()}|${JSON.stringify(pageActions())}|${Boolean(fd.run)}|${fd.progress}|${fd.result}`;
     if (notice === lastNotice) return; // only when something the side panel shows changed
     lastNotice = notice;
     sendMessage({ type: 'sidepanel:changed', url: location.href }).catch(() => {});
@@ -2056,6 +2057,11 @@
   // say apart from the model's own reading.
   const related = { url: '', notes: [], using: false, open: false, dismissed: '' };
 
+  if (S.resurface) S.resurface.onResult(() => {
+    renderRelated();
+    notifySidePanel();
+  });
+
   async function findRelated() {
     if (related.url === location.href) return renderRelated();
     related.url = location.href;
@@ -2083,8 +2089,19 @@
   function renderRelated() {
     const bar = shadow.querySelector('.related');
     const count = related.notes.length;
-    bar.hidden = !count || related.dismissed === location.href;
+    // What your knowledge graph knows about this page (content/resurface.js).
+    const seen = S.resurface ? S.resurface.lines() : [];
+    bar.hidden = (!count && !seen.length) || related.dismissed === location.href;
     if (bar.hidden) return;
+    const seenNodes = seen.map((l) => el('div', { className: `seen-line${l.warn ? ' warn' : ''}` }, [
+      document.createTextNode(`${l.text} `),
+      ...(l.open ? [(() => {
+        const b = el('button', { type: 'button', className: 'link', textContent: l.action });
+        b.addEventListener('click', l.open);
+        return b;
+      })()] : []),
+    ]));
+    if (!count) return bar.replaceChildren(...seenNodes);
     const n = count === 1 ? '1 of your saved notes' : `${count} of your saved notes`;
     const text = el('span', { className: 'related-text', textContent: related.using ? `Using ${n} in this chat` : `📚 ${n} relate${count === 1 ? 's' : ''} to this page` });
     const toggle = el('button', { type: 'button', className: 'link', textContent: related.open ? 'Hide' : 'Show' });
@@ -2107,7 +2124,7 @@
       renderRelated();
     });
     const row = el('div', { className: 'related-row' }, [text, toggle, el('span', { className: 'related-actions' }, [use, dismiss])]);
-    const nodes = [row];
+    const nodes = [...seenNodes, row];
     if (related.open) {
       const list = el('ol', { className: 'related-list' }, related.notes.map((note, i) => {
         const open = el('button', { type: 'button', className: 'link', textContent: note.title || note.pageTitle || 'Untitled' });
@@ -2606,6 +2623,7 @@
   const isOpen = () => !els.panel.hidden;
 
   function openPanel({ focus = true } = {}) {
+    if (S.resurface) S.resurface.hide(); // the panel shows the same lines
     if (!isOpen()) {
       els.panel.hidden = false;
       els.launcher.classList.add('open');
@@ -2790,6 +2808,11 @@
           if (req.stopped) return { ok: false, stopped: true };
           if (req.error) return { ok: false, error: req.error };
           return { ok: true, ...req };
+        }
+        if (msg.type === 'assistant:sp-seen') {
+          const line = S.resurface && S.resurface.lines()[Number(msg.index)];
+          if (line && line.open) line.open();
+          return { ok: true };
         }
         if (msg.type === 'assistant:sp-save') return { ok: true, ...(await savePageData({ label: true })) };
         if (msg.type === 'assistant:sp-refresh') {

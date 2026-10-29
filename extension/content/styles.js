@@ -322,6 +322,8 @@ header {
 .onboard-frame { display: block; width: 100%; height: 300px; margin-top: 10px; border: 0; border-radius: 10px; background: var(--bg); color-scheme: normal; }
 /* Related saved notes: a slim bar under the actions */
 .related { margin: 8px 12px 0; padding: 6px 8px 6px 10px; border-radius: 10px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); font-size: 12px; }
+.seen-line { color: var(--fg); margin: 0 0 4px; line-height: 1.4; }
+.seen-line.warn { color: var(--spark-fg, #b45309); }
 .related-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .related-text { font-weight: 600; color: var(--fg); }
 .related .link { border: none; background: none; padding: 0; color: var(--accent); font-weight: 600; font-size: 12px; text-align: left; }

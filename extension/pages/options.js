@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const TEXT_FIELDS = ['baseUrl', 'browserEngine', 'provider', 'apiKey', 'launcherPosition', 'cloudProvider', 'customBaseUrl', 'researchEngine', 'searxUrl', 'autoCapture'];
   const NUMBER_FIELDS = ['temperature', 'contextWindow', 'maxPageChars', 'captureMinSeconds'];
-  const CHECK_FIELDS = ['allowThinking', 'webFallback', 'followUps', 'pkgDwell', 'xBookmarksOffer', 'autoBackup', 'captureLabel', 'semanticSearch'];
+  const CHECK_FIELDS = ['hovercards', 'resurface', 'allowThinking', 'webFallback', 'followUps', 'pkgDwell', 'xBookmarksOffer', 'autoBackup', 'captureLabel', 'semanticSearch'];
   // 'auto' | true | false: 'auto' follows the AI (on unless it's a cloud API; see S.autoOn).
   const AUTO_FIELDS = ['preparePages', 'pageQuestions', 'knowledgeGraph'];
   const autoTouched = new Set();

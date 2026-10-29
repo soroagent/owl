@@ -50,6 +50,8 @@
     preparePages: 'auto', // summary + questions when the side panel is open on a page, or after 15 s of reading
     pageQuestions: 'auto', // questions written for the page when a panel opens (if preparing is off)
     xBookmarksOffer: true, // on X's bookmarks page, offer to save them all to the PKG
+    hovercards: true, // a card with what you know when the pointer rests on a name you've read about (no AI)
+    resurface: true, // a short note when a page repeats or contradicts something you saved (no AI)
     knowledgeGraph: 'auto', // build the knowledge graph from your snippets while the browser is idle (sends them to your AI)
     pkgDwell: true, // count active reading time on saved pages (only those), for the PKG's topic weights
     declutterSites: [], // sites where "Hide clutter" is on (hostnames); no AI, only the page's own layout

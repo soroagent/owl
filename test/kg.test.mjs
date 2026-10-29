@@ -190,3 +190,26 @@ test('claims are compared only with models big enough to do it', () => {
   assert.equal(K.canCompare({ api: 'anthropic', model: 'claude-sonnet-5-5' }), true);
   assert.equal(K.canCompare({ api: 'openai', model: 'gpt-5.5-mini' }), true);
 });
+
+test('resurfacing: names to recognise, mentions on a page, the same story elsewhere', () => {
+  const kg = K.buildKG({ notes, extractions, comparisons });
+  const index = K.nameIndex(kg, { gpt6: { text: '**GPT-6** is OpenAI\'s next model [1]. It was due in spring [2].' } });
+  assert.deepEqual(index.map((e) => e.key), ['openai', 'gpt6'], 'two snippets or more, or disputed');
+  const gpt = index.find((e) => e.key === 'gpt6');
+  assert.equal(gpt.line, "GPT-6 is OpenAI's next model.");
+  assert.equal(gpt.disputes, 1);
+  assert.deepEqual(gpt.names.sort(), ['GPT 6', 'GPT-6']);
+  const match = K.nameMatcher(index);
+  const found = match('OpenAI said GPT-6 is late; openai.com has details. NotOpenAI and OPENAI do not count.');
+  assert.deepEqual(found.map((m) => m.entry.key), ['openai', 'gpt6', 'openai']);
+  assert.equal(found[1].index, 12);
+  assert.deepEqual(K.findMentions('GPT-6, GPT 6 and OpenAI', match).map((m) => [m.entry.key, m.count]), [['gpt6', 2], ['openai', 1]]);
+  assert.deepEqual(K.nameMatcher([])('anything'), []);
+  const now = Date.parse('2026-10-03T00:00:00Z');
+  const saved = [{ id: 'r', url: 'https://www.reuters.com/x', title: 'Nimbus Labs delays Atlas 2 general release', createdAt: '2026-10-02T08:00:00Z' }];
+  assert.equal(K.sameStory('Atlas 2 release delayed by Nimbus Labs, sources say', saved, { url: 'https://www.bbc.com/news/1', now }).id, 'r');
+  assert.equal(K.sameStory('Atlas 2 release delayed by Nimbus Labs', saved, { url: 'https://reuters.com/other', now }), null, 'same site is not elsewhere');
+  assert.equal(K.sameStory('Atlas 2 release delayed by Nimbus Labs', saved, { url: 'https://bbc.com/1', now: now + 30 * 86400000 }), null, 'too long ago');
+  assert.equal(K.sameStory('Nimbus Labs hires a new designer', saved, { url: 'https://bbc.com/1', now }), null);
+  assert.equal(K.pageLine('Short.'), 'Short.');
+});

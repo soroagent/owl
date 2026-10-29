@@ -1,7 +1,7 @@
 # soroagent Privacy Policy
 
 **Effective October 29, 2026.** Applies to the soroagent browser extension for Chrome, Edge, Brave,
-Arc and Firefox, version 2.52 and later.
+Arc and Firefox, version 2.53 and later.
 
 ## The short version
 
@@ -42,6 +42,9 @@ soroagent stores the following **only in your browser's extension storage on you
   came from), which claims back up or contradict each other, the topic pages it writes, and your own
   corrections (merges, renames, splits). Kept with your snippets; included in backups (not in sync,
   where it is built again from the snippets). "Clear the graph" in Settings → PKG deletes it.
+- **Hovercards and "seen before" notes** read your knowledge graph, which stays in your browser.
+  To find names you know, the text of the page you're on is compared with it inside the extension;
+  nothing is stored or sent. Switch them off in Settings → PKG.
 - **Reading time on saved pages:** for pages you've saved to your PKG, and only those, how long
   you've actively read them (the tab in front and you using it), added up per page. It makes the
   topics you spend time on weigh more in your PKG. Pages you haven't saved are never recorded. It

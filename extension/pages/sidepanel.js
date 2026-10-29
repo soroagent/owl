@@ -132,6 +132,7 @@
     const page = $('page');
     page.replaceChildren();
     renderPageActions(snap && snap.page);
+    renderSeen(snap && snap.seen);
     const pdf = currentPdf();
     if (pdf) {
       page.append(el('b', { textContent: 'PDF · ' }), pdf.title || pdf.url);
@@ -183,6 +184,18 @@
 
   // Page actions (feeds, news, threads, videos): the same buttons as the floating panel. The page
   // builds each request (assistant:sp-page); summaries run here as jobs, the rest as chats.
+  // What your knowledge graph knows about this page (the tab's content/resurface.js).
+  function renderSeen(seen) {
+    $('seenBox').replaceChildren(...(seen || []).map((l, i) => el('div', { className: `seen-line${l.warn ? ' warn' : ''}` }, [
+      document.createTextNode(`${l.text} `),
+      ...(l.action ? [(() => {
+        const b = el('button', { type: 'button', className: 'link', textContent: l.action });
+        b.addEventListener('click', () => toTab({ type: 'assistant:sp-seen', index: i }).catch(() => {}));
+        return b;
+      })()] : []),
+    ])));
+  }
+
   function renderPageActions(p) {
     if (!p) return $('feedBox').replaceChildren();
     const busy = Boolean(state.busy) || p.running;

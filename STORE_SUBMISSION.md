@@ -1,7 +1,7 @@
 # Store submission: Chrome Web Store and Firefox Add-ons
 
 Everything a reviewer is likely to question, with paste-ready text for each form field. Checked
-against version 2.52.0 on 2026-10-29.
+against version 2.53.0 on 2026-10-29.
 
 ## Before you submit
 
@@ -12,7 +12,7 @@ against version 2.52.0 on 2026-10-29.
 | ✅ | No `eval`, `new Function` or string timers anywhere (our code and all vendored files) | Checked |
 | ✅ | CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`; no remote scripts | Checked |
 | ✅ | Vendored libraries byte-identical to official releases, reproducible with `npm run vendor` | `npm run vendor:check` (also in `npm test`) |
-| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-29 (v2.52.0) |
+| ✅ | Mozilla `addons-linter` on `dist/firefox`: **0 errors**, 4 warnings, all inside unmodified third-party files (see below) | Run 2026-10-29 (v2.53.0) |
 | ✅ | Every permission used; manifest description ≤ 132 characters (tested) | `activeTab` and `downloads.ui` removed |
 | ✅ | No background browsing log: Stats (the reading log) was removed in 2.41, so no prominent-disclosure screen is needed for web history | 2026-10-24 |
 | ✅ | Nothing is downloaded unasked: the automatic backup is **opt-in** (off by default; a storage upgrade turned it off for existing installs) and shows in the browser's downloads like any download | 2026-10-24 |
@@ -93,6 +93,11 @@ in Settings → AI → While you read):
   the user is back. On by default only with a local or in-browser AI; off by default with a cloud key
   (Settings → PKG); "Build now" on the PKG page runs it on a click. Users merge, split, rename and
   hide entities on each topic page. Nothing new is fetched; only the user's own snippets are read.
+- **Hovercards, "seen before" and the `kg` keyword.** The content script asks the background for the
+  user's own entity names and compares them with the page text, in the extension, to show a card on
+  hover and a short note when a page repeats or contradicts a saved story (no AI, nothing stored or
+  sent; switches in Settings → PKG). The manifest's `omnibox` keyword `kg` searches the user's PKG
+  from the address bar.
 - **Answers off the page.** If the page doesn't have the answer, soroagent searches the web (the
   search engine chosen in Settings), reads the top results and answers with sources.
 - **Sites soroagent never reads automatically.** `content/capture.js` (`NEVER_READ`) lists adult,

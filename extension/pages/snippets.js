@@ -384,6 +384,13 @@
 
   // snippets.html#<id> opens that snippet (the panel's "Open in snippets" links).
   function openFromHash() {
+    // snippets.html#q=<words>: a search (from "kg <words>" in the address bar).
+    if (location.hash.startsWith('#q=')) {
+      $('search').value = decodeURIComponent(location.hash.slice(3));
+      history.replaceState(null, '', location.pathname);
+      $('search').dispatchEvent(new Event('input'));
+      return;
+    }
     const id = decodeURIComponent(location.hash.slice(1));
     const s = id && (snippets.find((x) => x.id === id) || jobs.find((x) => x.id === id));
     if (!s) return;

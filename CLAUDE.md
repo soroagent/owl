@@ -300,6 +300,18 @@ text, and extend `test/flight.test.mjs` when you add a kind of event.
   all" and Settings → PKG → Clear the graph remove it. Passage links: `passageUrl()` text fragments,
   only for snippets whose text is the page's own (page, selection, read). Live: 6 snippets in 96 s
   with qwen2.5:14b, all 3 contradictions real.
+- **Resurfacing** (2026-10-29, no AI): `content/resurface.js` (before assistant.js; its own closed
+  shadow host `soroagent-resurface`). Hovercards (`hovercards`): `kg:names` (background `readKG()`
+  cache, cleared on snippet/kg changes) gives `S.kg.nameIndex` (entities with 2+ snippets or a
+  disagreement, first sentence of their topic page); `nameMatcher` is whole-word and case-sensitive;
+  a 450 ms rest → `caretPositionFromPoint`/`caretRangeFromPoint` → the match under the pointer (its
+  rect must contain the pointer). "Seen before" (`resurface`): `kg:page-check` 2.5 s after load and
+  on SPA URL changes → `{ saved, mentions, contradicts, sameStory }` (`S.kg.sameStory`: a headline
+  sharing most words, another site, within 4 days); the note shows once per page when there's a
+  same story, a contradiction or 2+ entities with 3+ snippets; the floating panel's `.related` bar and
+  the side panel's `#seenBox` (snapshot `seen`, `assistant:sp-seen` index) show `S.resurface.lines()`.
+  Address bar: manifest `omnibox.keyword` "kg" → entities (`rankEntities` query) and
+  `library.search` results; Enter opens the topic, the snippet or `snippets.html#q=<words>`.
 - **LinkedIn** (`sites/linkedin.js`): reads posts on the feed, activity and post pages (several
   selectors, `.feed-shared-update-v2` / `data-urn`; promoted posts left out); other pages (profiles,
   jobs) are read as pages. Feed and activity pages use the `pages.feed` prompts in

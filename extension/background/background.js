@@ -590,6 +590,10 @@
       knowledge.stop();
       return { ok: true };
     },
+    // Read-only lookups for the content script (hovercards, "you've seen this before"); no AI.
+    'kg:names': async () => ({ ok: true, index: (await readKG()).index }),
+    'kg:page-check': async (msg) => ({ ok: true, ...(await pageCheck({ url: String(msg.url || ''), title: String(msg.title || ''), text: String(msg.text || '') })) }),
+    'open:topic': (msg) => ext.tabs.create({ url: ext.runtime.getURL(`pages/topic.html?e=${encodeURIComponent(String(msg.key || ''))}`) }),
     'kg:page': async (msg, sender) => {
       requireExtensionPage(sender);
       return { ok: true, page: await knowledge.writePage(String(msg.key || '')) };
@@ -637,11 +641,90 @@
       ext.idle.queryState(120).then((state) => state === 'idle' && knowledge.run()).catch(quietly('knowledge graph'));
     });
   }
+  // The graph as the rest of the extension reads it (hovercards, page checks, the address bar):
+  // built on demand and kept until a snippet or the graph changes.
+  let kgCache = null;
+  async function readKG() {
+    if (kgCache) return kgCache;
+    const all = await ext.storage.local.get(null);
+    const pick = (prefix) => Object.fromEntries(Object.keys(all).filter((k) => k.startsWith(prefix)).map((k) => [k.slice(prefix.length), all[k]]));
+    const notes = Object.keys(all).filter((k) => k.startsWith('snippet:')).map((k) => all[k]).filter((n) => n && n.id);
+    const kg = S.kg.buildKG({ notes, extractions: pick('kgx:'), comparisons: pick('kgcmp:'), edits: all.kgEdits });
+    const index = S.kg.nameIndex(kg, pick('kgpage:'));
+    kgCache = { kg, notes, notesById: new Map(notes.map((n) => [n.id, n])), index, matcher: S.kg.nameMatcher(index) };
+    return kgCache;
+  }
+
+  // What you already know about the page you're on: the entities it mentions that you've read about,
+  // claims from it that contradict earlier ones, and the same story saved from another site.
+  async function pageCheck({ url = '', title = '', text = '' }) {
+    const { kg, notes, notesById, matcher } = await readKG();
+    const K = S.kg;
+    const key = S.pageKey(url);
+    const here = notes.filter((n) => S.pageKey(n.url) === key);
+    const mentions = K.findMentions(`${title}\n${String(text).slice(0, 20000)}`, matcher).slice(0, 6).map(({ entry, count }) => ({ key: entry.key, name: entry.name, type: entry.type, notes: entry.notes, disputes: entry.disputes, count }));
+    const contradicts = [];
+    for (const n of here) {
+      for (const c of kg.claims.values()) {
+        if (c.noteId !== n.id) continue;
+        for (const id of c.contradicts) {
+          const other = kg.claims.get(id);
+          const note = other && notesById.get(other.noteId);
+          if (note && contradicts.length < 3) contradicts.push({ text: c.text, other: { text: other.text, at: other.at, host: K.hostOf(note.url), id: note.id, key: other.about[0] || '' } });
+        }
+      }
+    }
+    const story = here.length ? null : K.sameStory(title, notes, { url });
+    return {
+      saved: here.length,
+      mentions,
+      contradicts,
+      sameStory: story ? { id: story.id, title: story.title || story.pageTitle, host: K.hostOf(story.url), at: story.createdAt } : null,
+    };
+  }
+
+  // "kg <words>" in the address bar: your PKG's entities and snippets as suggestions.
+  if (ext.omnibox) {
+    const xml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    const plainText = typeof browser !== 'undefined'; // Firefox shows descriptions as plain text
+    const fmt = (s, tag) => (plainText ? String(s) : tag ? `<${tag}>${xml(s)}</${tag}>` : xml(s));
+    try {
+      ext.omnibox.setDefaultSuggestion({ description: plainText ? 'Search your soroagent PKG' : 'Search your soroagent PKG for <match>%s</match>' });
+    } catch {
+      // older Firefox: no default suggestion
+    }
+    ext.omnibox.onInputChanged.addListener((text, suggest) => {
+      const query = String(text || '').trim();
+      if (query.length < 2) return;
+      (async () => {
+        const { kg } = await readKG();
+        const entities = S.kg.rankEntities(kg, { query }).slice(0, 3).map((e) => ({
+          content: `soroagent:topic:${e.key}`,
+          description: `${fmt(e.name, 'match')} ${fmt(`· ${S.kg.TYPE_LABEL[e.type]} · ${e.noteIds.length} snippet${e.noteIds.length === 1 ? '' : 's'}`, 'dim')}`,
+        }));
+        const res = await library.search(query, { limit: 6 });
+        const notes = (res.results || []).slice(0, 6 - entities.length).map((r) => ({
+          content: `soroagent:snippet:${r.note.id}`,
+          description: `${fmt(r.note.title || r.note.pageTitle || 'Untitled')} ${fmt(`· ${S.kg.hostOf(r.note.url)}`, 'url')}`,
+        }));
+        suggest([...entities, ...notes]);
+      })().catch(quietly('omnibox'));
+    });
+    ext.omnibox.onInputEntered.addListener((text, disposition) => {
+      const m = String(text).match(/^soroagent:(topic|snippet):(.+)$/);
+      const path = m ? (m[1] === 'topic' ? `pages/topic.html?e=${encodeURIComponent(m[2])}` : `pages/snippets.html#${encodeURIComponent(m[2])}`) : `pages/snippets.html#q=${encodeURIComponent(String(text).trim())}`;
+      const url = ext.runtime.getURL(path);
+      if (disposition === 'currentTab') ext.tabs.update({ url }).catch(quietly('omnibox'));
+      else ext.tabs.create({ url, active: disposition !== 'newBackgroundTab' }).catch(quietly('omnibox'));
+    });
+  }
+
   // A deleted snippet takes what was extracted from it along.
   ext.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     const gone = Object.keys(changes).filter((k) => k.startsWith('snippet:') && !changes[k].newValue).map((k) => k.slice(8));
     if (gone.length) ext.storage.local.remove(gone.flatMap((id) => [`kgx:${id}`, `kgcmp:${id}`])).catch(() => {});
+    if (Object.keys(changes).some((k) => k.startsWith('snippet:') || (k.startsWith('kg') && k !== 'kgState'))) kgCache = null;
   });
 
   ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
