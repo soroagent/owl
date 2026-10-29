@@ -19,6 +19,8 @@ against version 2.54.0 on 2026-10-29.
 | ✅ | Fewer features to justify against "single purpose": Tasks (background tabs) and the pictures download offer were removed in 2.41 | 2026-10-24 |
 | ✅ | Nothing is posted, liked or sent on the user's behalf on any site (Reply ideas, added in 2.46, were removed in 2.47 along with Tech only) | 2026-10-28 |
 | ✅ | Feed scrolling (Summarize the top 100 posts, Save the posts) happens only after the user clicks, in their own tab and login, on X and LinkedIn feeds; Stop ends it; it reads only what the page shows the user | 2026-10-28 |
+| ✅ | The knowledge graph's background AI work runs only while the user is idle (the `idle` API), stops when they return, reads only their own saved snippets and fetches nothing; it is off by default with a cloud key. Hovercards and "seen before" notes use no AI and send nothing | 2026-10-29 |
+| ✅ | Flashcards for Anki are a file the user downloads with a click on a topic page (a blob link, like an export); nothing is downloaded otherwise | 2026-10-29 |
 | ✅ | The first-run page that shows inside the panel is web-accessible with `use_dynamic_url: true`, so websites can't use it to detect soroagent | 2026-10-24 |
 | ✅ | Privacy policy at a stable URL: https://github.com/soroagent/owl/blob/main/PRIVACY.md (use it in both store listings) | Updated 2026-10-24 |
 | ✅ | Third-party licenses ship in both builds | Tested |
@@ -35,6 +37,7 @@ against version 2.54.0 on 2026-10-29.
 | ⚠️ | **Firefox data collection declaration** is `"none"`, not accurate for cloud AI, web lookups, sync and diagnostic reports | **Needs a decision**: "Firefox: data collection", below |
 | ℹ️ | If the extension is renamed, do it **before** the first upload (the listing name and the OAuth consent screen's app name are hard to change later) | |
 | ℹ️ | Optional: `"minimum_chrome_version": "116"` (opening the side panel from a click needs Chrome 116) | `extension/manifest.json` |
+| ℹ️ | The manifest's `omnibox` keyword (`kg`) needs no permission; it only searches the user's own PKG and appears in the address bar only after the user types `kg` and a space | |
 | ℹ️ | Broad host access means Chrome's in-depth review (slower). Justification below | Expected |
 
 Packages: `npm run store` → `dist/soroagent-chrome-store-<version>.zip` (no `key`, for the Chrome Web
@@ -161,7 +164,10 @@ Tick these data types:
   claimed or Story timeline, Best comments, Chapter summaries) send that content, on click. After an answer, the question and the answer go to the same AI to
   suggest follow-up questions (switch in Settings). While the user is idle, their saved snippets go
   to the same AI to build their knowledge graph (on by default only with a local or in-browser AI;
-  switch in Settings → PKG). With a local or in-browser AI nothing leaves the device.
+  switch in Settings → PKG). On a click on the PKG or a topic page, the snippets and claims that
+  match go to the same AI to answer a question about the user's library, write the weekly review
+  (also written once a week while idle when the knowledge-graph switch is on) or make a brief, study
+  guide, timeline, comparison or flashcards. With a local or in-browser AI nothing leaves the device.
 - **Web history**: saved notes include the address of the page they came from; stored locally and
   included in the user's encrypted sync only if they turn sync on. For pages the user saved (only
   those), the active reading time is added up per page to weight topics in the PKG view; it stays on
@@ -170,7 +176,10 @@ Tick these data types:
   only to that provider.
 
 Not collected: personally identifiable information, health, financial, personal communications,
-location, user activity (no clicks, keystrokes or browsing log are recorded).
+location, user activity (no clicks, keystrokes or browsing log are recorded; the `idle` state is
+only read to decide when to build the knowledge graph and is never stored or sent). Hovercards and
+"seen before" notes compare the page with the user's entity names inside the extension; nothing is
+stored or sent.
 
 Certify all three statements: not sold, not used or transferred for purposes unrelated to the single
 purpose, not used for creditworthiness or lending.
@@ -200,7 +209,15 @@ purpose, not used for creditworthiness or lending.
 > Knowledge graph: save or summarize a few articles, then open the PKG page (toolbar menu → PKG, or
 > Snippets → PKG) and click "Build now". The people, companies and ideas in them appear as a graph;
 > click one and "Open the topic page" for its claims, the passages they came from and where sources
-> disagree. Without a click it runs only while the computer is idle.
+> disagree. Without a click it runs only while the computer is idle. On the PKG page, "Ask your
+> PKG" answers a question from the saved snippets only, with each sentence linked to its source;
+> Review shows the weekly review, on this day and gaps (practice is off until turned on there). A
+> topic page's "Make something from this" writes a brief, study guide, timeline, comparison or
+> flashcards ("Download … for Anki" saves a text file, only on that click).
+>
+> Once the graph has entities, open a page that names one of them and rest the pointer on the name:
+> a card shows what the user's own notes say (no AI, nothing sent). Typing `kg`, a space and a word
+> in the address bar searches the same library.
 >
 > Local model servers: Ollama rejects requests whose Origin is chrome-extension:// unless the user
 > edits its configuration (OLLAMA_ORIGINS). Instead, soroagent adds one declarativeNetRequest
@@ -260,6 +277,13 @@ npm run vendor   # optional: downloads the vendored libraries again and verifies
 > automatic backup in Settings. On X and LinkedIn feeds the panel can summarize
 > the top 100 posts or save them, scrolling the page after a click; it never posts anything.
 >
+> Knowledge graph: while the user is idle (the idle permission, no input for a minute), the user's AI
+> reads their saved snippets and files the entities, relations and claims in them locally; it stops
+> when they come back, fetches nothing new, and is off by default with a cloud key (Settings → PKG).
+> To see it at once: save or summarize a few articles, open the PKG page (Snippets → PKG) and click
+> "Build now", then open an entity's topic page. Hovercards on names and the `kg` address-bar keyword
+> read only this local graph and send nothing.
+>
 > Our code is not minified or bundled; scripts/build.mjs only copies files and writes the manifest.
 > Third-party libraries, unmodified (README, license and SHA-256 in each vendor/ folder; `npm run
 > vendor` downloads them from the npm registry, checks the tarball integrity and the SHA-256):
@@ -286,7 +310,7 @@ only when the user chooses a feature that needs it:
 
 | Feature | Data | Category |
 |---|---|---|
-| A cloud AI (the user's own API key) | Page text, questions, answers (for follow-up questions) | `websiteContent` |
+| A cloud AI (the user's own API key) | Page text, questions, answers (for follow-up questions); saved snippets for the knowledge graph (only if the user turns it on with a cloud key), Ask your PKG, the weekly review and topic outputs | `websiteContent` |
 | Research, and questions the page can't answer (looked up on the web) | The search query | `searchTerms` |
 | Sync (Google Drive, WebDAV, Gist) | The library, encrypted end to end | `websiteContent`, `browsingActivity` |
 | "Copy diagnostic report" (opens a GitHub issue) | Scrubbed error log | `technicalAndInteraction` |
@@ -323,7 +347,8 @@ Firefox 140+ is required for this, which is now `strict_min_version`.
 | Description too long (Chrome, 132) | 132 characters; a test keeps it within the limit. |
 | Missing licenses for bundled code | Shipped in both builds. |
 | Broken features for reviewers (OAuth in Testing mode, store ID) | Publish the OAuth consent screen; add the store ID redirect. |
-| Single purpose (Chrome) | Every feature serves reading and keeping pages: summaries, questions, web answers, research, the library, sync. Tasks and picture downloads were removed to keep it that way. Reply ideas and Tech only were removed in 2.47 for the same reason. |
+| Single purpose (Chrome) | Every feature serves reading and keeping pages: summaries, questions, web answers, research, the library and the knowledge graph built from it, sync. Tasks and picture downloads were removed to keep it that way. Reply ideas and Tech only were removed in 2.47 for the same reason. |
 | Acting on the user's behalf on other sites (spam, automation) | soroagent never posts, likes, follows or sends anything. Feed summaries and saving only scroll the user's own feed page after a click. |
-| Unexpected downloads, tabs or tracking | None: the backup is opt-in and visible, no background tabs, no reading log. |
+| Unexpected downloads, tabs or tracking | None: the backup is opt-in and visible, no background tabs, no reading log. The `idle` state only schedules the knowledge graph; it isn't recorded. |
+| Background AI use the user didn't ask for | The knowledge graph runs only while idle, on the user's own snippets, and is off by default with a cloud key; "Build now", Ask, the weekly review and outputs otherwise run on a click. |
 | Extension detectable by websites | The one web-accessible page uses `use_dynamic_url`. |
